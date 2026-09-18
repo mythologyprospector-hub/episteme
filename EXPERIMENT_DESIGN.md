@@ -1,8 +1,9 @@
 # Episteme Experiment Design
 
 **Status:** Canonical Phase 5 design
-**Version:** 0.1
+**Version:** 0.2
 **Last updated:** 2026-09-18
+**Phase status:** Complete
 
 ## Purpose
 
@@ -56,11 +57,11 @@ A result must be independently ingested with appropriate provenance and explicit
 
 A proposal must never be rewritten to match its later result.
 
-## Uncertainty
+## Uncertainty and Scope
 
-Phase 5 may represent uncertainty associated with an experiment proposal when its meaning and basis are explicit.
+Phase 5 represents the reason a proposed observation is expected to reduce uncertainty through its explicit discrimination basis. This is contextual explanatory metadata, not a universal confidence or quality score.
 
-It must not collapse uncertainty into a universal confidence score for hypotheses.
+A general uncertainty-tracking calculus is intentionally outside this phase.
 
 ## Deferred Decisions
 
