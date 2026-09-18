@@ -1,7 +1,7 @@
 # Episteme Architecture
 
 **Status:** Canonical  
-**Version:** 0.6  
+**Version:** 0.7  
 
 ## Architectural Intent
 
@@ -462,3 +462,105 @@ The most important invariant is:
 > **No information may gain epistemic authority merely by passing through Episteme.**
 
 Every later architectural decision must preserve this invariant.
+
+## Phase 3 Discovery Architecture
+
+Phase 3 introduces a derived discovery layer above the grounded substrate and Phase 2 integrity layer.
+
+Discovery is analysis of represented knowledge, not a new source of knowledge.
+
+### Discovery Findings
+
+A discovery finding is a generated artifact that records an observed pattern in the Episteme knowledge state.
+
+Initial finding kinds are:
+
+- **gap** — a bounded absence or unresolved state identified relative to an explicit discovery expectation or grounded context;
+- **tension** — a set of grounded inputs that cannot be cleanly reconciled under the stated discovery rule;
+- **contradiction** — an explicit or reproducibly detected incompatibility between represented material;
+- **unresolved_question** — a question generated from a gap or tension that identifies what remains to be learned.
+
+Discovery findings are not grounded records and must not be inserted into the grounded `records` collection.
+
+A finding must preserve:
+
+- stable identifier;
+- finding kind;
+- human-readable title and description;
+- ordered grounded input identifiers;
+- discovery method and method version;
+- rationale explaining why the method produced the finding;
+- zero or more named significance measures;
+- creation timestamp;
+- schema version.
+
+The input identifiers are the finding's evidential basis. The discovery method explains the transformation from those inputs to the finding.
+
+### Discovery Traceability
+
+A discovery result is acceptable only when its inputs can be traced to grounded or integrity-layer records.
+
+A discovery method must never use a generated finding as independent evidence for another finding.
+
+If a discovery process consumes generated material, that material remains explicitly generated and its upstream grounded basis must remain inspectable.
+
+### Meaningful Gaps
+
+Episteme does not equate graph sparsity with a scientific unknown.
+
+A gap is meaningful only when:
+
+1. the missing or unresolved element is bounded;
+2. the expectation that makes it a gap is explicit;
+3. the expectation is supplied by a grounded context or by an explicit analysis request;
+4. the inputs supporting the gap are traceable;
+5. the method does not treat the absence itself as proof of an external fact.
+
+This prevents the engine from manufacturing discoveries merely because a graph is incomplete.
+
+### Tensions and Contradictions
+
+Contradiction discovery begins with explicit structure.
+
+An existing relationship whose predicate is `contradicts` is a directly represented tension signal.
+
+More sophisticated contradiction detection may compare record content later, but only when the comparison semantics are documented and reproducible. Phase 3 does not assume that two different payloads are contradictory merely because they differ.
+
+A contradiction is surfaced, not resolved.
+
+### Significance Measures
+
+Significance is an attention signal, not a truth score.
+
+Phase 3 may record multiple named measures, such as:
+
+- evidence breadth;
+- number of independent source identifiers;
+- conflict density;
+- coverage deficit;
+- downstream dependency count.
+
+Measures must retain their name, value, scale, and basis.
+
+No single universal significance score is canonical in Phase 3. Different discovery methods may produce different measures, and their meanings must remain inspectable.
+
+### Initial Discovery Methods
+
+Phase 3 begins with deliberately narrow, reproducible methods:
+
+1. **Explicit contradiction discovery** — surfaces grounded `contradicts` relationships.
+2. **Expectation-based gap detection** — evaluates an explicit request for an expected relationship or observation against the grounded substrate.
+3. **Question generation** — turns an accepted gap or tension into a bounded unresolved question without asserting an answer.
+4. **Significance measurement** — derives named attention signals from the grounded inputs and discovery structure.
+
+Semantic contradiction inference, autonomous ontology completion, model generation, and language-model-driven discovery are deferred until their epistemic boundaries are separately documented.
+
+### Discovery Boundary
+
+The dependency direction is:
+
+Grounded Knowledge → Integrity → Discovery Findings
+
+Discovery may read lower layers but must not rewrite them.
+
+Discovery findings may become inputs to later hypothesis generation, but they remain distinguishable from grounded evidence until external evidence changes their status through an explicit process.
