@@ -1,7 +1,7 @@
 # Episteme Roadmap
 
 **Status:** Canonical planning document  
-**Version:** 1.5  
+**Version:** 1.6  
 **Last updated:** 2026-09-18
 
 ## Mission
@@ -267,6 +267,10 @@ The first public knowledge-import capability satisfies its documented initial sc
 
 The initial public knowledge-import capability is therefore complete. Broader external-source support remains open as future work and is not implied by this milestone.
 
+### Phase 8 Collaboration/Review Audit
+
+The initial collaboration/review capability is complete. Reviews are immutable records over existing Episteme objects, preserve reviewer/process provenance and disagreement, validate their target before persistence, and do not mutate or reclassify the reviewed object. The read-only Python API and installed CLI expose review inspection with exact target-kind/identifier scoping. Review records remain outside discovery trails because they are collaboration metadata rather than epistemic lineage nodes.
+
 ### Phase 8 Initial Implementation Audit
 
 The first Phase 8 implementation satisfies the initial public-instrument exit condition.
@@ -304,7 +308,7 @@ If implementation reveals that the roadmap is wrong, revise the roadmap rather t
 
 ## Current Position
 
-**Phase 7 — Broadening**
+**Phase 8 — Public Scientific Instrument**
 
 Phase 1 is complete. The grounded substrate, provenance boundary, relationships, deterministic serialization, validation, SQLite persistence, and externally grounded ingestion fixture are implemented and verified.
 
