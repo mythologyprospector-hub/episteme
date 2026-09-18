@@ -1,4 +1,4 @@
-"""SQLite persistence for the Phase 1 grounded knowledge substrate."""
+"""SQLite persistence for grounded knowledge, integrity records, and discovery artifacts."""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ from typing import Iterator
 
 from .model import (
     AssessmentTargetKind,
+    DiscoveryFinding,
     EvidenceAssessment,
     LifecycleEvent,
     Record,
@@ -19,7 +20,7 @@ from .model import (
 
 
 class Store:
-    """Repository-owned SQLite store for grounded records and relationships."""
+    """Repository-owned SQLite store for grounded and derived Episteme state."""
 
     def __init__(self, path: str | Path = ":memory:") -> None:
         self._connection = sqlite3.connect(path)
@@ -82,6 +83,21 @@ class Store:
                 rationale TEXT NOT NULL,
                 provenance TEXT NOT NULL,
                 assessed_at TEXT NOT NULL,
+                schema_version INTEGER NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS discovery_findings (
+                id TEXT PRIMARY KEY,
+                kind TEXT NOT NULL,
+                title TEXT NOT NULL,
+                description TEXT NOT NULL,
+                input_ids TEXT NOT NULL,
+                method TEXT NOT NULL,
+                method_version TEXT NOT NULL,
+                rationale TEXT NOT NULL,
+                measures TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                related_finding_id TEXT,
                 schema_version INTEGER NOT NULL
             );
 
@@ -205,6 +221,39 @@ class Store:
         )
         self._connection.commit()
 
+    def iter_relationships(self, predicate: str | None = None) -> Iterator[Relationship]:
+        if predicate is None:
+            rows = self._connection.execute(
+                """
+                SELECT id, subject_id, predicate, object_id, provenance, created_at, schema_version
+                FROM relationships
+                ORDER BY created_at, id
+                """
+            )
+        else:
+            rows = self._connection.execute(
+                """
+                SELECT id, subject_id, predicate, object_id, provenance, created_at, schema_version
+                FROM relationships
+                WHERE predicate = ?
+                ORDER BY created_at, id
+                """,
+                (predicate,),
+            )
+
+        for row in rows:
+            yield Relationship.from_dict(
+                {
+                    "id": row["id"],
+                    "subject_id": row["subject_id"],
+                    "predicate": row["predicate"],
+                    "object_id": row["object_id"],
+                    "provenance": json.loads(row["provenance"]),
+                    "created_at": row["created_at"],
+                    "schema_version": row["schema_version"],
+                }
+            )
+
     def get_relationship(self, relationship_id: str) -> Relationship | None:
         row = self._connection.execute(
             """
@@ -227,6 +276,117 @@ class Store:
                 "schema_version": row["schema_version"],
             }
         )
+
+
+    def put_discovery_finding(self, finding: DiscoveryFinding) -> None:
+        missing = [
+            input_id
+            for input_id in finding.input_ids
+            if self.get_record(input_id) is None and self.get_relationship(input_id) is None
+        ]
+        if missing:
+            raise ValueError(
+                "discovery finding references missing input(s): " + ", ".join(missing)
+            )
+        if finding.related_finding_id is not None and self.get_discovery_finding(finding.related_finding_id) is None:
+            raise ValueError(
+                "discovery finding references missing related finding: "
+                + finding.related_finding_id
+            )
+
+        self._connection.execute(
+            """
+            INSERT INTO discovery_findings
+                (id, kind, title, description, input_ids, method, method_version,
+                 rationale, measures, created_at, related_finding_id, schema_version)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                finding.id,
+                finding.kind.value,
+                finding.title,
+                finding.description,
+                canonical_json(list(finding.input_ids)),
+                finding.method,
+                finding.method_version,
+                finding.rationale,
+                canonical_json([measure.to_dict() for measure in finding.measures]),
+                finding.created_at,
+                finding.related_finding_id,
+                finding.schema_version,
+            ),
+        )
+        self._connection.commit()
+
+    def get_discovery_finding(self, finding_id: str) -> DiscoveryFinding | None:
+        row = self._connection.execute(
+            """
+            SELECT id, kind, title, description, input_ids, method, method_version,
+                   rationale, measures, created_at, related_finding_id, schema_version
+            FROM discovery_findings
+            WHERE id = ?
+            """,
+            (finding_id,),
+        ).fetchone()
+        if row is None:
+            return None
+
+        return DiscoveryFinding.from_dict(
+            {
+                "id": row["id"],
+                "kind": row["kind"],
+                "title": row["title"],
+                "description": row["description"],
+                "input_ids": json.loads(row["input_ids"]),
+                "method": row["method"],
+                "method_version": row["method_version"],
+                "rationale": row["rationale"],
+                "measures": json.loads(row["measures"]),
+                "created_at": row["created_at"],
+                "related_finding_id": row["related_finding_id"],
+                "schema_version": row["schema_version"],
+            }
+        )
+
+    def iter_discovery_findings(self, kind: str | None = None) -> Iterator[DiscoveryFinding]:
+        if kind is None:
+            rows = self._connection.execute(
+                """
+                SELECT id, kind, title, description, input_ids, method, method_version,
+                       rationale, measures, created_at, related_finding_id, schema_version
+                FROM discovery_findings
+                ORDER BY created_at, id
+                """
+            )
+        else:
+            rows = self._connection.execute(
+                """
+                SELECT id, kind, title, description, input_ids, method, method_version,
+                       rationale, measures, created_at, related_finding_id, schema_version
+                FROM discovery_findings
+                WHERE kind = ?
+                ORDER BY created_at, id
+                """,
+                (kind,),
+            )
+
+        for row in rows:
+            yield DiscoveryFinding.from_dict(
+                {
+                    "id": row["id"],
+                    "kind": row["kind"],
+                    "title": row["title"],
+                    "description": row["description"],
+                    "input_ids": json.loads(row["input_ids"]),
+                    "method": row["method"],
+                    "method_version": row["method_version"],
+                    "rationale": row["rationale"],
+                    "measures": json.loads(row["measures"]),
+                    "created_at": row["created_at"],
+                    "related_finding_id": row["related_finding_id"],
+                    "schema_version": row["schema_version"],
+                }
+            )
 
     def put_lifecycle_event(self, event: LifecycleEvent) -> None:
         if self.get_record(event.record_id) is None:
