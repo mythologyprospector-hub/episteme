@@ -2,7 +2,7 @@
 
 **Status:** Canonical  
 **Version:** 0.3  
-**Last updated:** 2026-09-18
+**Version:** 0.4  
 
 ## Architectural Intent
 
@@ -210,6 +210,22 @@ Records and relationships are serialized with deterministic JSON:
 - no non-standard JSON extensions.
 
 Canonical serialization makes persistence auditable and gives later provenance mechanisms a stable representation to hash or compare.
+
+## Phase 1 Ingestion Boundary
+
+Phase 1 provides one deliberately narrow ingestion path: UTF-8 JSON Lines containing grounded records in the canonical record shape.
+
+The importer is a format adapter, not an epistemic authority. It parses records, applies the domain model's validation, and hands accepted records to the repository-owned store.
+
+The importer does not:
+
+- infer missing facts;
+- repair malformed records;
+- assign provenance that was not supplied;
+- deduplicate records;
+- promote interpretations into grounded records.
+
+A later ingestion source may be added only when its responsibility and boundary are documented.
 
 ## Provenance Boundary
 
