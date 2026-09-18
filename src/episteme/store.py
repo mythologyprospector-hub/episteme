@@ -151,6 +151,7 @@ class Store:
                 prediction_ids TEXT NOT NULL,
                 objective TEXT NOT NULL,
                 proposed_observation TEXT NOT NULL,
+                discrimination_basis TEXT NOT NULL,
                 conditions TEXT NOT NULL,
                 assumptions TEXT NOT NULL,
                 method TEXT NOT NULL,
@@ -649,11 +650,11 @@ class Store:
             )
         self._connection.execute(
             """INSERT INTO experiment_proposals
-               (id, prediction_ids, objective, proposed_observation, conditions,
+               (id, prediction_ids, objective, proposed_observation, discrimination_basis, conditions,
                 assumptions, method, method_version, rationale, created_at, schema_version)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (proposal.id, canonical_json(list(proposal.prediction_ids)),
-             proposal.objective, proposal.proposed_observation, proposal.conditions,
+             proposal.objective, proposal.proposed_observation, proposal.discrimination_basis, proposal.conditions,
              canonical_json(list(proposal.assumptions)), proposal.method,
              proposal.method_version, proposal.rationale, proposal.created_at,
              proposal.schema_version),
@@ -662,7 +663,7 @@ class Store:
 
     def get_experiment_proposal(self, proposal_id: str) -> ExperimentProposal | None:
         row = self._connection.execute(
-            """SELECT id, prediction_ids, objective, proposed_observation, conditions,
+            """SELECT id, prediction_ids, objective, proposed_observation, discrimination_basis, conditions,
                       assumptions, method, method_version, rationale, created_at, schema_version
                FROM experiment_proposals WHERE id = ?""", (proposal_id,)
         ).fetchone()
@@ -671,7 +672,7 @@ class Store:
         return ExperimentProposal.from_dict({
             "id": row["id"], "prediction_ids": json.loads(row["prediction_ids"]),
             "objective": row["objective"], "proposed_observation": row["proposed_observation"],
-            "conditions": row["conditions"], "assumptions": json.loads(row["assumptions"]),
+            "discrimination_basis": row["discrimination_basis"], "conditions": row["conditions"], "assumptions": json.loads(row["assumptions"]),
             "method": row["method"], "method_version": row["method_version"],
             "rationale": row["rationale"], "created_at": row["created_at"],
             "schema_version": row["schema_version"],
@@ -679,7 +680,7 @@ class Store:
 
     def iter_experiment_proposals(self) -> Iterator[ExperimentProposal]:
         rows = self._connection.execute(
-            """SELECT id, prediction_ids, objective, proposed_observation, conditions,
+            """SELECT id, prediction_ids, objective, proposed_observation, discrimination_basis, conditions,
                       assumptions, method, method_version, rationale, created_at, schema_version
                FROM experiment_proposals ORDER BY created_at, id"""
         )
@@ -687,7 +688,7 @@ class Store:
             yield ExperimentProposal.from_dict({
                 "id": row["id"], "prediction_ids": json.loads(row["prediction_ids"]),
                 "objective": row["objective"], "proposed_observation": row["proposed_observation"],
-                "conditions": row["conditions"], "assumptions": json.loads(row["assumptions"]),
+                "discrimination_basis": row["discrimination_basis"], "conditions": row["conditions"], "assumptions": json.loads(row["assumptions"]),
                 "method": row["method"], "method_version": row["method_version"],
                 "rationale": row["rationale"], "created_at": row["created_at"],
                 "schema_version": row["schema_version"],
