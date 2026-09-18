@@ -1,7 +1,7 @@
 # Episteme Architecture
 
 **Status:** Canonical  
-**Version:** 0.5  
+**Version:** 0.6  
 
 ## Architectural Intent
 
@@ -139,6 +139,22 @@ A provenance entry records:
 - optional note.
 
 Provenance describes where the record came from. It does not certify that the external source is correct.
+
+#### Provenance Validation Policy
+
+Phase 2 strengthens provenance validation without assigning credibility to a source.
+
+A provenance entry is structurally valid only when:
+
+- source_id is a non-empty string;
+- captured_at is a timezone-aware ISO-8601/RFC-3339 timestamp;
+- source_location, when supplied, is a non-empty absolute URI with a scheme;
+- source_version, when supplied, is a non-empty string;
+- note, when supplied, is a non-empty string.
+
+Validation checks whether provenance is well-formed and inspectable. It does not determine whether the cited source is authoritative, accurate, complete, or trustworthy.
+
+The validation boundary intentionally does not require every source to have a URL or version because scientific provenance may refer to physical, archival, local, or otherwise non-URL sources.
 
 ### Relationships
 
