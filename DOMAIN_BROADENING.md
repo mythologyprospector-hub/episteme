@@ -269,3 +269,21 @@ This creates the intended boundary:
 In particular, missing measurements remain explicit status values rather than becoming zero, null, or silently absent. Provenance is supplied by the caller and passed unchanged into the core record.
 
 The first adapter is intentionally not an astronomy ontology or analysis engine. Its purpose is to prove that quantitative domain structure can remain above the stable epistemic substrate.
+
+
+## Astronomy Uncertainty Boundary — Stress-Test Result
+
+The first astronomy payload exposed an important boundary question: a scientific measurement can have a numeric value while the measurement itself remains uncertain. Therefore, uncertainty must not be represented by forcing the entire measurement into the `uncertain` status.
+
+The adapter may carry domain-specific uncertainty metadata above the core measurement primitive. For the first implementation, this is represented by an optional `uncertainty` field whose structure is owned by the astronomy schema. The core stores it as ordinary payload data and does not assign statistical meaning to it.
+
+The adapter does not establish a universal uncertainty model, confidence score, error calculus, or unit conversion system. It only validates that the optional uncertainty value is JSON-compatible and structurally representable. Domain-specific interpretation remains outside the core.
+
+This preserves the distinction between:
+
+- a measured value that has uncertainty;
+- a quantity that was not measured;
+- a quantity that was not reported;
+- a result whose domain interpretation is explicitly uncertain.
+
+No core primitive or core field is added as a result of this stress test.
