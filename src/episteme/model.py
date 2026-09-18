@@ -35,6 +35,12 @@ class LifecycleEventKind(StrEnum):
     RETRACTED = "retracted"
 
 
+class PredictionEvaluationOutcome(StrEnum):
+    CONSISTENT = "consistent"
+    INCONSISTENT = "inconsistent"
+    INCONCLUSIVE = "inconclusive"
+
+
 class AssessmentTargetKind(StrEnum):
     RECORD = "record"
     RELATIONSHIP = "relationship"
@@ -744,6 +750,75 @@ class ExperimentProposal:
                    method=data["method"], method_version=data["method_version"],
                    rationale=data["rationale"], created_at=data["created_at"],
                    schema_version=data.get("schema_version", SCHEMA_VERSION))
+
+@dataclass(frozen=True, slots=True)
+class PredictionEvaluation:
+    """A generated contextual evaluation of one result against one prediction."""
+
+    id: str
+    result_id: str
+    prediction_id: str
+    experiment_proposal_id: str | None
+    comparison_conditions: str
+    assumptions: tuple[str, ...]
+    outcome: PredictionEvaluationOutcome
+    rationale: str
+    method: str
+    method_version: str
+    created_at: str
+    schema_version: int = SCHEMA_VERSION
+
+    def __post_init__(self) -> None:
+        _require_uuid(self.id, "id")
+        _require_uuid(self.result_id, "result_id")
+        _require_uuid(self.prediction_id, "prediction_id")
+        if self.experiment_proposal_id is not None:
+            _require_uuid(self.experiment_proposal_id, "experiment_proposal_id")
+        _require_text(self.comparison_conditions, "comparison_conditions")
+        for value in self.assumptions:
+            _require_text(value, "assumption")
+        if not isinstance(self.outcome, PredictionEvaluationOutcome):
+            raise ValueError("outcome must be a PredictionEvaluationOutcome")
+        _require_text(self.rationale, "rationale")
+        _require_text(self.method, "method")
+        _require_text(self.method_version, "method_version")
+        _require_iso_timestamp(self.created_at, "created_at")
+        if self.schema_version != SCHEMA_VERSION:
+            raise ValueError(f"unsupported schema_version: {self.schema_version}")
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "result_id": self.result_id,
+            "prediction_id": self.prediction_id,
+            "experiment_proposal_id": self.experiment_proposal_id,
+            "comparison_conditions": self.comparison_conditions,
+            "assumptions": list(self.assumptions),
+            "outcome": self.outcome.value,
+            "rationale": self.rationale,
+            "method": self.method,
+            "method_version": self.method_version,
+            "created_at": self.created_at,
+            "schema_version": self.schema_version,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> "PredictionEvaluation":
+        return cls(
+            id=data["id"],
+            result_id=data["result_id"],
+            prediction_id=data["prediction_id"],
+            experiment_proposal_id=data.get("experiment_proposal_id"),
+            comparison_conditions=data["comparison_conditions"],
+            assumptions=tuple(data["assumptions"]),
+            outcome=PredictionEvaluationOutcome(data["outcome"]),
+            rationale=data["rationale"],
+            method=data["method"],
+            method_version=data["method_version"],
+            created_at=data["created_at"],
+            schema_version=data.get("schema_version", SCHEMA_VERSION),
+        )
+
 
 def make_record(
     kind: RecordKind,
