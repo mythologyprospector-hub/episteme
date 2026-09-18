@@ -136,8 +136,10 @@ Those capabilities may become appropriate later, but they require additional epi
 Phase 3 is complete when Episteme can:
 
 1. inspect grounded knowledge;
-2. produce traceable gap and tension findings;
+2. produce traceable gap findings and surface explicit contradiction structure;
 3. generate bounded unresolved questions;
 4. record reproducible discovery methods;
 5. attach interpretable significance measures;
 6. keep all generated material distinguishable from grounded evidence.
+
+Semantic tension detection is not required for the Phase 3 exit condition; its rules remain deferred until a reproducible comparison basis can be defined.
