@@ -78,9 +78,9 @@ The first documents to read are:
 
 ## Project Status
 
-**Current phase:** Phase 2 — Knowledge Integrity
+**Current phase:** Phase 3 — Discovery
 
-The Phase 1 grounded substrate is complete and verified, including an externally grounded ingestion fixture. The next work protects provenance, contradiction visibility, evidence quality, explicit state transitions, and reproducible transformations before discovery behavior is introduced.
+Phase 1 grounded substrate and Phase 2 knowledge integrity are complete and verified. The next work is discovery: identifying meaningful gaps and tensions while preserving traceability to grounded inputs and keeping generated material distinct from evidence.
 
 ## Project Boundary
 
