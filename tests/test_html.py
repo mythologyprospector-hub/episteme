@@ -49,4 +49,7 @@ def test_render_discovery_report_html_is_self_contained_and_read_only():
     assert "Generated artifacts" in rendered
     assert record.id in rendered
     assert finding.id in rendered
-    assert "This page does not adjudicate truth." in rendered
+    assert "This report does not adjudicate truth." in rendered
+    assert "grounded records" in rendered
+    assert "<details>" in rendered
+    assert "browser-fixture" in rendered
