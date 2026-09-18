@@ -425,6 +425,96 @@ A dependency should be introduced only when:
 3. its role is documented;
 4. its effect on reproducibility, provenance, security, and portability is understood.
 
+
+
+## Public HTTP/API Boundary
+
+The external HTTP/API surface is a transport adapter over the existing read-only public API.
+
+Its responsibility is to make existing Episteme inspection operations available to external callers without creating a second epistemic representation, persistence model, or mutation path.
+
+The dependency direction is:
+
+**Episteme core → read-only public API → HTTP transport**
+
+The HTTP layer must not become a new architectural layer for evidence, discovery, interpretation, or knowledge state.
+
+### Initial HTTP Contract
+
+The first HTTP surface is explicitly read-only and versioned under `/api/v1`.
+
+Initial operations expose only existing public inspection capabilities:
+
+- retrieve one grounded record;
+- list grounded records deterministically;
+- retrieve one review;
+- list reviews, optionally scoped by exact target kind and identifier;
+- reconstruct a discovery trail;
+- retrieve timestamp-independent discovery lineage;
+- retrieve a discovery report;
+- retrieve the same report as browser-readable HTML where supported by the public interface.
+
+The HTTP surface must not provide mutation endpoints for records, relationships, reviews, findings, hypotheses, predictions, experiment proposals, results, evaluations, or knowledge-state consequences.
+
+It must not expose API-key management, external provider credentials, model-provider control, crawling, autonomous ingestion, or laboratory control.
+
+### Representation and Semantics
+
+HTTP responses use the existing public API representations rather than defining a parallel data model.
+
+Object-level schema versions remain part of the represented Episteme objects. The HTTP API version describes the transport contract and does not replace or reinterpret object schema versions.
+
+The transport must preserve the distinction between:
+
+- grounded records;
+- generated artifacts;
+- collaboration metadata;
+- unknown or unresolved states.
+
+An HTTP response must never promote an object merely because it was returned by the API.
+
+JSON responses use deterministic serialization consistent with the public Python interface where deterministic output is part of the operation's contract.
+
+### Error Semantics
+
+The HTTP boundary must distinguish malformed requests from absent Episteme objects and operational failures.
+
+At minimum:
+
+- **400 Bad Request** — malformed identifiers, timestamps, filters, or query parameters;
+- **404 Not Found** — the requested Episteme object or discovery target does not exist;
+- **200 OK** — a valid read operation succeeded.
+
+Operational failures must not be disguised as missing scientific knowledge.
+
+The exact error-body schema is a transport decision and must be documented before implementation.
+
+### Store Access
+
+The HTTP adapter reads an Episteme store selected by server configuration.
+
+Request handling must not mutate Episteme state.
+
+The adapter should avoid sharing request-specific mutable state across callers. Store access and concurrency behavior are implementation concerns of the transport boundary and must not alter Episteme's epistemic semantics.
+
+### Deployment Boundary
+
+Authentication, TLS, reverse proxies, rate limiting, network exposure, and process supervision are deployment concerns rather than epistemic primitives.
+
+A deployment may impose controls appropriate to its environment without changing the HTTP contract.
+
+The initial API is therefore a public read interface, not a claim that every deployment should expose an Episteme store directly to the public internet.
+
+### External Providers
+
+Existing system-wide external APIs and credentials may be available to the host environment, including research, model, search, and data services.
+
+Their existence does not make them Episteme dependencies.
+
+When Episteme later uses an external provider, the provider belongs behind an explicit source or capability adapter. The adapter must preserve source provenance and the grounded/generated boundary. Credentials remain outside the repository and outside the epistemic data model.
+
+This permits Episteme to operate without external providers while allowing available system capabilities to be used when a documented scientific workflow requires them.
+
 ## External Models
 
 Language models and other reasoning systems are tools within Episteme, not epistemic authorities.
