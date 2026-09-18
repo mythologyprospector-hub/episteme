@@ -6,7 +6,13 @@ import argparse
 import json
 from pathlib import Path
 
-from .public import (\n    discovery_lineage,\n    discovery_report,\n    discovery_trail,\n    get_record,\n    list_records,\n)
+from .public import (
+    discovery_lineage,
+    discovery_report,
+    discovery_trail,
+    get_record,
+    list_records,
+)
 from .store import Store
 
 
