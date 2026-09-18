@@ -19,6 +19,7 @@ from .model import (
     Record,
     Relationship,
     Transformation,
+    PredictionEvaluation,
     canonical_json,
 )
 
@@ -155,6 +156,21 @@ class Store:
                 method TEXT NOT NULL,
                 method_version TEXT NOT NULL,
                 rationale TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                schema_version INTEGER NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS prediction_evaluations (
+                id TEXT PRIMARY KEY,
+                result_id TEXT NOT NULL,
+                prediction_id TEXT NOT NULL,
+                experiment_proposal_id TEXT,
+                comparison_conditions TEXT NOT NULL,
+                assumptions TEXT NOT NULL,
+                outcome TEXT NOT NULL,
+                rationale TEXT NOT NULL,
+                method TEXT NOT NULL,
+                method_version TEXT NOT NULL,
                 created_at TEXT NOT NULL,
                 schema_version INTEGER NOT NULL
             );
@@ -738,6 +754,108 @@ class Store:
                 "rationale": row["rationale"], "created_at": row["created_at"],
                 "schema_version": row["schema_version"],
             })
+
+    def put_prediction_evaluation(self, evaluation: PredictionEvaluation) -> None:
+        result = self.get_record(evaluation.result_id)
+        if result is None or result.kind.value != "result":
+            raise ValueError(
+                "prediction evaluation references missing or non-result record: "
+                + evaluation.result_id
+            )
+        if self.get_prediction(evaluation.prediction_id) is None:
+            raise ValueError(
+                "prediction evaluation references missing prediction: "
+                + evaluation.prediction_id
+            )
+        if evaluation.experiment_proposal_id is not None:
+            proposal = self.get_experiment_proposal(evaluation.experiment_proposal_id)
+            if proposal is None:
+                raise ValueError(
+                    "prediction evaluation references missing experiment proposal: "
+                    + evaluation.experiment_proposal_id
+                )
+            if evaluation.prediction_id not in proposal.prediction_ids:
+                raise ValueError(
+                    "prediction evaluation prediction is not included in experiment proposal: "
+                    + evaluation.prediction_id
+                )
+
+        self._connection.execute(
+            """INSERT INTO prediction_evaluations
+               (id, result_id, prediction_id, experiment_proposal_id,
+                comparison_conditions, assumptions, outcome, rationale,
+                method, method_version, created_at, schema_version)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                evaluation.id,
+                evaluation.result_id,
+                evaluation.prediction_id,
+                evaluation.experiment_proposal_id,
+                evaluation.comparison_conditions,
+                canonical_json(list(evaluation.assumptions)),
+                evaluation.outcome.value,
+                evaluation.rationale,
+                evaluation.method,
+                evaluation.method_version,
+                evaluation.created_at,
+                evaluation.schema_version,
+            ),
+        )
+        self._connection.commit()
+
+    def get_prediction_evaluation(self, evaluation_id: str) -> PredictionEvaluation | None:
+        row = self._connection.execute(
+            """SELECT id, result_id, prediction_id, experiment_proposal_id,
+                      comparison_conditions, assumptions, outcome, rationale,
+                      method, method_version, created_at, schema_version
+               FROM prediction_evaluations
+               WHERE id = ?""",
+            (evaluation_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        return PredictionEvaluation.from_dict(
+            {
+                "id": row["id"],
+                "result_id": row["result_id"],
+                "prediction_id": row["prediction_id"],
+                "experiment_proposal_id": row["experiment_proposal_id"],
+                "comparison_conditions": row["comparison_conditions"],
+                "assumptions": json.loads(row["assumptions"]),
+                "outcome": row["outcome"],
+                "rationale": row["rationale"],
+                "method": row["method"],
+                "method_version": row["method_version"],
+                "created_at": row["created_at"],
+                "schema_version": row["schema_version"],
+            }
+        )
+
+    def iter_prediction_evaluations(self) -> Iterator[PredictionEvaluation]:
+        rows = self._connection.execute(
+            """SELECT id, result_id, prediction_id, experiment_proposal_id,
+                      comparison_conditions, assumptions, outcome, rationale,
+                      method, method_version, created_at, schema_version
+               FROM prediction_evaluations
+               ORDER BY created_at, id"""
+        )
+        for row in rows:
+            yield PredictionEvaluation.from_dict(
+                {
+                    "id": row["id"],
+                    "result_id": row["result_id"],
+                    "prediction_id": row["prediction_id"],
+                    "experiment_proposal_id": row["experiment_proposal_id"],
+                    "comparison_conditions": row["comparison_conditions"],
+                    "assumptions": json.loads(row["assumptions"]),
+                    "outcome": row["outcome"],
+                    "rationale": row["rationale"],
+                    "method": row["method"],
+                    "method_version": row["method_version"],
+                    "created_at": row["created_at"],
+                    "schema_version": row["schema_version"],
+                }
+            )
 
     def put_lifecycle_event(self, event: LifecycleEvent) -> None:
         if self.get_record(event.record_id) is None:
