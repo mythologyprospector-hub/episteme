@@ -574,6 +574,59 @@ Discovery may read lower layers but must not rewrite them.
 Discovery findings may become inputs to later hypothesis generation, but they remain distinguishable from grounded evidence until external evidence changes their status through an explicit process.
 
 
+## Phase 4 Hypothesis and Prediction Architecture
+
+Phase 4 adds the interpretive layer required to turn supported discovery findings into testable alternatives.
+
+The dependency direction is:
+
+**Grounded Knowledge → Integrity → Discovery Findings → Hypotheses / Models → Predictions**
+
+Hypotheses and predictions are generated artifacts. They are not grounded records and do not gain epistemic authority merely because Episteme generated them.
+
+### Hypotheses
+
+A hypothesis is a candidate explanation that preserves:
+
+- stable identifier;
+- explanatory statement;
+- ordered motivating finding identifiers;
+- directly used grounded/integrity input identifiers when applicable;
+- generation method and version;
+- rationale;
+- assumptions;
+- creation timestamp;
+- schema version.
+
+Multiple hypotheses may address the same finding. The architecture must not silently select, rank, or canonize one.
+
+### Models
+
+Models are structured representations of explanatory mechanisms or systems. Phase 4 keeps model semantics generic rather than prematurely defining a universal scientific modeling language.
+
+### Assumptions
+
+Assumptions are explicit parts of explanatory proposals. Changing assumptions changes the proposal and must not silently rewrite its history.
+
+### Predictions
+
+A prediction is a testable consequence derived from a hypothesis or model. It preserves its source hypothesis/model, predicted consequence, conditions, assumptions, generation method, rationale, timestamp, and schema version.
+
+A prediction is not a measurement. Independent observations or results must be explicitly related to it before any epistemic status changes.
+
+### Distinguishing Consequences
+
+When competing hypotheses address the same finding, Phase 4 records consequences that differ between them. These consequences become inputs to Phase 5 experiment design.
+
+Phase 4 records what would distinguish explanations; Phase 5 determines how to obtain the discriminating observation.
+
+### Boundary
+
+The hypothesis layer may consume discovery findings, but it must not rewrite grounded knowledge or turn generated findings into evidence.
+
+External reasoning systems may assist generation but remain tools. Their outputs remain generated until independently supported.
+
+
 ## Related Independent Research
 
 **Tiger Den** is a separate project by the same author with a closely related epistemic posture. Tiger Den maps existing computational knowledge rather than storing or replacing the implementations themselves. Its canon emphasizes evidence before assertion, provenance, preservation of meaningful distinctions, first-class unknowns, separation of observation from interpretation, and discovery before synthesis.
