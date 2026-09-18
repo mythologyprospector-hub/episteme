@@ -27,6 +27,8 @@ def validate_measurement(payload: Mapping[str, Any]) -> None:
     _ = quantity
 
     status = payload.get("status", "measured")
+    if not isinstance(status, str):
+        raise ValueError("astronomy measurement status must be a string")
     if status not in _VALID_STATUSES:
         raise ValueError(f"unsupported astronomy measurement status: {status}")
 
