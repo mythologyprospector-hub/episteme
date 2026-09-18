@@ -173,6 +173,15 @@ This permits relationships themselves to be evaluated, challenged, replaced, or 
 
 Phase 1 permits relationships between grounded records only.
 
+Beginning in Phase 5, relationships may also connect grounded records to generated epistemic artifacts such as predictions and experiment proposals. This extends the endpoint scope of the existing relationship primitive; it does not make those generated artifacts grounded.
+
+For example, an observed result may be related to the proposal that produced the observation and to the predictions that proposal tested. The relationship remains an explicit, provenance-bearing assertion about the connection. A generated endpoint does not cause the relationship, the proposal, or the prediction to become evidence.
+
+The relationship layer therefore distinguishes two questions:
+
+1. **What kind of objects may be connected?** — grounded records and, from Phase 5 onward, generated epistemic artifacts.
+2. **What epistemic status does the connected object have?** — preserved by the object's own model and never promoted by the relationship itself.
+
 ### Persistence
 
 Phase 1 uses SQLite through Python's standard library.
