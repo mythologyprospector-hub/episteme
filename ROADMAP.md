@@ -195,4 +195,6 @@ Phase 1 is complete. The grounded substrate, provenance boundary, relationships,
 
 Phase 2 is complete. The substrate now has explicit provenance validation, contradiction representation, contextual evidence assessment, immutable records, append-only lifecycle history, explicit state transitions, and reproducible transformations.
 
-Phase 3 is now the active objective: detect meaningful gaps and tensions without confusing generated structure with externally grounded evidence. Phase 3 architecture is deliberately narrow: discovery findings remain derived artifacts, explicit contradictions are surfaced before semantic contradiction inference, and gaps require an explicit expectation or grounded context.
+Phase 3 is complete. Discovery findings can be traced to grounded inputs, expectation-based gaps preserve their exact basis, explicit contradictions are surfaced without semantic invention, bounded questions can be generated from supported findings, interpretable measures are recorded, and generated findings remain outside the grounded evidence boundary.
+
+Phase 4 is now the active objective: turn supported discovery findings into candidate explanations and predictions while preserving assumptions, provenance, uncertainty, and competing alternatives.
