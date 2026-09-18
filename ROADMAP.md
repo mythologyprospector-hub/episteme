@@ -114,7 +114,11 @@ Target capabilities:
 
 **Exit condition:** Episteme can produce candidate explanations whose distinguishing consequences are explicit.
 
+**Status:** Complete.
+
 ## Phase 5 — Experiment Design
+
+**Status:** Active.
 
 **Goal:** Find observations that efficiently discriminate among possibilities.
 
