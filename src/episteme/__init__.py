@@ -32,6 +32,7 @@ from .discovery import detect_expected_gap, discover_evaluation_tensions, discov
 from .store import Store
 from .trail import DiscoveryTrail, TrailEntry, build_discovery_trail
 from .proposals import predict, propose_experiment, propose_hypothesis, represent_model
+from .public import discovery_lineage, discovery_report, discovery_trail, get_record, list_records
 
 __version__ = "0.1.0"
 
@@ -75,4 +76,9 @@ __all__ = [
     "represent_model",
     "predict",
     "propose_experiment",
+    "get_record",
+    "list_records",
+    "discovery_trail",
+    "discovery_lineage",
+    "discovery_report",
 ]
