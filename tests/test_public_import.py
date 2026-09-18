@@ -63,3 +63,22 @@ def test_crossref_import_rejects_missing_doi_without_repair():
         assert "requires a DOI" in str(exc)
     else:
         raise AssertionError("missing DOI should be rejected")
+
+
+def test_crossref_import_validates_entire_batch_before_persistence():
+    store = Store()
+    valid = _crossref_item()
+    invalid = {"title": ["No DOI"]}
+
+    try:
+        import_crossref_works(
+            {"message": {"items": [valid, invalid]}},
+            store,
+            captured_at=CAPTURED_AT,
+        )
+    except ValueError as exc:
+        assert "requires a DOI" in str(exc)
+    else:
+        raise AssertionError("invalid batch should be rejected")
+
+    assert list(store.iter_records()) == []
