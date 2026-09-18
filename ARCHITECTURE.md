@@ -620,6 +620,12 @@ When competing hypotheses address the same finding, Phase 4 records consequences
 
 Phase 4 records what would distinguish explanations; Phase 5 determines how to obtain the discriminating observation.
 
+The Phase 4 / Phase 5 boundary is:
+
+**Prediction → proposed test/observation → result**
+
+A prediction states an expected consequence under conditions and assumptions. An experiment proposal specifies a possible way to obtain an observation capable of testing that consequence. A result records what was actually observed. These are distinct epistemic objects and must not be collapsed.
+
 ### Boundary
 
 The hypothesis layer may consume discovery findings, but it must not rewrite grounded knowledge or turn generated findings into evidence.
