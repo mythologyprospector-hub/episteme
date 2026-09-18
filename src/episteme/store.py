@@ -20,6 +20,8 @@ from .model import (
     Relationship,
     Transformation,
     PredictionEvaluation,
+    KnowledgeStateConsequence,
+    KnowledgeStateTargetKind,
     canonical_json,
 )
 
@@ -95,6 +97,7 @@ class Store:
                 title TEXT NOT NULL,
                 description TEXT NOT NULL,
                 input_ids TEXT NOT NULL,
+                context_ids TEXT NOT NULL,
                 method TEXT NOT NULL,
                 method_version TEXT NOT NULL,
                 rationale TEXT NOT NULL,
@@ -102,6 +105,20 @@ class Store:
                 created_at TEXT NOT NULL,
                 related_finding_id TEXT,
                 expectation TEXT,
+                schema_version INTEGER NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS knowledge_state_consequences (
+                id TEXT PRIMARY KEY,
+                evaluation_ids TEXT NOT NULL,
+                target_kind TEXT NOT NULL,
+                target_id TEXT NOT NULL,
+                consequence TEXT NOT NULL,
+                assumptions TEXT NOT NULL,
+                rationale TEXT NOT NULL,
+                method TEXT NOT NULL,
+                method_version TEXT NOT NULL,
+                created_at TEXT NOT NULL,
                 schema_version INTEGER NOT NULL
             );
 
@@ -426,9 +443,9 @@ class Store:
         self._connection.execute(
             """
             INSERT INTO discovery_findings
-                (id, kind, title, description, input_ids, method, method_version,
+                (id, kind, title, description, input_ids, context_ids, method, method_version,
                  rationale, measures, created_at, related_finding_id, expectation, schema_version)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 finding.id,
@@ -436,6 +453,7 @@ class Store:
                 finding.title,
                 finding.description,
                 canonical_json(list(finding.input_ids)),
+                canonical_json(list(finding.context_ids)),
                 finding.method,
                 finding.method_version,
                 finding.rationale,
@@ -468,6 +486,7 @@ class Store:
                 "title": row["title"],
                 "description": row["description"],
                 "input_ids": json.loads(row["input_ids"]),
+                "context_ids": json.loads(row["context_ids"]),
                 "method": row["method"],
                 "method_version": row["method_version"],
                 "rationale": row["rationale"],
@@ -483,7 +502,7 @@ class Store:
         if kind is None:
             rows = self._connection.execute(
                 """
-                SELECT id, kind, title, description, input_ids, method, method_version,
+                SELECT id, kind, title, description, input_ids, context_ids, method, method_version,
                        rationale, measures, created_at, related_finding_id, expectation, schema_version
                 FROM discovery_findings
                 ORDER BY created_at, id
@@ -856,6 +875,106 @@ class Store:
                     "schema_version": row["schema_version"],
                 }
             )
+
+    def put_knowledge_state_consequence(self, consequence: KnowledgeStateConsequence) -> None:
+        for evaluation_id in consequence.evaluation_ids:
+            if self.get_prediction_evaluation(evaluation_id) is None:
+                raise ValueError(
+                    "knowledge-state consequence references missing prediction evaluation: "
+                    + evaluation_id
+                )
+
+        if consequence.target_kind is KnowledgeStateTargetKind.HYPOTHESIS:
+            target = self.get_hypothesis(consequence.target_id)
+            if target is None:
+                raise ValueError("knowledge-state consequence references missing hypothesis: " + consequence.target_id)
+        elif consequence.target_kind is KnowledgeStateTargetKind.MODEL:
+            target = self.get_model(consequence.target_id)
+            if target is None:
+                raise ValueError("knowledge-state consequence references missing model: " + consequence.target_id)
+        else:
+            target = self.get_prediction(consequence.target_id)
+            if target is None:
+                raise ValueError("knowledge-state consequence references missing prediction: " + consequence.target_id)
+
+        for evaluation_id in consequence.evaluation_ids:
+            evaluation = self.get_prediction_evaluation(evaluation_id)
+            assert evaluation is not None
+            prediction = self.get_prediction(evaluation.prediction_id)
+            assert prediction is not None
+            if consequence.target_kind is KnowledgeStateTargetKind.PREDICTION:
+                related = prediction.id == consequence.target_id
+            elif consequence.target_kind is KnowledgeStateTargetKind.HYPOTHESIS:
+                related = prediction.source_id == consequence.target_id or consequence.target_id in prediction.comparison_hypothesis_ids
+            else:
+                related = prediction.source_id == consequence.target_id
+            if not related:
+                raise ValueError("knowledge-state consequence evaluation does not relate to target: " + evaluation_id)
+
+        self._connection.execute(
+            """INSERT INTO knowledge_state_consequences
+               (id, evaluation_ids, target_kind, target_id, consequence, assumptions,
+                rationale, method, method_version, created_at, schema_version)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                consequence.id,
+                canonical_json(list(consequence.evaluation_ids)),
+                consequence.target_kind.value,
+                consequence.target_id,
+                consequence.consequence.value,
+                canonical_json(list(consequence.assumptions)),
+                consequence.rationale,
+                consequence.method,
+                consequence.method_version,
+                consequence.created_at,
+                consequence.schema_version,
+            ),
+        )
+        self._connection.commit()
+
+    def get_knowledge_state_consequence(self, consequence_id: str) -> KnowledgeStateConsequence | None:
+        row = self._connection.execute(
+            """SELECT id, evaluation_ids, target_kind, target_id, consequence, assumptions,
+                      rationale, method, method_version, created_at, schema_version
+               FROM knowledge_state_consequences WHERE id = ?""",
+            (consequence_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        return KnowledgeStateConsequence.from_dict({
+            "id": row["id"],
+            "evaluation_ids": json.loads(row["evaluation_ids"]),
+            "target_kind": row["target_kind"],
+            "target_id": row["target_id"],
+            "consequence": row["consequence"],
+            "assumptions": json.loads(row["assumptions"]),
+            "rationale": row["rationale"],
+            "method": row["method"],
+            "method_version": row["method_version"],
+            "created_at": row["created_at"],
+            "schema_version": row["schema_version"],
+        })
+
+    def iter_knowledge_state_consequences(self) -> Iterator[KnowledgeStateConsequence]:
+        rows = self._connection.execute(
+            """SELECT id, evaluation_ids, target_kind, target_id, consequence, assumptions,
+                      rationale, method, method_version, created_at, schema_version
+               FROM knowledge_state_consequences ORDER BY created_at, id"""
+        )
+        for row in rows:
+            yield KnowledgeStateConsequence.from_dict({
+                "id": row["id"],
+                "evaluation_ids": json.loads(row["evaluation_ids"]),
+                "target_kind": row["target_kind"],
+                "target_id": row["target_id"],
+                "consequence": row["consequence"],
+                "assumptions": json.loads(row["assumptions"]),
+                "rationale": row["rationale"],
+                "method": row["method"],
+                "method_version": row["method_version"],
+                "created_at": row["created_at"],
+                "schema_version": row["schema_version"],
+            })
 
     def put_lifecycle_event(self, event: LifecycleEvent) -> None:
         if self.get_record(event.record_id) is None:
