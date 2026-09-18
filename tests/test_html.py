@@ -53,3 +53,5 @@ def test_render_discovery_report_html_is_self_contained_and_read_only():
     assert "grounded records" in rendered
     assert "<details>" in rendered
     assert "browser-fixture" in rendered
+    assert "Why this step exists:" in rendered
+    assert "Test fixture only." in rendered
