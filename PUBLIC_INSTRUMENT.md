@@ -141,3 +141,20 @@ Those remain separate decisions.
 ## Initial Exit Condition
 
 The first Phase 8 implementation is successful when a person outside the development workflow can inspect a complete Episteme discovery cycle through a documented public interface and reconstruct why each generated step exists without losing the grounded/generated boundary.
+
+## CLI Entry Point
+
+When Episteme is installed, the public inspection surface is also available as the `episteme` command.
+
+The CLI is read-only. It does not provide commands for modifying the store.
+
+Examples:
+
+- `episteme --store path/to/episteme.sqlite records`
+- `episteme --store path/to/episteme.sqlite records --kind measurement`
+- `episteme --store path/to/episteme.sqlite record <record-id>`
+- `episteme --store path/to/episteme.sqlite trail <finding-id> --created-at <timestamp>`
+- `episteme --store path/to/episteme.sqlite lineage <finding-id> --created-at <timestamp>`
+- `episteme --store path/to/episteme.sqlite report <finding-id> --created-at <timestamp>`
+
+The module form, `python -m episteme`, remains available and exposes the same surface.
