@@ -78,9 +78,9 @@ The first documents to read are:
 
 ## Project Status
 
-**Current phase:** Phase 4 — Hypothesis and Prediction
+**Current phase:** Phase 5 — Experiment Design
 
-Phase 1 grounded substrate, Phase 2 knowledge integrity, and Phase 3 discovery are complete and verified. The current work is Phase 4: turning supported discovery findings into candidate explanations and testable predictions while keeping generated material distinct from evidence.
+Phase 1 grounded substrate, Phase 2 knowledge integrity, and Phase 3 discovery are complete and verified. The current work is Phase 5: turning distinguishing predictions into experiment proposals that explain why proposed observations could discriminate among competing explanations while keeping planning material distinct from evidence.
 
 ## Project Boundary
 
