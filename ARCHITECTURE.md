@@ -1,7 +1,7 @@
 # Episteme Architecture
 
 **Status:** Canonical  
-**Version:** 0.8  
+**Version:** 0.9  
 
 ## Architectural Intent
 
@@ -662,21 +662,31 @@ Result ingestion may add explicit relationships connecting the result to the exp
 
 A result does not interpret itself.
 
-Phase 6 requires a distinct generated evaluation of how an observed result bears on one or more predictions. The evaluation is not a replacement for the result and is not a truth score.
+Phase 6 represents the comparison between a grounded result and a generated prediction as a distinct generated **prediction evaluation**. The evaluation is not a replacement for the result, prediction, proposal, or hypothesis, and it is not a truth score.
 
-A prediction evaluation must preserve, where applicable:
+#### Evaluation Shape
 
-- the result identifier;
-- the prediction identifier;
-- the experiment proposal identifier;
-- the conditions under which the comparison is made;
-- the relevant prediction and result descriptions;
-- assumptions used by the evaluation;
+The canonical evaluation object preserves:
+
+- a stable identifier;
+- the grounded result identifier;
+- the generated prediction identifier;
+- an optional experiment proposal identifier when the result was obtained through a represented proposal;
+- the conditions under which this particular comparison is made;
+- the assumptions used by the evaluation;
 - an outcome classification;
 - the rationale for that classification;
-- the evaluation method and version;
+- the evaluation method and method version;
 - the creation timestamp;
 - the schema version.
+
+The result and prediction identifiers are the canonical references to their descriptions. Their descriptions do not need to be copied into the evaluation because grounded records are immutable and generated prediction records are preserved as distinct artifacts. This avoids creating a second, potentially divergent textual representation while retaining reproducible access to the compared objects.
+
+The experiment proposal identifier is optional because a result may be compared with a prediction even when no proposal is represented in the store. When present, it identifies the proposal context rather than becoming evidence.
+
+The evaluation itself does not require provenance. Its method, method version, rationale, source object identifiers, and creation timestamp establish how the generated interpretation was produced. Any external evidence used to perform the evaluation must remain represented through the grounded result and its provenance or through separately represented inputs.
+
+#### Outcome Classification
 
 The initial outcome classification is deliberately non-binary:
 
@@ -684,9 +694,42 @@ The initial outcome classification is deliberately non-binary:
 - **inconsistent** — the observed result conflicts with the prediction under the stated comparison conditions;
 - **inconclusive** — the result does not justify either classification under the available evidence and assumptions.
 
-These classifications describe the relationship between a particular result and prediction. They do not establish the truth or falsity of the underlying hypothesis.
+These classifications describe the relationship between one particular result and one particular prediction. They do not establish the truth or falsity of the underlying hypothesis.
 
-A result may be consistent with multiple predictions, inconsistent with multiple predictions, or inconclusive for one prediction while informative about another.
+A result may be evaluated against multiple predictions. It may be consistent with one prediction and inconsistent with another, or inconclusive for one prediction while informative about another. Each comparison is therefore represented as its own evaluation rather than forcing a single result-level verdict.
+
+An **inconsistent** evaluation does not by itself establish that a prediction, hypothesis, or model is false. The evaluation must preserve the comparison conditions and assumptions because violated assumptions, mismatched conditions, insufficient measurement resolution, or other limitations may affect the classification.
+
+An **inconclusive** evaluation is a valid result, not a missing evaluation. It preserves the fact that the available result did not justify either classification.
+
+#### Persistence Semantics
+
+Prediction evaluations are generated artifacts and therefore belong in their own persistence collection rather than the grounded `records` collection.
+
+The initial SQLite representation is a `prediction_evaluations` table with one row per evaluation and append-only insertion semantics. Its logical fields correspond directly to the evaluation object:
+
+- `id`;
+- `result_id`;
+- `prediction_id`;
+- nullable `experiment_proposal_id`;
+- `comparison_conditions`;
+- `assumptions`;
+- `outcome`;
+- `rationale`;
+- `method`;
+- `method_version`;
+- `created_at`;
+- `schema_version`.
+
+Persistence validates that:
+
+- `result_id` identifies an existing grounded record whose kind is `result`;
+- `prediction_id` identifies an existing generated prediction;
+- when supplied, `experiment_proposal_id` identifies an existing generated proposal containing the evaluated prediction;
+- all identifiers, text, timestamps, and schema values satisfy the domain model;
+- the evaluation is inserted without modifying the result, prediction, or proposal.
+
+No database foreign key is required for generated-object references. The repository's explicit object-existence validation remains authoritative, consistent with the existing relationship design.
 
 ### Knowledge-State Change
 
