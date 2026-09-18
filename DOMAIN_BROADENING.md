@@ -1,7 +1,7 @@
 # Episteme Domain Broadening
 
 **Status:** Canonical Phase 7 design
-**Version:** 0.1
+**Version:** 0.2
 **Last updated:** 2026-09-18
 
 ## Purpose
@@ -138,6 +138,38 @@ A candidate domain should be useful if it exposes one or more difficult distinct
 The first domain should establish the simplest clean extension point.
 
 The second domain should deliberately stress that extension point in a different way.
+
+## Phase 7 Domain Sequence
+
+The first two demonstration domains are:
+
+### Domain A — Astronomy
+
+Astronomy is the first extension because it provides a clean pressure test for quantitative scientific observations:
+
+- measurements with units;
+- repeated observations;
+- instrument/source provenance;
+- observation conditions;
+- missing measurements;
+- source-derived and directly observed material.
+
+The first adapter should remain deliberately small. It should demonstrate that a domain can give scientific meaning to measurement payloads without requiring the core to understand astronomical quantities.
+
+### Domain B — Biology
+
+Biology is the second extension because it stresses a different evidence shape:
+
+- categorical and structured observations alongside measurements;
+- experimental conditions;
+- repeated trials;
+- heterogeneous observations;
+- conflicting observations across studies;
+- explicitly unmeasured or unreported attributes.
+
+The second adapter is intentionally not a larger copy of the first. Its purpose is to show that the extension boundary is not secretly designed around one particular kind of quantitative measurement.
+
+The demonstrations may use small, deterministic fixtures. Their purpose is architectural verification, not scientific novelty.
 
 ## Domain Adapter Contract
 
