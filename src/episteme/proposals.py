@@ -7,7 +7,7 @@ promote generated material to evidence.
 
 from __future__ import annotations
 
-from .model import Hypothesis, Model, Prediction, SCHEMA_VERSION
+from .model import ExperimentProposal, Hypothesis, Model, Prediction, SCHEMA_VERSION
 
 
 def propose_hypothesis(
@@ -85,6 +85,35 @@ def predict(
         method_version=method_version,
         rationale=rationale,
         comparison_hypothesis_ids=comparison_hypothesis_ids,
+        created_at=created_at,
+        schema_version=SCHEMA_VERSION,
+    )
+
+
+
+def propose_experiment(
+    *,
+    prediction_ids: tuple[str, ...],
+    objective: str,
+    proposed_observation: str,
+    conditions: str,
+    assumptions: tuple[str, ...] = (),
+    method: str,
+    method_version: str,
+    rationale: str,
+    created_at: str,
+) -> ExperimentProposal:
+    """Construct an experiment proposal from explicitly supplied content."""
+    return ExperimentProposal(
+        id=_new_id(),
+        prediction_ids=prediction_ids,
+        objective=objective,
+        proposed_observation=proposed_observation,
+        conditions=conditions,
+        assumptions=assumptions,
+        method=method,
+        method_version=method_version,
+        rationale=rationale,
         created_at=created_at,
         schema_version=SCHEMA_VERSION,
     )
