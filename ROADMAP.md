@@ -1,7 +1,7 @@
 # Episteme Roadmap
 
 **Status:** Canonical planning document  
-**Version:** 0.6  
+**Version:** 0.7  
 **Last updated:** 2026-09-18
 
 ## Mission
@@ -66,14 +66,14 @@ Target capabilities:
 
 ## Phase 3 — Discovery
 
-**Goal:** Find meaningful gaps and tensions in the knowledge substrate.
+**Goal:** Find meaningful gaps and explicit contradictions in the knowledge substrate.
 
 Target capabilities:
 
-- gap detection with explicit expectation traceability
-- unresolved-question generation
-- explicit contradiction discovery
-- interpretable significance measures
+- [x] gap detection with explicit expectation traceability
+- [x] unresolved-question generation
+- [x] explicit contradiction discovery
+- [x] interpretable significance measures
 
 The following remain deliberately deferred from Phase 3 because their epistemic rules are not yet sufficiently defined:
 
@@ -82,6 +82,23 @@ The following remain deliberately deferred from Phase 3 because their epistemic 
 - universal relevance or importance scoring.
 
 **Exit condition:** Discovery results can be traced to grounded inputs, meaningful gaps and explicit contradictions can be surfaced, bounded unresolved questions can be generated, interpretable measures can be recorded, and all generated material remains distinguishable from the system's own grounded evidence.
+
+**Status:** Complete.
+
+### Phase 3 Exit Audit
+
+The implemented Phase 3 behavior satisfies the stated exit condition:
+
+- grounded records and relationships are inspected directly by discovery methods;
+- gap findings preserve the exact expected subject, predicate, and object;
+- explicit `contradicts` relationships are surfaced without inventing semantic contradiction;
+- unresolved questions are generated only from gaps or tensions and preserve their source finding;
+- discovery methods record a method name and version, grounded input identifiers, rationale, and creation time;
+- named measures record their scale and basis, including input count and source diversity;
+- discovery findings are persisted separately from grounded records, and generated findings cannot be supplied as independent evidence inputs.
+
+The audit found no Phase 3 capability that requires new machinery before advancing. Semantic tension detection, competing-model identification, universal importance scoring, and automatic finding-to-hypothesis conversion remain deferred as documented in DISCOVERY.md.
+
 
 ## Phase 4 — Hypothesis and Prediction
 
