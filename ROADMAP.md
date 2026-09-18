@@ -1,7 +1,7 @@
 # Episteme Roadmap
 
 **Status:** Canonical planning document  
-**Version:** 1.3  
+**Version:** 1.5  
 **Last updated:** 2026-09-18
 
 ## Mission
@@ -245,12 +245,27 @@ Initial target capabilities:
 - [x] provenance and lineage inspection
 - [x] deterministic discovery report representation
 - [x] researcher-facing interface beyond the CLI
-- [ ] public knowledge imports
+- [x] public knowledge imports
 - [ ] collaboration and review workflows
 - [ ] documented external HTTP/API surface
 - [ ] transparent public evaluation workflow
 
 The exact public product shape remains intentionally open.
+
+### Phase 8 Public Knowledge Import Audit
+
+The first public knowledge-import capability satisfies its documented initial scope.
+
+- a finite caller-supplied Crossref representation is translated by an explicit source-specific adapter;
+- external work metadata remains a grounded `SOURCE` record rather than being promoted to observation, measurement, or generated interpretation;
+- DOI-derived deterministic UUID identity preserves the core record identity invariant;
+- source location, capture time, source publication-date metadata where available, and adapter/version are preserved as provenance/translation context;
+- the complete input batch is validated before persistence, preventing partial writes from malformed later items;
+- repeated deterministic identities are rejected by ordinary immutable store insertion rather than silently overwritten;
+- deterministic translation, source preservation, malformed DOI rejection, and batch atomicity are tested;
+- no web crawler, ranking system, semantic deduplication mechanism, or new epistemic primitive was introduced.
+
+The initial public knowledge-import capability is therefore complete. Broader external-source support remains open as future work and is not implied by this milestone.
 
 ### Phase 8 Initial Implementation Audit
 
@@ -305,4 +320,4 @@ Phase 6 is complete. Result records can be ingested through the grounded JSONL i
 
 Phase 7 is complete. Astronomy and Biology demonstrate materially different evidence shapes above the stable core, while provenance, explicit unknown/conflict/uncertainty states, generated-versus-grounded boundaries, closed-loop lineage, and reproducibility remain intact. The Phase 7 exit condition is satisfied.
 
-Phase 8 has established its first researcher-facing public instrument: a read-only Python inspection API, the installed `episteme` command, deterministic discovery reports, and a self-contained browser-readable report renderer. These expose existing Episteme state rather than creating a parallel public data model. The Phase 8 initial implementation exit condition is satisfied: a person outside the development workflow can inspect a complete representative discovery cycle and reconstruct why generated steps exist without losing the grounded/generated boundary. Public knowledge imports, collaboration/review workflows, a documented external HTTP/API surface, and a transparent public evaluation workflow remain open Phase 8 work.
+Phase 8 has established its first researcher-facing public instrument and its initial public knowledge-import capability: a read-only Python inspection API, the installed `episteme` command, deterministic discovery reports, and a self-contained browser-readable report renderer. These expose existing Episteme state rather than creating a parallel public data model. The Phase 8 initial implementation exit condition is satisfied: a person outside the development workflow can inspect a complete representative discovery cycle and reconstruct why generated steps exist without losing the grounded/generated boundary. Collaboration/review workflows, a documented external HTTP/API surface, and a transparent public evaluation workflow remain open Phase 8 work. Broader source import remains future work beyond the initial Crossref capability.
