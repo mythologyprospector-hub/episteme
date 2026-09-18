@@ -129,7 +129,7 @@ def test_jsonl_ingestion_preserves_grounded_records(tmp_path):
 
     fixture = tmp_path / "sample.jsonl"
     fixture.write_text(
-        '{"id":"11111111-1111-4111-8111-111111111111","kind":"observation","payload":{"value":42},"provenance":[{"source_id":"example:source","captured_at":"2026-09-18T00:00:00Z"}],"created_at":"2026-09-18T00:00:00Z","schema_version":1}\\n',
+        '{"id":"11111111-1111-4111-8111-111111111111","kind":"observation","payload":{"value":42},"provenance":[{"source_id":"example:source","captured_at":"2026-09-18T00:00:00Z"}],"created_at":"2026-09-18T00:00:00Z","schema_version":1}\n',
         encoding="utf-8",
     )
 
@@ -146,7 +146,7 @@ def test_jsonl_ingestion_rejects_malformed_record(tmp_path):
     from episteme import ingest_jsonl_file
 
     fixture = tmp_path / "bad.jsonl"
-    fixture.write_text('{"kind":"observation"}\\n', encoding="utf-8")
+    fixture.write_text('{"kind":"observation"}\n', encoding="utf-8")
 
     with Store() as store:
         try:
