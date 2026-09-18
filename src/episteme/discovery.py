@@ -163,3 +163,54 @@ def question_from_finding(
         related_finding_id=finding.id,
         expectation=finding.expectation,
     )
+
+
+def discover_evaluation_tensions(
+    store: Store,
+    created_at: str,
+) -> tuple[DiscoveryFinding, ...]:
+    """Surface differing evaluations of the same prediction under matching context."""
+
+    groups: dict[tuple[str, str, tuple[str, ...]], list[object]] = {}
+    for evaluation in store.iter_prediction_evaluations():
+        key = (
+            evaluation.prediction_id,
+            evaluation.comparison_conditions,
+            evaluation.assumptions,
+        )
+        groups.setdefault(key, []).append(evaluation)
+
+    findings: list[DiscoveryFinding] = []
+    for key in sorted(groups):
+        evaluations = groups[key]
+        outcomes = {evaluation.outcome for evaluation in evaluations}
+        if len(evaluations) < 2 or len(outcomes) < 2:
+            continue
+
+        evaluations = sorted(evaluations, key=lambda item: item.id)
+        input_ids = tuple(dict.fromkeys(evaluation.result_id for evaluation in evaluations))
+        context_ids = tuple(evaluation.id for evaluation in evaluations)
+        findings.append(
+            DiscoveryFinding(
+                id=str(uuid4()),
+                kind=DiscoveryFindingKind.TENSION,
+                title="Prediction has differing evaluation outcomes",
+                description=(
+                    f"Prediction {key[0]} has differing evaluation classifications "
+                    "under matching recorded comparison conditions and assumptions."
+                ),
+                input_ids=input_ids,
+                context_ids=context_ids,
+                method="evaluation-conflict-discovery",
+                method_version=DISCOVERY_METHOD_VERSION,
+                rationale=(
+                    "The finding is produced only when the same prediction has more "
+                    "than one evaluation outcome within an identical recorded "
+                    "comparison context. It does not determine which evaluation is "
+                    "correct or why the classifications differ."
+                ),
+                measures=_measures(store, input_ids),
+                created_at=created_at,
+            )
+        )
+    return tuple(findings)
