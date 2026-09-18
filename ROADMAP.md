@@ -155,7 +155,7 @@ Target capabilities:
 - [ ] experiment result ingestion
 - [ ] explicit result-to-prediction evaluation
 - [ ] failed-prediction recording
-- [ ] explicit knowledge-state consequences
+- [x] explicit knowledge-state consequences
 - [ ] iterative discovery
 - [ ] reproducible discovery trails
 
@@ -171,7 +171,9 @@ The evaluation is contextual and non-binary: **consistent**, **inconsistent**, o
 
 "Knowledge-state update" is defined as an explicit accumulation of evidence, relationships, evaluations, lifecycle events, and generated revisions. It is not a mutable universal truth flag.
 
-The implementation phase must document the evaluation model and persistence semantics before code is added.
+The Phase 6 implementation now treats an explicit knowledge-state consequence as a separate generated artifact derived from one or more prediction evaluations. The consequence is contextual and append-only: supports, weakens, contradicts, or leaves_unresolved under stated assumptions. It does not mutate the target or establish a universal truth value.
+
+The implementation must preserve the evaluation identifiers, target identifier, consequence classification, assumptions, rationale, method/version, timestamp, and schema version so the transition can be reconstructed.
 
 
 
