@@ -572,3 +572,18 @@ Grounded Knowledge → Integrity → Discovery Findings
 Discovery may read lower layers but must not rewrite them.
 
 Discovery findings may become inputs to later hypothesis generation, but they remain distinguishable from grounded evidence until external evidence changes their status through an explicit process.
+
+
+## Related Independent Research
+
+**Tiger Den** is a separate project by the same author with a closely related epistemic posture. Tiger Den maps existing computational knowledge rather than storing or replacing the implementations themselves. Its canon emphasizes evidence before assertion, provenance, preservation of meaningful distinctions, first-class unknowns, separation of observation from interpretation, and discovery before synthesis.
+
+The relationship is conceptual, not architectural:
+
+- Tiger Den maps computational primitives and their existing implementations.
+- Episteme provides a general scientific knowledge and discovery substrate.
+- Neither project is a dependency of the other.
+- Similar concepts should be compared when useful, but neither project's terminology or schema should be imported merely because the concepts sound similar.
+- Cross-project observations may become useful research material only when their provenance and epistemic status are explicit.
+
+The existence of this related project is recorded here so future builders do not independently rediscover the relationship and accidentally create an architectural dependency.
