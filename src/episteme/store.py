@@ -395,6 +395,7 @@ class Store:
                     "measures": json.loads(row["measures"]),
                     "created_at": row["created_at"],
                     "related_finding_id": row["related_finding_id"],
+                    "expectation": json.loads(row["expectation"]) if row["expectation"] is not None else None,
                     "schema_version": row["schema_version"],
                 }
             )
