@@ -579,6 +579,6 @@ def test_discovery_finding_rejects_unexpected_expectation():
             expectation=(first, "contradicts", second),
         )
     except ValueError as exc:
-        assert "only gap findings" in str(exc)
+        assert "only gap and unresolved-question findings" in str(exc)
     else:
         raise AssertionError("non-gap finding accepted an expectation")
