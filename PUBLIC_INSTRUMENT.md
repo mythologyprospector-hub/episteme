@@ -236,6 +236,71 @@ The installed CLI exposes the same inspection surface:
 
 Review inspection is read-only. It exposes review metadata without rewriting the target, calculating consensus, or turning a disposition into a truth score.
 
+
+
+## External HTTP/API Surface
+
+The documented HTTP surface is a read-only transport adapter over the existing Python public API.
+
+Its purpose is external access to existing Episteme state, not a new application domain.
+
+### Contract
+
+The initial API is versioned under `/api/v1` and exposes:
+
+- `GET /api/v1/records`
+- `GET /api/v1/records/{record_id}`
+- `GET /api/v1/reviews`
+- `GET /api/v1/reviews/{review_id}`
+- `GET /api/v1/discoveries/{finding_id}/trail?created_at={timestamp}`
+- `GET /api/v1/discoveries/{finding_id}/lineage?created_at={timestamp}`
+- `GET /api/v1/discoveries/{finding_id}/report?created_at={timestamp}`
+- `GET /api/v1/discoveries/{finding_id}/report?created_at={timestamp}&format=html`
+
+The exact query parameters and error-body schema are part of the implementation contract and must be documented before the server is implemented.
+
+The API is read-only. It provides no HTTP mutation path.
+
+### HTTP Semantics
+
+A successful read returns **200 OK**.
+
+A request with malformed identifiers, timestamps, filters, or query parameters returns **400 Bad Request**.
+
+A valid request for an object or discovery target that does not exist returns **404 Not Found**.
+
+Operational failures remain operational failures; they must not be represented as scientific absence, contradiction, or unknown.
+
+JSON responses reuse the public Python API representations. The HTTP version identifies the transport contract; object schema versions continue to describe the represented Episteme objects.
+
+### Epistemic Boundary
+
+Returning a generated finding, hypothesis, prediction, experiment proposal, evaluation, or knowledge-state consequence through HTTP does not change its epistemic status.
+
+The API must preserve the distinction between grounded records, generated artifacts, reviews, and unresolved states.
+
+Reports remain presentations of existing state, not new epistemic objects.
+
+### No Hidden Capabilities
+
+The HTTP surface does not expose:
+
+- record or relationship mutation;
+- review creation or mutation;
+- autonomous crawling;
+- external API credential management;
+- model-provider control;
+- autonomous laboratory control;
+- a second knowledge store.
+
+External provider credentials available elsewhere on the host are not part of the HTTP contract.
+
+### Deployment
+
+Authentication, TLS, rate limiting, reverse-proxy configuration, process supervision, and whether an instance is exposed to the public internet are deployment decisions.
+
+They do not change Episteme's epistemic semantics.
+
 ## Public Ingestion Boundary
 
 Public knowledge imports remain subject to the existing grounded ingestion rules.
