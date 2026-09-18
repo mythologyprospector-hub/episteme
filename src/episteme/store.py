@@ -10,6 +10,9 @@ from typing import Iterator
 from .model import (
     AssessmentTargetKind,
     DiscoveryFinding,
+    Hypothesis,
+    Model,
+    Prediction,
     EvidenceAssessment,
     LifecycleEvent,
     Record,
@@ -99,6 +102,46 @@ class Store:
                 created_at TEXT NOT NULL,
                 related_finding_id TEXT,
                 expectation TEXT,
+                schema_version INTEGER NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS hypotheses (
+                id TEXT PRIMARY KEY,
+                statement TEXT NOT NULL,
+                finding_ids TEXT NOT NULL,
+                input_ids TEXT NOT NULL,
+                method TEXT NOT NULL,
+                method_version TEXT NOT NULL,
+                rationale TEXT NOT NULL,
+                assumptions TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                schema_version INTEGER NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS models (
+                id TEXT PRIMARY KEY,
+                description TEXT NOT NULL,
+                hypothesis_ids TEXT NOT NULL,
+                input_ids TEXT NOT NULL,
+                assumptions TEXT NOT NULL,
+                method TEXT NOT NULL,
+                method_version TEXT NOT NULL,
+                rationale TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                schema_version INTEGER NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS predictions (
+                id TEXT PRIMARY KEY,
+                source_id TEXT NOT NULL,
+                consequence TEXT NOT NULL,
+                conditions TEXT NOT NULL,
+                assumptions TEXT NOT NULL,
+                method TEXT NOT NULL,
+                method_version TEXT NOT NULL,
+                rationale TEXT NOT NULL,
+                comparison_hypothesis_ids TEXT NOT NULL,
+                created_at TEXT NOT NULL,
                 schema_version INTEGER NOT NULL
             );
 
@@ -399,6 +442,184 @@ class Store:
                     "schema_version": row["schema_version"],
                 }
             )
+
+    def put_hypothesis(self, hypothesis: Hypothesis) -> None:
+        missing_findings = [
+            finding_id for finding_id in hypothesis.finding_ids
+            if self.get_discovery_finding(finding_id) is None
+        ]
+        if missing_findings:
+            raise ValueError("hypothesis references missing finding(s): " + ", ".join(missing_findings))
+        missing_inputs = [
+            input_id for input_id in hypothesis.input_ids
+            if self.get_record(input_id) is None and self.get_relationship(input_id) is None
+        ]
+        if missing_inputs:
+            raise ValueError("hypothesis references missing input(s): " + ", ".join(missing_inputs))
+        self._connection.execute(
+            """INSERT INTO hypotheses
+               (id, statement, finding_ids, input_ids, method, method_version,
+                rationale, assumptions, created_at, schema_version)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (hypothesis.id, hypothesis.statement,
+             canonical_json(list(hypothesis.finding_ids)),
+             canonical_json(list(hypothesis.input_ids)), hypothesis.method,
+             hypothesis.method_version, hypothesis.rationale,
+             canonical_json(list(hypothesis.assumptions)), hypothesis.created_at,
+             hypothesis.schema_version),
+        )
+        self._connection.commit()
+
+    def get_hypothesis(self, hypothesis_id: str) -> Hypothesis | None:
+        row = self._connection.execute(
+            """SELECT id, statement, finding_ids, input_ids, method, method_version,
+                      rationale, assumptions, created_at, schema_version
+               FROM hypotheses WHERE id = ?""", (hypothesis_id,)
+        ).fetchone()
+        if row is None:
+            return None
+        return Hypothesis.from_dict({
+            "id": row["id"], "statement": row["statement"],
+            "finding_ids": json.loads(row["finding_ids"]),
+            "input_ids": json.loads(row["input_ids"]),
+            "method": row["method"], "method_version": row["method_version"],
+            "rationale": row["rationale"], "assumptions": json.loads(row["assumptions"]),
+            "created_at": row["created_at"], "schema_version": row["schema_version"],
+        })
+
+    def iter_hypotheses(self) -> Iterator[Hypothesis]:
+        rows = self._connection.execute(
+            """SELECT id, statement, finding_ids, input_ids, method, method_version,
+                      rationale, assumptions, created_at, schema_version
+               FROM hypotheses ORDER BY created_at, id"""
+        )
+        for row in rows:
+            yield Hypothesis.from_dict({
+                "id": row["id"], "statement": row["statement"],
+                "finding_ids": json.loads(row["finding_ids"]),
+                "input_ids": json.loads(row["input_ids"]),
+                "method": row["method"], "method_version": row["method_version"],
+                "rationale": row["rationale"], "assumptions": json.loads(row["assumptions"]),
+                "created_at": row["created_at"], "schema_version": row["schema_version"],
+            })
+
+    def put_model(self, model: Model) -> None:
+        missing_hypotheses = [
+            hypothesis_id for hypothesis_id in model.hypothesis_ids
+            if self.get_hypothesis(hypothesis_id) is None
+        ]
+        if missing_hypotheses:
+            raise ValueError("model references missing hypothesis(es): " + ", ".join(missing_hypotheses))
+        missing_inputs = [
+            input_id for input_id in model.input_ids
+            if self.get_record(input_id) is None and self.get_relationship(input_id) is None
+        ]
+        if missing_inputs:
+            raise ValueError("model references missing input(s): " + ", ".join(missing_inputs))
+        self._connection.execute(
+            """INSERT INTO models
+               (id, description, hypothesis_ids, input_ids, assumptions, method,
+                method_version, rationale, created_at, schema_version)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (model.id, model.description, canonical_json(list(model.hypothesis_ids)),
+             canonical_json(list(model.input_ids)), canonical_json(list(model.assumptions)),
+             model.method, model.method_version, model.rationale, model.created_at,
+             model.schema_version),
+        )
+        self._connection.commit()
+
+    def get_model(self, model_id: str) -> Model | None:
+        row = self._connection.execute(
+            """SELECT id, description, hypothesis_ids, input_ids, assumptions, method,
+                      method_version, rationale, created_at, schema_version
+               FROM models WHERE id = ?""", (model_id,)
+        ).fetchone()
+        if row is None:
+            return None
+        return Model.from_dict({
+            "id": row["id"], "description": row["description"],
+            "hypothesis_ids": json.loads(row["hypothesis_ids"]),
+            "input_ids": json.loads(row["input_ids"]),
+            "assumptions": json.loads(row["assumptions"]),
+            "method": row["method"], "method_version": row["method_version"],
+            "rationale": row["rationale"], "created_at": row["created_at"],
+            "schema_version": row["schema_version"],
+        })
+
+    def iter_models(self) -> Iterator[Model]:
+        rows = self._connection.execute(
+            """SELECT id, description, hypothesis_ids, input_ids, assumptions, method,
+                      method_version, rationale, created_at, schema_version
+               FROM models ORDER BY created_at, id"""
+        )
+        for row in rows:
+            yield Model.from_dict({
+                "id": row["id"], "description": row["description"],
+                "hypothesis_ids": json.loads(row["hypothesis_ids"]),
+                "input_ids": json.loads(row["input_ids"]),
+                "assumptions": json.loads(row["assumptions"]),
+                "method": row["method"], "method_version": row["method_version"],
+                "rationale": row["rationale"], "created_at": row["created_at"],
+                "schema_version": row["schema_version"],
+            })
+
+    def put_prediction(self, prediction: Prediction) -> None:
+        if self.get_hypothesis(prediction.source_id) is None and self.get_model(prediction.source_id) is None:
+            raise ValueError("prediction references missing hypothesis or model: " + prediction.source_id)
+        missing_comparisons = [
+            hypothesis_id for hypothesis_id in prediction.comparison_hypothesis_ids
+            if self.get_hypothesis(hypothesis_id) is None
+        ]
+        if missing_comparisons:
+            raise ValueError("prediction references missing comparison hypothesis(es): " + ", ".join(missing_comparisons))
+        self._connection.execute(
+            """INSERT INTO predictions
+               (id, source_id, consequence, conditions, assumptions, method,
+                method_version, rationale, comparison_hypothesis_ids, created_at,
+                schema_version)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (prediction.id, prediction.source_id, prediction.consequence,
+             prediction.conditions, canonical_json(list(prediction.assumptions)),
+             prediction.method, prediction.method_version, prediction.rationale,
+             canonical_json(list(prediction.comparison_hypothesis_ids)),
+             prediction.created_at, prediction.schema_version),
+        )
+        self._connection.commit()
+
+    def get_prediction(self, prediction_id: str) -> Prediction | None:
+        row = self._connection.execute(
+            """SELECT id, source_id, consequence, conditions, assumptions, method,
+                      method_version, rationale, comparison_hypothesis_ids,
+                      created_at, schema_version
+               FROM predictions WHERE id = ?""", (prediction_id,)
+        ).fetchone()
+        if row is None:
+            return None
+        return Prediction.from_dict({
+            "id": row["id"], "source_id": row["source_id"],
+            "consequence": row["consequence"], "conditions": row["conditions"],
+            "assumptions": json.loads(row["assumptions"]), "method": row["method"],
+            "method_version": row["method_version"], "rationale": row["rationale"],
+            "comparison_hypothesis_ids": json.loads(row["comparison_hypothesis_ids"]),
+            "created_at": row["created_at"], "schema_version": row["schema_version"],
+        })
+
+    def iter_predictions(self) -> Iterator[Prediction]:
+        rows = self._connection.execute(
+            """SELECT id, source_id, consequence, conditions, assumptions, method,
+                      method_version, rationale, comparison_hypothesis_ids,
+                      created_at, schema_version
+               FROM predictions ORDER BY created_at, id"""
+        )
+        for row in rows:
+            yield Prediction.from_dict({
+                "id": row["id"], "source_id": row["source_id"],
+                "consequence": row["consequence"], "conditions": row["conditions"],
+                "assumptions": json.loads(row["assumptions"]), "method": row["method"],
+                "method_version": row["method_version"], "rationale": row["rationale"],
+                "comparison_hypothesis_ids": json.loads(row["comparison_hypothesis_ids"]),
+                "created_at": row["created_at"], "schema_version": row["schema_version"],
+            })
 
     def put_lifecycle_event(self, event: LifecycleEvent) -> None:
         if self.get_record(event.record_id) is None:
