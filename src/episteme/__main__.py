@@ -12,7 +12,9 @@ from .public import (
     discovery_report,
     discovery_trail,
     get_record,
+    get_review,
     list_records,
+    list_reviews,
 )
 from .store import Store
 
@@ -34,6 +36,13 @@ def _parser() -> argparse.ArgumentParser:
 
     record = subparsers.add_parser("record", help="Inspect one grounded record.")
     record.add_argument("record_id")
+
+    reviews = subparsers.add_parser("reviews", help="List reviews.")
+    reviews.add_argument("--target-kind", default=None, choices=[kind.value for kind in __import__("episteme.model", fromlist=["ReviewTargetKind"]).ReviewTargetKind])
+    reviews.add_argument("--target-id", default=None)
+
+    review = subparsers.add_parser("review", help="Inspect one review.")
+    review.add_argument("review_id")
 
     for name, help_text in (
         ("trail", "Reconstruct a discovery trail."),
@@ -64,6 +73,12 @@ def main() -> int:
     with Store(store_path) as store:
         if args.command == "records":
             result = list_records(store, kind=args.kind)
+        elif args.command == "reviews":
+            from .model import ReviewTargetKind
+            target_kind = ReviewTargetKind(args.target_kind) if args.target_kind else None
+            result = list_reviews(store, target_kind=target_kind, target_id=args.target_id)
+        elif args.command == "review":
+            result = get_review(store, args.review_id)
         elif args.command == "record":
             result = get_record(store, args.record_id)
         elif args.command == "trail":
