@@ -1716,3 +1716,59 @@ def test_prediction_evaluation_requires_grounded_result_existing_prediction_and_
             assert prediction.id in str(exc)
         else:
             raise AssertionError("evaluation accepted a proposal that did not test its prediction")
+
+
+def test_knowledge_state_consequence_round_trip_preserves_contextual_transition():
+    from episteme import (
+        KnowledgeStateConsequence,
+        KnowledgeStateConsequenceKind,
+        KnowledgeStateTargetKind,
+    )
+
+    consequence = KnowledgeStateConsequence(
+        id="35353535-3535-4535-8535-353535353535",
+        evaluation_ids=("36363636-3636-4636-8636-363636363636",),
+        target_kind=KnowledgeStateTargetKind.HYPOTHESIS,
+        target_id="37373737-3737-4737-8737-373737373737",
+        consequence=KnowledgeStateConsequenceKind.WEAKENS,
+        assumptions=("The comparison conditions remain valid.",),
+        rationale="The evaluated result conflicts with an expected consequence under the stated assumptions.",
+        method="manual-comparison",
+        method_version="1",
+        created_at="2026-09-18T00:00:00Z",
+    )
+
+    assert KnowledgeStateConsequence.from_dict(consequence.to_dict()) == consequence
+
+
+def test_store_rejects_discovery_finding_with_unknown_generated_context():
+    from episteme import DiscoveryFinding, DiscoveryFindingKind
+
+    record = make_record(
+        RecordKind.OBSERVATION,
+        {"name": "context test"},
+        (provenance(),),
+        "2026-09-18T00:00:00Z",
+    )
+    finding = DiscoveryFinding(
+        id="38383838-3838-4838-8838-383838383838",
+        kind=DiscoveryFindingKind.TENSION,
+        title="Generated context test",
+        description="A finding with an intentionally unknown generated context identifier.",
+        input_ids=(record.id,),
+        context_ids=("39393939-3939-4939-8939-393939393939",),
+        method="test",
+        method_version="1",
+        rationale="Unknown generated context must not be silently accepted.",
+        measures=(),
+        created_at="2026-09-18T00:00:01Z",
+    )
+
+    with Store() as store:
+        store.put_record(record)
+        try:
+            store.put_discovery_finding(finding)
+        except ValueError as exc:
+            assert finding.context_ids[0] in str(exc)
+        else:
+            raise AssertionError("unknown generated context was accepted")
