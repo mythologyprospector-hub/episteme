@@ -2,7 +2,7 @@
 
 > An open scientific discovery engine for mapping knowledge, exposing unknowns, testing hypotheses, and finding the experiments that matter.
 
-![Episteme social preview](assets/episteme-social-preview.png)
+![Episteme social preview](assets/episteme-social-preview.jpg)
 
 ## What Is Episteme?
 
@@ -72,6 +72,7 @@ The first documents to read are:
 1. [Canon](CANON.md)
 2. [Architecture](ARCHITECTURE.md)
 3. [Roadmap](ROADMAP.md)
+4. [Contributing](CONTRIBUTING.md)
 
 ## Project Status
 
