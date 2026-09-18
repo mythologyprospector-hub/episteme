@@ -1,7 +1,7 @@
 # Episteme Roadmap
 
 **Status:** Canonical planning document  
-**Version:** 1.1  
+**Version:** 1.2  
 **Last updated:** 2026-09-18
 
 ## Mission
@@ -199,9 +199,21 @@ The first closed-loop discovery seam is now explicit: discovery findings may pre
 
 **Goal:** Demonstrate that the architecture survives multiple scientific domains.
 
-Possible domains should be selected for architectural value rather than spectacle.
+The canonical Phase 7 design is defined in DOMAIN_BROADENING.md.
 
-The system should demonstrate that domain-specific knowledge can be layered onto stable epistemic primitives without corrupting them.
+Target capabilities:
+
+- [ ] represent two materially different scientific domains;
+- [ ] keep domain-specific schemas above stable epistemic primitives;
+- [ ] preserve provenance and core validation across domain translation;
+- [ ] preserve explicit missing, conflicting, and uncertain states;
+- [ ] preserve generated-versus-grounded boundaries;
+- [ ] preserve closed-loop lineage and reproducibility across domains;
+- [ ] demonstrate that no domain-specific workaround silently becomes a universal core rule.
+
+Domains must be selected for architectural pressure rather than spectacle. The first domain should establish a clean extension point; the second should stress that extension point with materially different evidence structure.
+
+**Exit condition:** Two materially different scientific domains can use domain-specific layers while preserving the same core semantics for evidence, inference, unknowns, results, evaluations, and reproducibility.
 
 ## Phase 8 — Public Scientific Instrument
 
