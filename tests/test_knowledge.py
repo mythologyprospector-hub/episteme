@@ -1054,3 +1054,75 @@ def test_predict_preserves_explicit_consequence_and_comparison():
         "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
     )
     assert prediction.assumptions == ("The instrument remains calibrated.",)
+
+
+def test_phase4_end_to_end_preserves_grounded_to_prediction_lineage():
+    from episteme import (
+        detect_expected_gap,
+        predict,
+        propose_hypothesis,
+    )
+
+    first = make_record(
+        RecordKind.OBSERVATION,
+        {"name": "A"},
+        (provenance(),),
+        "2026-09-18T00:00:00Z",
+    )
+    second = make_record(
+        RecordKind.OBSERVATION,
+        {"name": "B"},
+        (provenance(),),
+        "2026-09-18T00:00:01Z",
+    )
+
+    with Store() as store:
+        store.put_record(first)
+        store.put_record(second)
+
+        finding = detect_expected_gap(
+            store,
+            first.id,
+            "related_to",
+            second.id,
+            "2026-09-18T00:00:02Z",
+        )
+        assert finding is not None
+        store.put_discovery_finding(finding)
+
+        hypothesis = propose_hypothesis(
+            statement="A hidden relation may explain the observed pattern.",
+            finding_ids=(finding.id,),
+            input_ids=(first.id, second.id),
+            method="deterministic-test",
+            method_version="1",
+            rationale="The explicit gap motivates this candidate explanation.",
+            assumptions=("The observations are comparable.",),
+            created_at="2026-09-18T00:00:03Z",
+        )
+        store.put_hypothesis(hypothesis)
+
+        prediction = predict(
+            source_id=hypothesis.id,
+            consequence="The measured relationship will be observed under test.",
+            conditions="When the stated observation conditions are reproduced.",
+            assumptions=("The observations remain comparable.",),
+            method="deterministic-test",
+            method_version="1",
+            rationale="This is a bounded consequence of the candidate hypothesis.",
+            created_at="2026-09-18T00:00:04Z",
+        )
+        store.put_prediction(prediction)
+
+        restored_finding = store.get_discovery_finding(finding.id)
+        restored_hypothesis = store.get_hypothesis(hypothesis.id)
+        restored_prediction = store.get_prediction(prediction.id)
+
+    assert restored_finding is not None
+    assert restored_hypothesis is not None
+    assert restored_prediction is not None
+    assert restored_hypothesis.finding_ids == (restored_finding.id,)
+    assert restored_hypothesis.input_ids == (first.id, second.id)
+    assert restored_prediction.source_id == restored_hypothesis.id
+    assert restored_prediction.source_id != first.id
+    assert restored_prediction.source_id != second.id
