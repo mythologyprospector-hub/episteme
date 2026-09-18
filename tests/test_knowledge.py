@@ -1772,3 +1772,175 @@ def test_store_rejects_discovery_finding_with_unknown_generated_context():
             assert finding.context_ids[0] in str(exc)
         else:
             raise AssertionError("unknown generated context was accepted")
+
+
+def test_renewed_discovery_surfaces_differing_evaluations_without_promoting_context():
+    from episteme import (
+        DiscoveryFindingKind,
+        PredictionEvaluation,
+        PredictionEvaluationOutcome,
+        propose_hypothesis,
+        predict,
+        discover_evaluation_tensions,
+    )
+
+    first = make_record(
+        RecordKind.OBSERVATION,
+        {"name": "A"},
+        (provenance(),),
+        "2026-09-18T00:00:00Z",
+    )
+    second = make_record(
+        RecordKind.OBSERVATION,
+        {"name": "B"},
+        (provenance(),),
+        "2026-09-18T00:00:01Z",
+    )
+    result_a = make_record(
+        RecordKind.RESULT,
+        {"observed": "Outcome A"},
+        (provenance(),),
+        "2026-09-18T00:00:07Z",
+    )
+    result_b = make_record(
+        RecordKind.RESULT,
+        {"observed": "Outcome B"},
+        (provenance(),),
+        "2026-09-18T00:00:08Z",
+    )
+
+    with Store() as store:
+        for record in (first, second, result_a, result_b):
+            store.put_record(record)
+
+        finding = _phase4_finding(first, second)
+        store.put_discovery_finding(finding)
+        hypothesis = propose_hypothesis(
+            statement="Explanation.",
+            finding_ids=(finding.id,),
+            method="test",
+            method_version="1",
+            rationale="Candidate explanation.",
+            created_at="2026-09-18T00:00:02Z",
+        )
+        store.put_hypothesis(hypothesis)
+        prediction = predict(
+            source_id=hypothesis.id,
+            consequence="Outcome A.",
+            conditions="Same test condition.",
+            assumptions=("The measurement is comparable.",),
+            method="test",
+            method_version="1",
+            rationale="Bounded prediction.",
+            created_at="2026-09-18T00:00:03Z",
+        )
+        store.put_prediction(prediction)
+
+        evaluation_a = PredictionEvaluation(
+            id="41414141-4141-4141-8141-414141414141",
+            result_id=result_a.id,
+            prediction_id=prediction.id,
+            experiment_proposal_id=None,
+            comparison_conditions="Same test condition.",
+            assumptions=("The measurement is comparable.",),
+            outcome=PredictionEvaluationOutcome.CONSISTENT,
+            rationale="Result A is compatible with the prediction.",
+            method="comparison",
+            method_version="1",
+            created_at="2026-09-18T00:00:09Z",
+        )
+        evaluation_b = PredictionEvaluation(
+            id="42424242-4242-4242-8242-424242424242",
+            result_id=result_b.id,
+            prediction_id=prediction.id,
+            experiment_proposal_id=None,
+            comparison_conditions="Same test condition.",
+            assumptions=("The measurement is comparable.",),
+            outcome=PredictionEvaluationOutcome.INCONSISTENT,
+            rationale="Result B conflicts with the prediction.",
+            method="comparison",
+            method_version="1",
+            created_at="2026-09-18T00:00:10Z",
+        )
+        store.put_prediction_evaluation(evaluation_a)
+        store.put_prediction_evaluation(evaluation_b)
+
+        findings = discover_evaluation_tensions(
+            store,
+            created_at="2026-09-18T00:00:11Z",
+        )
+
+        assert len(findings) == 1
+        renewed = findings[0]
+        assert renewed.kind is DiscoveryFindingKind.TENSION
+        assert renewed.input_ids == (result_a.id, result_b.id)
+        assert renewed.context_ids == (evaluation_a.id, evaluation_b.id)
+        assert evaluation_a.id not in renewed.input_ids
+        assert evaluation_b.id not in renewed.input_ids
+
+        store.put_discovery_finding(renewed)
+        restored = store.get_discovery_finding(renewed.id)
+
+    assert restored == renewed
+
+
+def test_renewed_discovery_does_not_merge_different_comparison_contexts():
+    from episteme import (
+        PredictionEvaluation,
+        PredictionEvaluationOutcome,
+        propose_hypothesis,
+        predict,
+        discover_evaluation_tensions,
+    )
+
+    first = make_record(RecordKind.OBSERVATION, {"name": "A"}, (provenance(),), "2026-09-18T00:00:00Z")
+    second = make_record(RecordKind.OBSERVATION, {"name": "B"}, (provenance(),), "2026-09-18T00:00:01Z")
+    result_a = make_record(RecordKind.RESULT, {"observed": "A"}, (provenance(),), "2026-09-18T00:00:07Z")
+    result_b = make_record(RecordKind.RESULT, {"observed": "B"}, (provenance(),), "2026-09-18T00:00:08Z")
+
+    with Store() as store:
+        for record in (first, second, result_a, result_b):
+            store.put_record(record)
+        finding = _phase4_finding(first, second)
+        store.put_discovery_finding(finding)
+        hypothesis = propose_hypothesis(
+            statement="Explanation.",
+            finding_ids=(finding.id,),
+            method="test",
+            method_version="1",
+            rationale="Candidate explanation.",
+            created_at="2026-09-18T00:00:02Z",
+        )
+        store.put_hypothesis(hypothesis)
+        prediction = predict(
+            source_id=hypothesis.id,
+            consequence="Outcome.",
+            conditions="Bounded conditions.",
+            method="test",
+            method_version="1",
+            rationale="Bounded prediction.",
+            created_at="2026-09-18T00:00:03Z",
+        )
+        store.put_prediction(prediction)
+
+        for evaluation_id, result_id, condition, outcome, second_offset in (
+            ("43434343-4343-4343-8343-434343434343", result_a.id, "Condition A", PredictionEvaluationOutcome.CONSISTENT, 0),
+            ("44444444-4444-4444-8444-444444444444", result_b.id, "Condition B", PredictionEvaluationOutcome.INCONSISTENT, 1),
+        ):
+            store.put_prediction_evaluation(
+                PredictionEvaluation(
+                    id=evaluation_id,
+                    result_id=result_id,
+                    prediction_id=prediction.id,
+                    experiment_proposal_id=None,
+                    comparison_conditions=condition,
+                    assumptions=(),
+                    outcome=outcome,
+                    rationale="Context-specific evaluation.",
+                    method="comparison",
+                    method_version="1",
+                    created_at=f"2026-09-18T00:00:{12 + second_offset:02d}Z",
+                )
+            )
+
+        assert discover_evaluation_tensions(store, "2026-09-18T00:00:14Z") == ()
