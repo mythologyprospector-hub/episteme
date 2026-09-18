@@ -57,6 +57,8 @@ The architecture separates:
 - the **interpretive world** — claims, models, hypotheses, predictions, analogies, and inferences;
 - the **unknown world** — unresolved, unmeasured, contradictory, insufficiently evidenced, and unexplored states.
 
+Phase 1 now has a small executable grounded knowledge substrate with deterministic serialization, provenance validation, first-class relationships, and SQLite persistence.
+
 ## Roadmap
 
 See [ROADMAP.md](ROADMAP.md).
@@ -76,9 +78,9 @@ The first documents to read are:
 
 ## Project Status
 
-**Current phase:** Phase 0 — Epistemic Foundation
+**Current phase:** Phase 1 — Minimal Knowledge Substrate
 
-The repository is intentionally starting with its epistemic and architectural foundations before implementation.
+The first grounded record model and SQLite persistence boundary are implemented and verified by the repository's automated test workflow. The substrate is intentionally small; discovery and autonomous reasoning have not been introduced.
 
 ## Project Boundary
 
