@@ -1,7 +1,7 @@
 # Episteme Roadmap
 
 **Status:** Canonical planning document  
-**Version:** 0.9  
+**Version:** 1.0  
 **Last updated:** 2026-09-18
 
 ## Mission
@@ -156,7 +156,7 @@ Target capabilities:
 - [ ] explicit result-to-prediction evaluation
 - [ ] failed-prediction recording
 - [x] explicit knowledge-state consequences
-- [ ] iterative discovery
+- [x] iterative discovery
 - [ ] reproducible discovery trails
 
 **Exit condition:** A complete discovery cycle can run from grounded evidence through hypothesis, prediction, experiment, result, result evaluation, explicit knowledge-state consequence, and renewed discovery while preserving the distinction between observation and interpretation.
@@ -174,6 +174,8 @@ The evaluation is contextual and non-binary: **consistent**, **inconsistent**, o
 The Phase 6 implementation now treats an explicit knowledge-state consequence as a separate generated artifact derived from one or more prediction evaluations. The consequence is contextual and append-only: supports, weakens, contradicts, or leaves_unresolved under stated assumptions. It does not mutate the target or establish a universal truth value.
 
 The implementation must preserve the evaluation identifiers, target identifier, consequence classification, assumptions, rationale, method/version, timestamp, and schema version so the transition can be reconstructed.
+
+The first closed-loop discovery seam is now explicit: discovery findings may preserve generated Phase 6 objects as `context_ids` while keeping grounded/integrity evidence in `input_ids`. This permits renewed discovery to inspect accumulated evaluations and consequences without promoting generated state to evidence. A specific renewed-discovery algorithm remains subject to its own documented rule.
 
 
 
