@@ -32,12 +32,7 @@ PROVENANCE = (
 
 def test_astronomy_and_biology_share_the_same_closed_loop_core():
     astronomy = make_astronomy_measurement(
-        {
-            "quantity": "flux",
-            "value": 2.5,
-            "unit": "Jy",
-            "target": "example-object",
-        },
+        {"quantity": "flux", "value": 2.5, "unit": "Jy", "target": "example-object"},
         PROVENANCE,
         CREATED,
     )
@@ -157,19 +152,18 @@ def test_astronomy_and_biology_share_the_same_closed_loop_core():
         store.put_discovery_finding(renewed)
 
         trail = build_discovery_trail(store, renewed.id, "2026-09-18T00:00:06Z")
+        later = build_discovery_trail(store, renewed.id, "2026-09-18T00:00:07Z")
 
     kinds = {(entry.kind, entry.id) for entry in trail.entries}
 
     assert ("record", astronomy.id) in kinds
     assert ("record", biology.id) in kinds
     assert ("record", result.id) in kinds
-    assert ("discovery_finding", origin.id) not in kinds
+    assert ("discovery_finding", origin.id) in kinds
     assert ("hypothesis", hypothesis.id) in kinds
     assert ("prediction", prediction.id) in kinds
     assert ("experiment_proposal", proposal.id) in kinds
     assert ("prediction_evaluation", evaluation.id) in kinds
     assert ("discovery_finding", renewed.id) in kinds
-
-    assert trail.to_lineage_json() == build_discovery_trail(
-        Store(), renewed.id, "2026-09-18T00:00:06Z"
-    ).to_lineage_json()
+    assert trail.to_lineage_json() == later.to_lineage_json()
+    assert trail.to_json() != later.to_json()
