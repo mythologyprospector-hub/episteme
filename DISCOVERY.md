@@ -143,3 +143,40 @@ Phase 3 is complete when Episteme can:
 6. keep all generated material distinguishable from grounded evidence.
 
 Semantic tension detection is not required for the Phase 3 exit condition; its rules remain deferred until a reproducible comparison basis can be defined.
+
+
+## Renewed Discovery — Phase 6
+
+Phase 6 renews discovery after experimental results have entered the knowledge state.
+
+Prediction evaluations and knowledge-state consequences are generated context. They may describe how results bear on predictions and interpretive targets, but they are not evidence and must never be treated as grounded inputs.
+
+A renewed discovery finding therefore keeps two lineages separate:
+
+- `input_ids` — grounded or integrity-layer evidence that supports the finding;
+- `context_ids` — generated evaluations and knowledge-state consequences inspected while producing the finding.
+
+### Evaluation-Conflict Detection
+
+The first renewed-discovery method is deliberately conservative: it detects when the same prediction has been evaluated with different outcome classifications under the same recorded comparison conditions and assumptions.
+
+The method:
+
+1. groups prediction evaluations by prediction identifier, comparison conditions, and assumptions;
+2. requires at least two evaluations in a group;
+3. requires more than one outcome classification in that group;
+4. produces a bounded **tension** finding;
+5. places the evaluated grounded result identifiers in `input_ids`;
+6. places the prediction evaluation identifiers in `context_ids`;
+7. records the comparison rule and method version in the finding rationale.
+
+The method does not decide which evaluation is correct, whether the prediction is true or false, or whether the differing outcomes are caused by an error. It only identifies a represented state in which the same prediction has received differing classifications under matching recorded comparison context.
+
+Knowledge-state consequences may be inspected alongside evaluations in later renewed-discovery methods, but they are not evidence. A consequence conflict must not be inferred until its comparison rule is separately documented.
+
+This first method intentionally does not assign a ranking, confidence score, or universal significance score.
+
+### Reproducibility Boundary
+
+Renewed discovery is reproducible only relative to the represented evaluation state and the method version. If later evidence adds another evaluation, the discovery result may change because the inspected knowledge state changed. Earlier findings remain inspectable as historical generated artifacts.
+
