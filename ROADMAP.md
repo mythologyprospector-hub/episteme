@@ -1,7 +1,7 @@
 # Episteme Roadmap
 
 **Status:** Canonical planning document  
-**Version:** 1.0  
+**Version:** 1.1  
 **Last updated:** 2026-09-18
 
 ## Mission
@@ -158,9 +158,24 @@ Target capabilities:
 - [x] explicit knowledge-state consequences
 - [x] iterative discovery
 - [x] renewed evaluation-conflict discovery
-- [ ] reproducible discovery trails
+- [x] reproducible discovery trails
 
 **Exit condition:** A complete discovery cycle can run from grounded evidence through hypothesis, prediction, experiment, result, result evaluation, explicit knowledge-state consequence, and renewed discovery while preserving the distinction between observation and interpretation.
+
+### Phase 6 Exit Audit
+
+The implemented Phase 6 behavior satisfies the stated exit condition:
+
+- grounded result ingestion remains separate from generated evaluation;
+- prediction evaluations preserve the compared result and prediction identifiers, conditions, assumptions, outcome, rationale, and method/version;
+- failed predictions are represented as `inconsistent` evaluations without mutating predictions;
+- explicit knowledge-state consequences accumulate as generated, append-only artifacts without becoming truth flags;
+- renewed discovery can inspect generated evaluation state while preserving grounded evidence in `input_ids`;
+- reproducible discovery trails reconstruct explicit lineage from renewed findings back through evaluations, results, predictions, proposals, hypotheses/models, motivating findings, and grounded inputs;
+- trail construction is read-only and fails explicitly when required lineage is missing;
+- the trail implementation provides a timestamp-independent canonical lineage representation for reproducibility comparison.
+
+The audit found no Phase 6 capability that requires new machinery before advancing. Domain broadening is therefore the next roadmap phase.
 
 ### Phase 6 Architecture Decision
 
@@ -227,7 +242,7 @@ If implementation reveals that the roadmap is wrong, revise the roadmap rather t
 
 ## Current Position
 
-**Phase 5 — Experiment Design**
+**Phase 7 — Broadening**
 
 Phase 1 is complete. The grounded substrate, provenance boundary, relationships, deterministic serialization, validation, SQLite persistence, and externally grounded ingestion fixture are implemented and verified.
 
@@ -239,4 +254,4 @@ Phase 4 is complete. Hypotheses, models, assumptions, competing explanations, an
 
 Phase 5 is complete. Experiment proposals explain why proposed observations could discriminate among competing explanations, actual results remain grounded and independently sourced, and explicit result-to-proposal/prediction relationships preserve the distinction between prediction, proposed test, and observed result.
 
-Phase 6 is the active objective. Result records can be ingested through the grounded JSONL ingestion boundary; prediction evaluations represent result-to-prediction comparison; failed predictions are represented by `inconsistent` evaluations rather than mutation; explicit knowledge-state consequences are persisted; and renewed discovery can surface differing evaluation outcomes while keeping generated context separate from grounded evidence. The remaining Phase 6 capability is a reproducible discovery trail that makes a complete cycle auditable as a single trace.
+Phase 6 is complete. Result records can be ingested through the grounded JSONL ingestion boundary; prediction evaluations represent result-to-prediction comparison; failed predictions are represented by `inconsistent` evaluations rather than mutation; explicit knowledge-state consequences are persisted; renewed discovery can surface differing evaluation outcomes while keeping generated context separate from grounded evidence; and reproducible discovery trails can reconstruct a complete cycle as an auditable lineage. The Phase 6 exit condition is satisfied.
