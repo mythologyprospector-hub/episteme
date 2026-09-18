@@ -699,6 +699,7 @@ class ExperimentProposal:
     prediction_ids: tuple[str, ...]
     objective: str
     proposed_observation: str
+    discrimination_basis: str
     conditions: str
     assumptions: tuple[str, ...]
     method: str
@@ -715,6 +716,7 @@ class ExperimentProposal:
             _require_uuid(value, "prediction_id")
         _require_text(self.objective, "objective")
         _require_text(self.proposed_observation, "proposed_observation")
+        _require_text(self.discrimination_basis, "discrimination_basis")
         _require_text(self.conditions, "conditions")
         for value in self.assumptions:
             _require_text(value, "assumption")
@@ -728,6 +730,7 @@ class ExperimentProposal:
     def to_dict(self) -> dict[str, Any]:
         return {"id": self.id, "prediction_ids": list(self.prediction_ids),
                 "objective": self.objective, "proposed_observation": self.proposed_observation,
+                "discrimination_basis": self.discrimination_basis,
                 "conditions": self.conditions, "assumptions": list(self.assumptions),
                 "method": self.method, "method_version": self.method_version,
                 "rationale": self.rationale, "created_at": self.created_at,
@@ -737,7 +740,7 @@ class ExperimentProposal:
     def from_dict(cls, data: Mapping[str, Any]) -> "ExperimentProposal":
         return cls(id=data["id"], prediction_ids=tuple(data["prediction_ids"]),
                    objective=data["objective"], proposed_observation=data["proposed_observation"],
-                   conditions=data["conditions"], assumptions=tuple(data["assumptions"]),
+                   discrimination_basis=data["discrimination_basis"], conditions=data["conditions"], assumptions=tuple(data["assumptions"]),
                    method=data["method"], method_version=data["method_version"],
                    rationale=data["rationale"], created_at=data["created_at"],
                    schema_version=data.get("schema_version", SCHEMA_VERSION))
