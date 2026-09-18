@@ -1,7 +1,7 @@
 # Episteme Architecture
 
 **Status:** Canonical  
-**Version:** 1.1  
+**Version:** 1.2  
 
 ## Architectural Intent
 
@@ -856,6 +856,46 @@ A complete cycle is traceable when Episteme can follow:
 **grounded evidence → discovery finding → hypothesis → competing prediction(s) → experiment proposal → grounded result → prediction evaluation → explicit knowledge-state consequence → renewed discovery**
 
 The final step does not require that every result generate a new hypothesis. It requires that the resulting state remain available to the discovery layer without losing provenance or epistemic status.
+
+## Collaboration and Review Layer
+
+Human review is an explicit layer over represented Episteme material. It is orthogonal to the grounded/generated/unknown epistemic layers: recording a review does not change the epistemic status of its target.
+
+A review identifies exactly one persisted target by both target kind and target identifier and preserves:
+
+- reviewer identity;
+- explicit disposition;
+- review basis;
+- rationale;
+- reviewer/process provenance;
+- review timestamp;
+- schema version.
+
+The initial disposition vocabulary is deliberately non-authoritative:
+
+- **note** — records an observation or comment about the target;
+- **question** — records something the reviewer asks or seeks clarification about;
+- **challenge** — records a reason to question the target or its reasoning;
+- **acknowledge** — records that the reviewer examined the target without asserting a truth judgment.
+
+These dispositions are review actions, not truth values, confidence scores, consensus states, or rankings.
+
+Reviews are immutable and append-only. A review never overwrites, retracts, supersedes, or reclassifies its target. Multiple reviews may target the same object, including reviews with different dispositions or conclusions; disagreement remains inspectable rather than being collapsed into consensus.
+
+The target boundary initially includes grounded records, relationships, discovery findings, hypotheses, models, predictions, experiment proposals, prediction evaluations, and knowledge-state consequences. A review target must already exist when the review is persisted. The target kind is part of the identity of the reference so inspection cannot accidentally conflate objects from different persistence collections.
+
+Reviewer identity is intentionally a free-form field in the initial implementation, supplemented by provenance. Accounts, authentication, permissions, shared editing, threaded discussion, notifications, workflow automation, and consensus computation remain outside this layer.
+
+### Review Versus Evidence Assessment
+
+Evidence assessment and review serve different purposes. Evidence assessment evaluates a grounded record or relationship under a stated assessment method and basis. Review records examination of represented material, including generated artifacts. A review may discuss or reference an assessment, but it does not replace the assessment and does not promote generated material to evidence.
+
+### Persistence Boundary
+
+Reviews are stored separately from the objects they examine. Persistence validates the target reference before insertion and uses append-only insertion semantics. The reviewed object remains unchanged. Duplicate review identifiers are rejected by normal store uniqueness constraints rather than overwriting an existing review.
+
+Review records are collaboration metadata, not discovery-trail nodes. They may be inspected alongside their targets, but they do not become evidential inputs merely because a reviewer examined an object.
+
 
 ## Related Independent Research
 
