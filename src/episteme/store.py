@@ -1199,8 +1199,8 @@ class Store:
 
     def iter_reviews(
         self,
-        target_kind: ReviewTargetKind | None = None,
         target_id: str | None = None,
+        target_kind: ReviewTargetKind | None = None,
     ) -> Iterator[Review]:
         clauses: list[str] = []
         parameters: list[str] = []
