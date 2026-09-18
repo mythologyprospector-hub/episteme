@@ -1126,3 +1126,79 @@ def test_phase4_end_to_end_preserves_grounded_to_prediction_lineage():
     assert restored_prediction.source_id == restored_hypothesis.id
     assert restored_prediction.source_id != first.id
     assert restored_prediction.source_id != second.id
+
+
+def test_competing_hypotheses_produce_explicit_distinguishing_predictions():
+    from episteme import predict, propose_hypothesis
+
+    first_record = make_record(
+        RecordKind.OBSERVATION,
+        {"name": "A"},
+        (provenance(),),
+        "2026-09-18T00:00:00Z",
+    )
+    second_record = make_record(
+        RecordKind.OBSERVATION,
+        {"name": "B"},
+        (provenance(),),
+        "2026-09-18T00:00:01Z",
+    )
+
+    with Store() as store:
+        store.put_record(first_record)
+        store.put_record(second_record)
+
+        finding = _phase4_finding(first_record, second_record)
+        store.put_discovery_finding(finding)
+
+        first = propose_hypothesis(
+            statement="Explanation A accounts for the missing relation.",
+            finding_ids=(finding.id,),
+            method="deterministic-test",
+            method_version="1",
+            rationale="Candidate explanation A.",
+            created_at="2026-09-18T00:00:03Z",
+        )
+        second = propose_hypothesis(
+            statement="Explanation B accounts for the missing relation.",
+            finding_ids=(finding.id,),
+            method="deterministic-test",
+            method_version="1",
+            rationale="Candidate explanation B.",
+            created_at="2026-09-18T00:00:04Z",
+        )
+        store.put_hypothesis(first)
+        store.put_hypothesis(second)
+
+        first_prediction = predict(
+            source_id=first.id,
+            consequence="Outcome A will occur.",
+            conditions="Under condition X.",
+            method="deterministic-test",
+            method_version="1",
+            rationale="This consequence is specific to Explanation A.",
+            comparison_hypothesis_ids=(first.id, second.id),
+            created_at="2026-09-18T00:00:05Z",
+        )
+        second_prediction = predict(
+            source_id=second.id,
+            consequence="Outcome B will occur.",
+            conditions="Under condition X.",
+            method="deterministic-test",
+            method_version="1",
+            rationale="This consequence is specific to Explanation B.",
+            comparison_hypothesis_ids=(first.id, second.id),
+            created_at="2026-09-18T00:00:06Z",
+        )
+        store.put_prediction(first_prediction)
+        store.put_prediction(second_prediction)
+
+        restored = tuple(store.iter_predictions())
+
+    assert len(restored) == 2
+    assert restored[0].source_id == first.id
+    assert restored[1].source_id == second.id
+    assert restored[0].comparison_hypothesis_ids == (first.id, second.id)
+    assert restored[1].comparison_hypothesis_ids == (first.id, second.id)
+    assert restored[0].consequence != restored[1].consequence
+    assert restored[0].conditions == restored[1].conditions
