@@ -244,13 +244,28 @@ Initial target capabilities:
 - [x] read-only command-line inspection surface
 - [x] provenance and lineage inspection
 - [x] deterministic discovery report representation
-- [ ] researcher-facing interface beyond the CLI
+- [x] researcher-facing interface beyond the CLI
 - [ ] public knowledge imports
 - [ ] collaboration and review workflows
 - [ ] documented external HTTP/API surface
 - [ ] transparent public evaluation workflow
 
 The exact public product shape remains intentionally open.
+
+### Phase 8 Initial Implementation Audit
+
+The first Phase 8 implementation satisfies the initial public-instrument exit condition.
+
+- the read-only Python API exposes grounded record inspection, deterministic listing, trail reconstruction, lineage, and reports;
+- the installed CLI exposes the same inspection surface without mutation commands;
+- discovery reports preserve grounded records separately from generated artifacts;
+- the browser renderer exposes the same report data without creating a second epistemic representation;
+- generated artifacts expose their `via`, method, and rationale in the browser surface so a researcher can inspect why each step exists;
+- full trail and timestamp-independent reproducible lineage remain available;
+- the complete closed discovery cycle is exercised by the public acceptance test;
+- no new persistence model, epistemic primitive, autonomous authority, or external service was required.
+
+This audit closes the initial Phase 8 public-instrument milestone. It does not close Phase 8 as a whole; the remaining public capabilities stay explicitly open on the roadmap.
 
 ## Roadmap Rules
 
@@ -290,4 +305,4 @@ Phase 6 is complete. Result records can be ingested through the grounded JSONL i
 
 Phase 7 is complete. Astronomy and Biology demonstrate materially different evidence shapes above the stable core, while provenance, explicit unknown/conflict/uncertainty states, generated-versus-grounded boundaries, closed-loop lineage, and reproducibility remain intact. The Phase 7 exit condition is satisfied.
 
-Phase 8 has begun with a read-only Python inspection API and command-line surface. The installed `episteme` command now exposes the same inspection surface as the module form. These expose existing Episteme state rather than creating a parallel public data model. The initial public surface deliberately favors inspectability and reproducibility over frontend or distributed infrastructure.
+Phase 8 has established its first researcher-facing public instrument: a read-only Python inspection API, the installed `episteme` command, deterministic discovery reports, and a self-contained browser-readable report renderer. These expose existing Episteme state rather than creating a parallel public data model. The Phase 8 initial implementation exit condition is satisfied: a person outside the development workflow can inspect a complete representative discovery cycle and reconstruct why generated steps exist without losing the grounded/generated boundary. Public knowledge imports, collaboration/review workflows, a documented external HTTP/API surface, and a transparent public evaluation workflow remain open Phase 8 work.
