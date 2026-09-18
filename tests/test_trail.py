@@ -155,6 +155,15 @@ def test_discovery_trail_reconstructs_closed_loop_deterministically():
 
     assert trail == second
     assert trail.to_json() == second.to_json()
+    assert trail.to_lineage_json() == second.to_lineage_json()
+
+    later = build_discovery_trail(
+        store,
+        renewed.id,
+        "2026-09-18T00:00:08Z",
+    )
+    assert trail.to_json() != later.to_json()
+    assert trail.to_lineage_json() == later.to_lineage_json()
 
     kinds = [(entry.kind, entry.id) for entry in trail.entries]
     assert ("discovery_finding", renewed.id) in kinds
