@@ -991,3 +991,66 @@ def test_prediction_rejects_unknown_comparison_hypothesis():
             assert "18181818-1818-4181-8181-181818181818" in str(exc)
         else:
             raise AssertionError("prediction with missing comparison hypothesis was accepted")
+
+
+def test_propose_hypothesis_preserves_explicit_content():
+    from episteme import propose_hypothesis
+
+    hypothesis = propose_hypothesis(
+        statement="A proposed explanation.",
+        finding_ids=("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",),
+        input_ids=("11111111-1111-4111-8111-111111111111",),
+        method="deterministic-test",
+        method_version="1",
+        rationale="Explicitly supplied rationale.",
+        assumptions=("Assumption one.",),
+        created_at="2026-09-18T00:00:10Z",
+    )
+
+    assert hypothesis.statement == "A proposed explanation."
+    assert hypothesis.finding_ids == ("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",)
+    assert hypothesis.input_ids == ("11111111-1111-4111-8111-111111111111",)
+    assert hypothesis.assumptions == ("Assumption one.",)
+
+
+def test_represent_model_preserves_explicit_hypotheses_and_assumptions():
+    from episteme import represent_model
+
+    model = represent_model(
+        description="A structured explanatory mechanism.",
+        hypothesis_ids=("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",),
+        assumptions=("The system is stable.",),
+        method="deterministic-test",
+        method_version="1",
+        rationale="Explicitly supplied model description.",
+        created_at="2026-09-18T00:00:11Z",
+    )
+
+    assert model.hypothesis_ids == ("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",)
+    assert model.assumptions == ("The system is stable.",)
+
+
+def test_predict_preserves_explicit_consequence_and_comparison():
+    from episteme import predict
+
+    prediction = predict(
+        source_id="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        consequence="The measured response will differ.",
+        conditions="Under the stated conditions.",
+        assumptions=("The instrument remains calibrated.",),
+        method="deterministic-test",
+        method_version="1",
+        rationale="Explicitly supplied distinguishing consequence.",
+        comparison_hypothesis_ids=(
+            "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+            "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+        ),
+        created_at="2026-09-18T00:00:12Z",
+    )
+
+    assert prediction.consequence == "The measured response will differ."
+    assert prediction.comparison_hypothesis_ids == (
+        "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+    )
+    assert prediction.assumptions == ("The instrument remains calibrated.",)
