@@ -1,7 +1,7 @@
 # Episteme Roadmap
 
 **Status:** Canonical planning document  
-**Version:** 1.2  
+**Version:** 1.3  
 **Last updated:** 2026-09-18
 
 ## Mission
@@ -290,4 +290,4 @@ Phase 6 is complete. Result records can be ingested through the grounded JSONL i
 
 Phase 7 is complete. Astronomy and Biology demonstrate materially different evidence shapes above the stable core, while provenance, explicit unknown/conflict/uncertainty states, generated-versus-grounded boundaries, closed-loop lineage, and reproducibility remain intact. The Phase 7 exit condition is satisfied.
 
-Phase 8 has begun with a read-only Python inspection API and command-line surface. These expose existing Episteme state rather than creating a parallel public data model. The initial public surface deliberately favors inspectability and reproducibility over frontend or distributed infrastructure.
+Phase 8 has begun with a read-only Python inspection API and command-line surface. The installed `episteme` command now exposes the same inspection surface as the module form. These expose existing Episteme state rather than creating a parallel public data model. The initial public surface deliberately favors inspectability and reproducibility over frontend or distributed infrastructure.
