@@ -464,6 +464,7 @@ class DiscoveryFinding:
     measures: tuple[DiscoveryMeasure, ...]
     created_at: str
     related_finding_id: str | None = None
+    expectation: tuple[str, str, str] | None = None
     schema_version: int = SCHEMA_VERSION
 
     def __post_init__(self) -> None:
@@ -485,6 +486,16 @@ class DiscoveryFinding:
                 raise ValueError("measures must contain DiscoveryMeasure objects")
         if self.related_finding_id is not None:
             _require_uuid(self.related_finding_id, "related_finding_id")
+        if self.expectation is not None:
+            if len(self.expectation) != 3:
+                raise ValueError("expectation must contain subject_id, predicate, and object_id")
+            _require_uuid(self.expectation[0], "expectation subject_id")
+            _require_text(self.expectation[1], "expectation predicate")
+            _require_uuid(self.expectation[2], "expectation object_id")
+        if self.kind is DiscoveryFindingKind.GAP and self.expectation is None:
+            raise ValueError("gap finding requires explicit expectation")
+        if self.kind is not DiscoveryFindingKind.GAP and self.expectation is not None:
+            raise ValueError("only gap findings may carry an expectation")
         if self.kind is DiscoveryFindingKind.UNRESOLVED_QUESTION and self.related_finding_id is None:
             raise ValueError("unresolved question requires related_finding_id")
         if self.schema_version != SCHEMA_VERSION:
@@ -503,6 +514,7 @@ class DiscoveryFinding:
             "measures": [measure.to_dict() for measure in self.measures],
             "created_at": self.created_at,
             "related_finding_id": self.related_finding_id,
+            "expectation": list(self.expectation) if self.expectation is not None else None,
             "schema_version": self.schema_version,
         }
 
@@ -520,6 +532,7 @@ class DiscoveryFinding:
             measures=tuple(DiscoveryMeasure.from_dict(item) for item in data["measures"]),
             created_at=data["created_at"],
             related_finding_id=data.get("related_finding_id"),
+            expectation=tuple(data["expectation"]) if data.get("expectation") is not None else None,
             schema_version=data.get("schema_version", SCHEMA_VERSION),
         )
 
