@@ -1,7 +1,7 @@
 # Episteme Architecture
 
 **Status:** Canonical  
-**Version:** 0.7  
+**Version:** 0.8  
 
 ## Architectural Intent
 
@@ -643,6 +643,78 @@ The hypothesis layer may consume discovery findings, but it must not rewrite gro
 
 External reasoning systems may assist generation but remain tools. Their outputs remain generated until independently supported.
 
+
+## Phase 6 — Closed Discovery Loop
+
+Phase 6 connects the existing epistemic objects into a repeatable cycle without collapsing grounded results into generated interpretation.
+
+The dependency direction is:
+
+**Grounded Knowledge → Integrity → Discovery Findings → Hypotheses / Models → Predictions → Experiment Proposals → Results → Result Evaluations / Explicit State Changes → Discovery**
+
+### Result Ingestion
+
+An experimental result remains a grounded result record. It is independently ingested with provenance and is never created by copying or rewriting the prediction or proposal.
+
+Result ingestion may add explicit relationships connecting the result to the experiment proposal and the predictions it tests. These relationships describe lineage; they do not promote generated objects to evidence.
+
+### Result Evaluation
+
+A result does not interpret itself.
+
+Phase 6 requires a distinct generated evaluation of how an observed result bears on one or more predictions. The evaluation is not a replacement for the result and is not a truth score.
+
+A prediction evaluation must preserve, where applicable:
+
+- the result identifier;
+- the prediction identifier;
+- the experiment proposal identifier;
+- the conditions under which the comparison is made;
+- the relevant prediction and result descriptions;
+- assumptions used by the evaluation;
+- an outcome classification;
+- the rationale for that classification;
+- the evaluation method and version;
+- the creation timestamp;
+- the schema version.
+
+The initial outcome classification is deliberately non-binary:
+
+- **consistent** — the observed result is compatible with the prediction under the stated comparison conditions;
+- **inconsistent** — the observed result conflicts with the prediction under the stated comparison conditions;
+- **inconclusive** — the result does not justify either classification under the available evidence and assumptions.
+
+These classifications describe the relationship between a particular result and prediction. They do not establish the truth or falsity of the underlying hypothesis.
+
+A result may be consistent with multiple predictions, inconsistent with multiple predictions, or inconclusive for one prediction while informative about another.
+
+### Knowledge-State Change
+
+Phase 6 distinguishes evaluating evidence from changing represented knowledge.
+
+A result evaluation may identify that a hypothesis or prediction is supported, weakened, contradicted, or left unresolved, but the evaluation itself does not silently rewrite the underlying artifact.
+
+When an existing grounded record must be corrected, the existing Phase 2 lifecycle mechanism remains authoritative: create a new record and record an explicit lifecycle event such as superseded or retracted.
+
+When a generated hypothesis, prediction, or other interpretive artifact needs revision, create a distinct generated artifact and preserve an explicit relationship to the prior artifact and the result/evaluation that motivated the revision.
+
+This means "knowledge-state update" is not a single universal truth flag. It is the accumulation of explicit evidence, relationships, evaluations, lifecycle events, and generated revisions from which the current state can be inspected.
+
+### Failure and Uncertainty
+
+A failed prediction is recorded as a result evaluation, not by mutating the prediction.
+
+An inconclusive result remains inconclusive. Missing information, violated assumptions, insufficient measurement resolution, and competing interpretations must remain visible when they affect the evaluation.
+
+Phase 6 must not introduce a universal confidence, truth, or hypothesis-ranking score merely to make the loop appear closed.
+
+### Closed-Cycle Trace
+
+A complete cycle is traceable when Episteme can follow:
+
+**grounded evidence → discovery finding → hypothesis → competing prediction(s) → experiment proposal → grounded result → prediction evaluation → explicit knowledge-state consequence → renewed discovery**
+
+The final step does not require that every result generate a new hypothesis. It requires that the resulting state remain available to the discovery layer without losing provenance or epistemic status.
 
 ## Related Independent Research
 
