@@ -644,6 +644,34 @@ The hypothesis layer may consume discovery findings, but it must not rewrite gro
 External reasoning systems may assist generation but remain tools. Their outputs remain generated until independently supported.
 
 
+## Phase 6 — Reproducible Discovery Trails
+
+A reproducible discovery trail is an inspectable reconstruction of a closed-loop lineage. It is not a new epistemic object and does not become evidence.
+
+A trail starts from a generated discovery finding and follows explicit references backward through the represented cycle:
+
+**renewed finding → generated evaluation context → grounded result → prediction → experiment proposal when represented → hypothesis/model → motivating discovery finding → grounded/integrity inputs**
+
+The trail must preserve object identifiers and object categories rather than copying generated prose as a substitute for identity. Each referenced object is reconstructed from the repository's canonical stored representation.
+
+A trail is reproducible when the same repository state, starting finding identifier, and trail-method version produce the same canonical serialized representation. The trail records:
+
+- starting finding identifier;
+- ordered traversal entries;
+- object kind and identifier for every included object;
+- explicit relationship/reference used to reach each object;
+- method name and version;
+- generation timestamp for the trail itself;
+- schema version.
+
+The traversal is read-only. It does not create, modify, promote, supersede, or reinterpret any epistemic object.
+
+The trail must distinguish grounded objects from generated objects throughout. Generated evaluations, consequences, findings, hypotheses, predictions, and proposals remain generated; grounded results and their provenance remain grounded.
+
+When a reference is optional or absent, the trail records the absence rather than inventing a connection. If a required upstream object is missing, trail construction fails explicitly instead of silently repairing the lineage.
+
+Canonical serialization of the trail uses the same deterministic JSON rules established for Episteme records. This provides a stable representation for comparison, storage by an external caller, or later reproducibility checks without requiring a new persistence layer.
+
 ## Phase 6 — Closed Discovery Loop
 
 Phase 6 connects the existing epistemic objects into a repeatable cycle without collapsing grounded results into generated interpretation.
