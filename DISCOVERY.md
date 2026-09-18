@@ -180,3 +180,18 @@ This first method intentionally does not assign a ranking, confidence score, or 
 
 Renewed discovery is reproducible only relative to the represented evaluation state and the method version. If later evidence adds another evaluation, the discovery result may change because the inspected knowledge state changed. Earlier findings remain inspectable as historical generated artifacts.
 
+
+
+## Reproducible Discovery Trails — Phase 6
+
+A discovery trail reconstructs the represented lineage behind a generated discovery finding without creating a new epistemic object.
+
+The first trail begins at a renewed discovery finding and follows explicit references backward through generated evaluation context and grounded results to the prediction, experiment proposal when represented, hypothesis/model, motivating discovery finding, and grounded/integrity inputs.
+
+The trail is read-only and preserves object identifiers and categories. It never treats generated material as evidence and never infers a missing connection.
+
+Reproducibility is defined relative to the same repository state, starting finding identifier, and trail-method version. The canonical serialized trail therefore contains ordered traversal entries, object kinds and identifiers, the explicit reference used at each step, method/version, trail creation timestamp, and schema version.
+
+Missing optional references are represented as absent. Missing required lineage fails explicitly.
+
+This is a reconstruction/report boundary, not a new persistence layer or discovery algorithm.
