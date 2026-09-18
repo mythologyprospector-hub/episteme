@@ -1,7 +1,7 @@
 # Episteme Architecture
 
 **Status:** Canonical  
-**Version:** 0.4  
+**Version:** 0.5  
 
 ## Architectural Intent
 
@@ -225,6 +225,77 @@ The importer does not:
 - promote interpretations into grounded records.
 
 A later ingestion source may be added only when its responsibility and boundary are documented.
+
+## Phase 2 Knowledge Integrity
+
+Phase 2 protects the substrate from epistemic drift without changing the Phase 1 rule that grounded records require external provenance.
+
+### Immutable Records
+
+Grounded record content is immutable after insertion.
+
+A correction does not overwrite the previous record. It creates a new record and an explicit lifecycle event or relationship connecting the two.
+
+This preserves the original evidence and makes revision history inspectable.
+
+### Lifecycle Events
+
+Record lifecycle is represented by an append-only event log.
+
+The initial lifecycle events are:
+
+- created
+- superseded
+- retracted
+
+A superseding event identifies the replacement record. A retraction records why the record is no longer considered active.
+
+Lifecycle events do not rewrite the original record payload.
+
+### Contradictions
+
+Contradictions are represented as first-class relationships using explicit predicates such as contradicts.
+
+A contradiction is recorded, not automatically resolved.
+
+The existence of a contradiction does not determine which side is correct.
+
+### Evidence Assessment
+
+Evidence quality is represented as a contextual assessment attached to a record or relationship.
+
+An assessment records:
+
+- assessment method;
+- assessment basis;
+- rationale;
+- provenance;
+- assessor or process identity where available.
+
+Evidence assessment is not a universal truth score. Different methods may produce different assessments, and the underlying evidence remains intact.
+
+### Reproducible Transformations
+
+A transformation records how one or more existing records produced one or more new records.
+
+A transformation preserves:
+
+- ordered input identifiers;
+- operation name and version;
+- assumptions;
+- output identifiers;
+- execution timestamp;
+- validation result.
+
+A transformation is itself inspectable. Its existence does not make its outputs externally true.
+
+### Integrity Boundary
+
+The Phase 2 integrity layer may evaluate, connect, supersede, retract, or transform records.
+
+It may not silently rewrite grounded evidence.
+
+The integrity layer therefore sits above the immutable grounded record substrate and below future discovery behavior.
 
 ## Provenance Boundary
 
