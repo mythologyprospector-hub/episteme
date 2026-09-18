@@ -57,7 +57,7 @@ The architecture separates:
 - the **interpretive world** — claims, models, hypotheses, predictions, analogies, and inferences;
 - the **unknown world** — unresolved, unmeasured, contradictory, insufficiently evidenced, and unexplored states.
 
-Phase 1 now has a small executable grounded knowledge substrate with deterministic serialization, provenance validation, first-class relationships, and SQLite persistence.
+Phase 1 has a small executable grounded knowledge substrate with deterministic serialization, structural provenance checks, first-class relationships, and SQLite persistence.
 
 ## Roadmap
 
