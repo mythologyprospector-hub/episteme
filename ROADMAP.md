@@ -203,17 +203,34 @@ The canonical Phase 7 design is defined in DOMAIN_BROADENING.md.
 
 Target capabilities:
 
-- [ ] represent two materially different scientific domains;
-- [ ] keep domain-specific schemas above stable epistemic primitives;
-- [ ] preserve provenance and core validation across domain translation;
-- [ ] preserve explicit missing, conflicting, and uncertain states;
-- [ ] preserve generated-versus-grounded boundaries;
-- [ ] preserve closed-loop lineage and reproducibility across domains;
-- [ ] demonstrate that no domain-specific workaround silently becomes a universal core rule.
+- [x] represent two materially different scientific domains;
+- [x] keep domain-specific schemas above stable epistemic primitives;
+- [x] preserve provenance and core validation across domain translation;
+- [x] preserve explicit missing, conflicting, and uncertain states;
+- [x] preserve generated-versus-grounded boundaries;
+- [x] preserve closed-loop lineage and reproducibility across domains;
+- [x] demonstrate that no domain-specific workaround silently becomes a universal core rule.
 
 Domains must be selected for architectural pressure rather than spectacle. The first domain should establish a clean extension point; the second should stress that extension point with materially different evidence structure.
 
 **Exit condition:** Two materially different scientific domains can use domain-specific layers while preserving the same core semantics for evidence, inference, unknowns, results, evaluations, and reproducibility.
+
+### Phase 7 Exit Audit
+
+The Phase 7 implementation and cross-domain stress tests satisfy the stated exit condition.
+
+- Astronomy uses the stable `MEASUREMENT` primitive for quantitative domain structure.
+- Biology uses the stable `OBSERVATION` primitive for categorical and structured domain evidence.
+- Domain-specific schemas remain in domain adapters rather than the core model.
+- Both adapters preserve caller-supplied provenance and pass records through ordinary core persistence and validation.
+- Missing, unreported, unresolved, conflicting, and uncertain states remain explicit within their respective domain semantics; Astronomy uncertainty metadata remains domain-owned.
+- Generated findings, hypotheses, predictions, proposals, and evaluations remain distinct from grounded records.
+- A mixed Astronomy/Biology fixture traverses the existing closed discovery loop and is reconstructed by the existing reproducible trail machinery.
+- No new core epistemic primitive, domain-specific core branch, or universal domain rule was required.
+
+The cross-domain stress test is implemented in `tests/test_phase7_cross_domain.py`. The complete local suite reached 74 passing tests after this implementation.
+
+Phase 7 therefore satisfies its exit condition. Further domain-specific expansion is not required before advancing; additional domains remain appropriate as future architecture stress tests rather than prerequisites for Phase 7 completion.
 
 ## Phase 8 — Public Scientific Instrument
 
