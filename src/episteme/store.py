@@ -434,6 +434,17 @@ class Store:
             raise ValueError(
                 "discovery finding references missing input(s): " + ", ".join(missing)
             )
+        missing_context = [
+            context_id
+            for context_id in finding.context_ids
+            if self.get_prediction_evaluation(context_id) is None
+            and self.get_knowledge_state_consequence(context_id) is None
+        ]
+        if missing_context:
+            raise ValueError(
+                "discovery finding references missing generated context: "
+                + ", ".join(missing_context)
+            )
         if finding.related_finding_id is not None and self.get_discovery_finding(finding.related_finding_id) is None:
             raise ValueError(
                 "discovery finding references missing related finding: "
