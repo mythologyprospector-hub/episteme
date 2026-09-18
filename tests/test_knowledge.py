@@ -654,3 +654,63 @@ def test_discovery_finding_rejects_unexpected_expectation():
         assert "only gap and unresolved-question findings" in str(exc)
     else:
         raise AssertionError("non-gap finding accepted an expectation")
+
+def test_discovery_expectation_flows_from_gap_to_persisted_question():
+    from episteme import (
+        DiscoveryFindingKind,
+        detect_expected_gap,
+        question_from_finding,
+    )
+
+    first = make_record(
+        RecordKind.OBSERVATION,
+        {"name": "A"},
+        (provenance(),),
+        "2026-09-18T00:00:00Z",
+    )
+    second = make_record(
+        RecordKind.OBSERVATION,
+        {"name": "B"},
+        (provenance(),),
+        "2026-09-18T00:00:01Z",
+    )
+
+    with Store() as store:
+        store.put_record(first)
+        store.put_record(second)
+
+        gap = detect_expected_gap(
+            store,
+            first.id,
+            "related_to",
+            second.id,
+            "2026-09-18T00:00:02Z",
+        )
+        assert gap is not None
+        assert gap.kind is DiscoveryFindingKind.GAP
+        assert gap.input_ids == (first.id, second.id)
+        assert gap.expectation == (first.id, "related_to", second.id)
+
+        store.put_discovery_finding(gap)
+
+        question = question_from_finding(
+            gap,
+            "2026-09-18T00:00:03Z",
+        )
+        assert question.kind is DiscoveryFindingKind.UNRESOLVED_QUESTION
+        assert question.related_finding_id == gap.id
+        assert question.input_ids == gap.input_ids
+        assert question.expectation == gap.expectation
+
+        store.put_discovery_finding(question)
+
+        restored = store.get_discovery_finding(question.id)
+        iterated = tuple(store.iter_discovery_findings())
+
+    assert restored == question
+    assert restored is not None
+    assert restored.related_finding_id == gap.id
+    assert restored.input_ids == (first.id, second.id)
+    assert restored.expectation == (first.id, "related_to", second.id)
+    assert all(item.id != question.id for item in iterated if item.kind is DiscoveryFindingKind.GAP)
+
