@@ -43,12 +43,24 @@ def render_discovery_report_html(report: dict[str, Any]) -> str:
                     or entry.get("data", {}).get("description")
                     or entry_id)
             )
+            data = entry.get("data", {})
+            via = html.escape(str(entry.get("via", "")))
+            method = html.escape(str(data.get("method", "")))
+            rationale = html.escape(str(data.get("rationale", "")))
+            context = []
+            if via:
+                context.append(f"<small><strong>Reached via:</strong> {via}</small>")
+            if method:
+                context.append(f"<small><strong>Method:</strong> {method}</small>")
+            if rationale:
+                context.append(f"<p><strong>Why this step exists:</strong> {rationale}</p>")
             items.append(
                 "<details><summary>"
                 f"<strong>{kind}</strong> — {label}"
                 "</summary>"
-                f"{block(entry)}"
-                "</details>"
+                + "".join(context)
+                + block(entry)
+                + "</details>"
             )
         return f'<div class="tags">{summary}</div>' + "".join(items)
 
@@ -64,7 +76,7 @@ header{margin-bottom:2rem}h1{font-size:1.8rem;margin-bottom:.4rem}h2{margin-top:
 .summary{display:flex;gap:.7rem;flex-wrap:wrap;margin:1rem 0}.card{padding:.8rem 1rem;border:1px solid #ddd;border-radius:.4rem}
 .tags{display:flex;gap:.4rem;flex-wrap:wrap;margin:.8rem 0}.tag{border:1px solid #ccc;border-radius:1rem;padding:.2rem .6rem;font-size:.9rem}
 details{margin:.7rem 0;border:1px solid #ddd;border-radius:.4rem;padding:.7rem}.data{white-space:pre-wrap;overflow:auto;padding:1rem;border:1px solid #ddd;border-radius:.4rem;background:#fafafa}
-.empty{color:#666}small{color:#555}
+.empty{color:#666}small{color:#555;display:block;margin:.3rem 0}
 </style></head><body>""",
         f'<header><h1>Episteme discovery report</h1><p><strong>Finding:</strong> {html.escape(finding_id)}</p>',
         '<p class="notice"><strong>Read-only.</strong> Grounded records are evidence Episteme received or recorded; generated artifacts are Episteme-produced reasoning or planning material. This report does not adjudicate truth.</p>',
