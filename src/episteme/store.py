@@ -22,6 +22,8 @@ from .model import (
     PredictionEvaluation,
     KnowledgeStateConsequence,
     KnowledgeStateTargetKind,
+    Review,
+    ReviewTargetKind,
     canonical_json,
 )
 
@@ -189,6 +191,20 @@ class Store:
                 method TEXT NOT NULL,
                 method_version TEXT NOT NULL,
                 created_at TEXT NOT NULL,
+                schema_version INTEGER NOT NULL
+            );
+
+
+            CREATE TABLE IF NOT EXISTS reviews (
+                id TEXT PRIMARY KEY,
+                target_kind TEXT NOT NULL,
+                target_id TEXT NOT NULL,
+                reviewer TEXT NOT NULL,
+                disposition TEXT NOT NULL,
+                basis TEXT NOT NULL,
+                rationale TEXT NOT NULL,
+                provenance TEXT NOT NULL,
+                reviewed_at TEXT NOT NULL,
                 schema_version INTEGER NOT NULL
             );
 
@@ -1111,6 +1127,107 @@ class Store:
                 "schema_version": row["schema_version"],
             }
         )
+
+    def _review_target_exists(self, target_kind: ReviewTargetKind, target_id: str) -> bool:
+        table_map = {
+            ReviewTargetKind.RECORD: "records",
+            ReviewTargetKind.RELATIONSHIP: "relationships",
+            ReviewTargetKind.DISCOVERY_FINDING: "discovery_findings",
+            ReviewTargetKind.HYPOTHESIS: "hypotheses",
+            ReviewTargetKind.MODEL: "models",
+            ReviewTargetKind.PREDICTION: "predictions",
+            ReviewTargetKind.EXPERIMENT_PROPOSAL: "experiment_proposals",
+            ReviewTargetKind.PREDICTION_EVALUATION: "prediction_evaluations",
+            ReviewTargetKind.KNOWLEDGE_STATE_CONSEQUENCE: "knowledge_state_consequences",
+        }
+        table = table_map[target_kind]
+        return self._connection.execute(
+            f"SELECT 1 FROM {table} WHERE id = ? LIMIT 1", (target_id,)
+        ).fetchone() is not None
+
+    def put_review(self, review: Review) -> None:
+        if not self._review_target_exists(review.target_kind, review.target_id):
+            raise ValueError(
+                f"review references missing {review.target_kind.value}: {review.target_id}"
+            )
+
+        self._connection.execute(
+            """
+            INSERT INTO reviews
+                (id, target_kind, target_id, reviewer, disposition, basis, rationale,
+                 provenance, reviewed_at, schema_version)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                review.id,
+                review.target_kind.value,
+                review.target_id,
+                review.reviewer,
+                review.disposition.value,
+                review.basis,
+                review.rationale,
+                canonical_json([item.to_dict() for item in review.provenance]),
+                review.reviewed_at,
+                review.schema_version,
+            ),
+        )
+        self._connection.commit()
+
+    def get_review(self, review_id: str) -> Review | None:
+        row = self._connection.execute(
+            """
+            SELECT id, target_kind, target_id, reviewer, disposition, basis, rationale,
+                   provenance, reviewed_at, schema_version
+            FROM reviews WHERE id = ?
+            """,
+            (review_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        return Review.from_dict({
+            "id": row["id"],
+            "target_kind": row["target_kind"],
+            "target_id": row["target_id"],
+            "reviewer": row["reviewer"],
+            "disposition": row["disposition"],
+            "basis": row["basis"],
+            "rationale": row["rationale"],
+            "provenance": json.loads(row["provenance"]),
+            "reviewed_at": row["reviewed_at"],
+            "schema_version": row["schema_version"],
+        })
+
+    def iter_reviews(self, target_id: str | None = None) -> Iterator[Review]:
+        if target_id is None:
+            rows = self._connection.execute(
+                """
+                SELECT id, target_kind, target_id, reviewer, disposition, basis, rationale,
+                       provenance, reviewed_at, schema_version
+                FROM reviews ORDER BY reviewed_at, id
+                """
+            )
+        else:
+            rows = self._connection.execute(
+                """
+                SELECT id, target_kind, target_id, reviewer, disposition, basis, rationale,
+                       provenance, reviewed_at, schema_version
+                FROM reviews WHERE target_id = ? ORDER BY reviewed_at, id
+                """,
+                (target_id,),
+            )
+        for row in rows:
+            yield Review.from_dict({
+                "id": row["id"],
+                "target_kind": row["target_kind"],
+                "target_id": row["target_id"],
+                "reviewer": row["reviewer"],
+                "disposition": row["disposition"],
+                "basis": row["basis"],
+                "rationale": row["rationale"],
+                "provenance": json.loads(row["provenance"]),
+                "reviewed_at": row["reviewed_at"],
+                "schema_version": row["schema_version"],
+            })
 
     def put_transformation(self, transformation: Transformation) -> None:
         record_ids = (*transformation.input_ids, *transformation.output_ids)
