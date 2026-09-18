@@ -28,6 +28,7 @@ An experiment proposal should preserve:
 - ordered prediction identifiers being tested;
 - human-readable objective;
 - proposed observation or measurement;
+- discrimination basis explaining why the proposed observation could produce different outcomes under the predictions being tested;
 - conditions or scope;
 - assumptions;
 - method and method version;
@@ -43,7 +44,7 @@ Phase 5 asks whether a proposed observation could produce different outcomes und
 
 Discriminating power is contextual, not a universal truth or quality score.
 
-A proposal may state the basis for its expected discrimination without assigning a single canonical ranking.
+A proposal must state the basis for its expected discrimination without assigning a single canonical ranking. The discrimination basis explains the expected difference in observable outcomes between the predictions being tested; it is explanatory metadata, not a score.
 
 Phase 5 must preserve the hypotheses and predictions that motivate the proposed test.
 
