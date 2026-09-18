@@ -160,7 +160,7 @@ def test_relationship_cannot_reference_missing_record():
         try:
             store.put_relationship(relationship)
         except ValueError as exc:
-            assert "missing record" in str(exc)
+            assert "missing object" in str(exc)
         else:
             raise AssertionError("dangling relationship was accepted")
 
