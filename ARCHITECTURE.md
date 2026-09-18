@@ -1,7 +1,7 @@
 # Episteme Architecture
 
 **Status:** Canonical  
-**Version:** 1.0  
+**Version:** 1.1  
 
 ## Architectural Intent
 
@@ -654,7 +654,7 @@ A trail starts from a generated discovery finding and follows explicit reference
 
 The trail must preserve object identifiers and object categories rather than copying generated prose as a substitute for identity. Each referenced object is reconstructed from the repository's canonical stored representation.
 
-A trail is reproducible when the same repository state, starting finding identifier, and trail-method version produce the same canonical serialized representation. The trail records:
+A trail has two representations. Its full serialized form includes the generation timestamp and is therefore deterministic only when the timestamp is held constant. Its reproducible lineage representation excludes that generation metadata. The lineage representation is reproducible when the same repository state, starting finding identifier, and trail-method version produce the same canonical serialized lineage. The trail records:
 
 - starting finding identifier;
 - ordered traversal entries;
@@ -670,7 +670,7 @@ The trail must distinguish grounded objects from generated objects throughout. G
 
 When a reference is optional or absent, the trail records the absence rather than inventing a connection. If a required upstream object is missing, trail construction fails explicitly instead of silently repairing the lineage.
 
-Canonical serialization of the trail uses the same deterministic JSON rules established for Episteme records. This provides a stable representation for comparison, storage by an external caller, or later reproducibility checks without requiring a new persistence layer.
+Canonical serialization of both trail representations uses the same deterministic JSON rules established for Episteme records. The full trail serialization is suitable when the generation timestamp is part of the desired record. The lineage serialization, exposed separately by the implementation, is the timestamp-independent form used for reproducibility comparison. Neither representation requires a new persistence layer.
 
 ## Phase 6 — Closed Discovery Loop
 
