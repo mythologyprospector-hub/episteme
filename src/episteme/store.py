@@ -13,6 +13,7 @@ from .model import (
     Hypothesis,
     Model,
     Prediction,
+    ExperimentProposal,
     EvidenceAssessment,
     LifecycleEvent,
     Record,
@@ -141,6 +142,20 @@ class Store:
                 method_version TEXT NOT NULL,
                 rationale TEXT NOT NULL,
                 comparison_hypothesis_ids TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                schema_version INTEGER NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS experiment_proposals (
+                id TEXT PRIMARY KEY,
+                prediction_ids TEXT NOT NULL,
+                objective TEXT NOT NULL,
+                proposed_observation TEXT NOT NULL,
+                conditions TEXT NOT NULL,
+                assumptions TEXT NOT NULL,
+                method TEXT NOT NULL,
+                method_version TEXT NOT NULL,
+                rationale TEXT NOT NULL,
                 created_at TEXT NOT NULL,
                 schema_version INTEGER NOT NULL
             );
@@ -619,6 +634,63 @@ class Store:
                 "method_version": row["method_version"], "rationale": row["rationale"],
                 "comparison_hypothesis_ids": json.loads(row["comparison_hypothesis_ids"]),
                 "created_at": row["created_at"], "schema_version": row["schema_version"],
+            })
+
+
+    def put_experiment_proposal(self, proposal: ExperimentProposal) -> None:
+        missing = [
+            prediction_id for prediction_id in proposal.prediction_ids
+            if self.get_prediction(prediction_id) is None
+        ]
+        if missing:
+            raise ValueError(
+                "experiment proposal references missing prediction(s): "
+                + ", ".join(missing)
+            )
+        self._connection.execute(
+            """INSERT INTO experiment_proposals
+               (id, prediction_ids, objective, proposed_observation, conditions,
+                assumptions, method, method_version, rationale, created_at, schema_version)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (proposal.id, canonical_json(list(proposal.prediction_ids)),
+             proposal.objective, proposal.proposed_observation, proposal.conditions,
+             canonical_json(list(proposal.assumptions)), proposal.method,
+             proposal.method_version, proposal.rationale, proposal.created_at,
+             proposal.schema_version),
+        )
+        self._connection.commit()
+
+    def get_experiment_proposal(self, proposal_id: str) -> ExperimentProposal | None:
+        row = self._connection.execute(
+            """SELECT id, prediction_ids, objective, proposed_observation, conditions,
+                      assumptions, method, method_version, rationale, created_at, schema_version
+               FROM experiment_proposals WHERE id = ?""", (proposal_id,)
+        ).fetchone()
+        if row is None:
+            return None
+        return ExperimentProposal.from_dict({
+            "id": row["id"], "prediction_ids": json.loads(row["prediction_ids"]),
+            "objective": row["objective"], "proposed_observation": row["proposed_observation"],
+            "conditions": row["conditions"], "assumptions": json.loads(row["assumptions"]),
+            "method": row["method"], "method_version": row["method_version"],
+            "rationale": row["rationale"], "created_at": row["created_at"],
+            "schema_version": row["schema_version"],
+        })
+
+    def iter_experiment_proposals(self) -> Iterator[ExperimentProposal]:
+        rows = self._connection.execute(
+            """SELECT id, prediction_ids, objective, proposed_observation, conditions,
+                      assumptions, method, method_version, rationale, created_at, schema_version
+               FROM experiment_proposals ORDER BY created_at, id"""
+        )
+        for row in rows:
+            yield ExperimentProposal.from_dict({
+                "id": row["id"], "prediction_ids": json.loads(row["prediction_ids"]),
+                "objective": row["objective"], "proposed_observation": row["proposed_observation"],
+                "conditions": row["conditions"], "assumptions": json.loads(row["assumptions"]),
+                "method": row["method"], "method_version": row["method_version"],
+                "rationale": row["rationale"], "created_at": row["created_at"],
+                "schema_version": row["schema_version"],
             })
 
     def put_lifecycle_event(self, event: LifecycleEvent) -> None:
