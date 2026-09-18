@@ -1,7 +1,7 @@
 # Episteme Public Scientific Instrument
 
 **Status:** Canonical Phase 8 design
-**Version:** 0.2
+**Version:** 0.3
 **Last updated:** 2026-09-18
 
 ## Purpose
@@ -16,7 +16,7 @@ It must expose provenance, uncertainty, generated status, lineage, and failure r
 
 Phase 8 begins with a **read-oriented scientific workspace**, not an autonomous researcher and not a broad platform.
 
-The first public surface is a small standard-library command-line interface backed by a documented Python read API.
+The first public surface is a small standard-library command-line interface backed by a documented Python read API, with a self-contained browser-readable report renderer.
 
 The first public surface should let a person:
 
@@ -39,7 +39,8 @@ The initial operations are:
 - list grounded records in deterministic order;
 - reconstruct a discovery trail;
 - serialize a trail as full JSON or timestamp-independent lineage JSON;
-- produce a deterministic inspection report from a discovery finding.
+- produce a deterministic inspection report from a discovery finding;
+- render that report as a self-contained HTML document.
 
 The CLI is an interface to these operations, not a separate application domain.
 
@@ -157,6 +158,14 @@ The intended first-use workflow is deliberately simple:
 
 The interface is therefore an inspection instrument first. It does not require the researcher to understand SQLite, internal Python classes, or the implementation of the discovery algorithms.
 
+### Browser-Readable Surface
+
+The first researcher-facing surface beyond terminal output is a self-contained HTML rendering of an existing discovery report. It requires no web server, JavaScript framework, external assets, or network connection. The renderer presents the same report data rather than creating a second representation of epistemic state.
+
+Programmatically, `render_discovery_report_html(report)` converts an existing public report into a browser-readable document. From the CLI, `report` accepts `--html <path>` to write that document.
+
+The HTML surface is intentionally read-only and keeps the same four major views visible: grounded records, generated artifacts, the full trail, and reproducible lineage.
+
 ### Public Acceptance Test
 
 The public surface is tested against a complete representative cycle:
@@ -183,5 +192,6 @@ Examples:
 - `episteme --store path/to/episteme.sqlite trail <finding-id> --created-at <timestamp>`
 - `episteme --store path/to/episteme.sqlite lineage <finding-id> --created-at <timestamp>`
 - `episteme --store path/to/episteme.sqlite report <finding-id> --created-at <timestamp>`
+- `episteme --store path/to/episteme.sqlite report <finding-id> --created-at <timestamp> --html report.html`
 
 The module form, `python -m episteme`, remains available and exposes the same surface.
