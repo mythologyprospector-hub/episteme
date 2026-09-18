@@ -26,6 +26,17 @@ class RecordKind(StrEnum):
     RESULT = "result"
 
 
+class LifecycleEventKind(StrEnum):
+    CREATED = "created"
+    SUPERSEDED = "superseded"
+    RETRACTED = "retracted"
+
+
+class AssessmentTargetKind(StrEnum):
+    RECORD = "record"
+    RELATIONSHIP = "relationship"
+
+
 def _require_text(value: str, field: str) -> None:
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"{field} must be a non-empty string")
@@ -194,6 +205,180 @@ class Relationship:
             object_id=data["object_id"],
             provenance=tuple(Provenance.from_dict(item) for item in data["provenance"]),
             created_at=data["created_at"],
+            schema_version=data.get("schema_version", SCHEMA_VERSION),
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class LifecycleEvent:
+    """An append-only lifecycle change for an existing record."""
+
+    id: str
+    record_id: str
+    kind: LifecycleEventKind
+    occurred_at: str
+    provenance: tuple[Provenance, ...]
+    replacement_record_id: str | None = None
+    reason: str | None = None
+    schema_version: int = SCHEMA_VERSION
+
+    def __post_init__(self) -> None:
+        _require_uuid(self.id, "id")
+        _require_uuid(self.record_id, "record_id")
+        if not isinstance(self.kind, LifecycleEventKind):
+            raise ValueError("kind must be a LifecycleEventKind")
+        _require_text(self.occurred_at, "occurred_at")
+        if not self.provenance:
+            raise ValueError("lifecycle event requires provenance")
+        if self.replacement_record_id is not None:
+            _require_uuid(self.replacement_record_id, "replacement_record_id")
+        if self.reason is not None:
+            _require_text(self.reason, "reason")
+        if self.schema_version != SCHEMA_VERSION:
+            raise ValueError(f"unsupported schema_version: {self.schema_version}")
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "record_id": self.record_id,
+            "kind": self.kind.value,
+            "occurred_at": self.occurred_at,
+            "provenance": [item.to_dict() for item in self.provenance],
+            "replacement_record_id": self.replacement_record_id,
+            "reason": self.reason,
+            "schema_version": self.schema_version,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> "LifecycleEvent":
+        return cls(
+            id=data["id"],
+            record_id=data["record_id"],
+            kind=LifecycleEventKind(data["kind"]),
+            occurred_at=data["occurred_at"],
+            provenance=tuple(Provenance.from_dict(item) for item in data["provenance"]),
+            replacement_record_id=data.get("replacement_record_id"),
+            reason=data.get("reason"),
+            schema_version=data.get("schema_version", SCHEMA_VERSION),
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class EvidenceAssessment:
+    """A contextual assessment of evidence, not a truth score."""
+
+    id: str
+    target_kind: AssessmentTargetKind
+    target_id: str
+    method: str
+    basis: str
+    rationale: str
+    provenance: tuple[Provenance, ...]
+    assessed_at: str
+    schema_version: int = SCHEMA_VERSION
+
+    def __post_init__(self) -> None:
+        _require_uuid(self.id, "id")
+        if not isinstance(self.target_kind, AssessmentTargetKind):
+            raise ValueError("target_kind must be an AssessmentTargetKind")
+        _require_uuid(self.target_id, "target_id")
+        _require_text(self.method, "method")
+        _require_text(self.basis, "basis")
+        _require_text(self.rationale, "rationale")
+        _require_text(self.assessed_at, "assessed_at")
+        if not self.provenance:
+            raise ValueError("assessment requires provenance")
+        if self.schema_version != SCHEMA_VERSION:
+            raise ValueError(f"unsupported schema_version: {self.schema_version}")
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "target_kind": self.target_kind.value,
+            "target_id": self.target_id,
+            "method": self.method,
+            "basis": self.basis,
+            "rationale": self.rationale,
+            "provenance": [item.to_dict() for item in self.provenance],
+            "assessed_at": self.assessed_at,
+            "schema_version": self.schema_version,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> "EvidenceAssessment":
+        return cls(
+            id=data["id"],
+            target_kind=AssessmentTargetKind(data["target_kind"]),
+            target_id=data["target_id"],
+            method=data["method"],
+            basis=data["basis"],
+            rationale=data["rationale"],
+            provenance=tuple(Provenance.from_dict(item) for item in data["provenance"]),
+            assessed_at=data["assessed_at"],
+            schema_version=data.get("schema_version", SCHEMA_VERSION),
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class Transformation:
+    """A reproducible relationship between existing records."""
+
+    id: str
+    input_ids: tuple[str, ...]
+    operation: str
+    operation_version: str
+    assumptions: tuple[str, ...]
+    output_ids: tuple[str, ...]
+    executed_at: str
+    validation_result: str
+    provenance: tuple[Provenance, ...]
+    schema_version: int = SCHEMA_VERSION
+
+    def __post_init__(self) -> None:
+        _require_uuid(self.id, "id")
+        if not self.input_ids:
+            raise ValueError("transformation requires at least one input")
+        if not self.output_ids:
+            raise ValueError("transformation requires at least one output")
+        for record_id in (*self.input_ids, *self.output_ids):
+            _require_uuid(record_id, "record_id")
+        _require_text(self.operation, "operation")
+        _require_text(self.operation_version, "operation_version")
+        _require_text(self.executed_at, "executed_at")
+        _require_text(self.validation_result, "validation_result")
+        if not self.provenance:
+            raise ValueError("transformation requires provenance")
+        if self.schema_version != SCHEMA_VERSION:
+            raise ValueError(f"unsupported schema_version: {self.schema_version}")
+        for assumption in self.assumptions:
+            _require_text(assumption, "assumption")
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "input_ids": list(self.input_ids),
+            "operation": self.operation,
+            "operation_version": self.operation_version,
+            "assumptions": list(self.assumptions),
+            "output_ids": list(self.output_ids),
+            "executed_at": self.executed_at,
+            "validation_result": self.validation_result,
+            "provenance": [item.to_dict() for item in self.provenance],
+            "schema_version": self.schema_version,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> "Transformation":
+        return cls(
+            id=data["id"],
+            input_ids=tuple(data["input_ids"]),
+            operation=data["operation"],
+            operation_version=data["operation_version"],
+            assumptions=tuple(data["assumptions"]),
+            output_ids=tuple(data["output_ids"]),
+            executed_at=data["executed_at"],
+            validation_result=data["validation_result"],
+            provenance=tuple(Provenance.from_dict(item) for item in data["provenance"]),
             schema_version=data.get("schema_version", SCHEMA_VERSION),
         )
 
