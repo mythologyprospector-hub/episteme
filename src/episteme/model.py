@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from datetime import datetime
 import json
+import math
 from typing import Any, Mapping
 from urllib.parse import urlparse
 from uuid import UUID, uuid4
@@ -37,6 +38,13 @@ class LifecycleEventKind(StrEnum):
 class AssessmentTargetKind(StrEnum):
     RECORD = "record"
     RELATIONSHIP = "relationship"
+
+
+class DiscoveryFindingKind(StrEnum):
+    GAP = "gap"
+    TENSION = "tension"
+    CONTRADICTION = "contradiction"
+    UNRESOLVED_QUESTION = "unresolved_question"
 
 
 def _require_text(value: str, field: str) -> None:
@@ -401,6 +409,117 @@ class Transformation:
             executed_at=data["executed_at"],
             validation_result=data["validation_result"],
             provenance=tuple(Provenance.from_dict(item) for item in data["provenance"]),
+            schema_version=data.get("schema_version", SCHEMA_VERSION),
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class DiscoveryMeasure:
+    """A named discovery signal; not a universal truth or confidence score."""
+
+    name: str
+    value: float
+    scale: str
+    basis: str
+
+    def __post_init__(self) -> None:
+        _require_text(self.name, "name")
+        if isinstance(self.value, bool) or not isinstance(self.value, (int, float)):
+            raise ValueError("value must be a number")
+        if not math.isfinite(float(self.value)):
+            raise ValueError("value must be finite")
+        _require_text(self.scale, "scale")
+        _require_text(self.basis, "basis")
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "name": self.name,
+            "value": self.value,
+            "scale": self.scale,
+            "basis": self.basis,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> "DiscoveryMeasure":
+        return cls(
+            name=data["name"],
+            value=data["value"],
+            scale=data["scale"],
+            basis=data["basis"],
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class DiscoveryFinding:
+    """A generated discovery artifact derived from grounded inputs."""
+
+    id: str
+    kind: DiscoveryFindingKind
+    title: str
+    description: str
+    input_ids: tuple[str, ...]
+    method: str
+    method_version: str
+    rationale: str
+    measures: tuple[DiscoveryMeasure, ...]
+    created_at: str
+    related_finding_id: str | None = None
+    schema_version: int = SCHEMA_VERSION
+
+    def __post_init__(self) -> None:
+        _require_uuid(self.id, "id")
+        if not isinstance(self.kind, DiscoveryFindingKind):
+            raise ValueError("kind must be a DiscoveryFindingKind")
+        _require_text(self.title, "title")
+        _require_text(self.description, "description")
+        if not self.input_ids:
+            raise ValueError("discovery finding requires at least one input")
+        for input_id in self.input_ids:
+            _require_uuid(input_id, "input_id")
+        _require_text(self.method, "method")
+        _require_text(self.method_version, "method_version")
+        _require_text(self.rationale, "rationale")
+        _require_iso_timestamp(self.created_at, "created_at")
+        for measure in self.measures:
+            if not isinstance(measure, DiscoveryMeasure):
+                raise ValueError("measures must contain DiscoveryMeasure objects")
+        if self.related_finding_id is not None:
+            _require_uuid(self.related_finding_id, "related_finding_id")
+        if self.kind is DiscoveryFindingKind.UNRESOLVED_QUESTION and self.related_finding_id is None:
+            raise ValueError("unresolved question requires related_finding_id")
+        if self.schema_version != SCHEMA_VERSION:
+            raise ValueError(f"unsupported schema_version: {self.schema_version}")
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "kind": self.kind.value,
+            "title": self.title,
+            "description": self.description,
+            "input_ids": list(self.input_ids),
+            "method": self.method,
+            "method_version": self.method_version,
+            "rationale": self.rationale,
+            "measures": [measure.to_dict() for measure in self.measures],
+            "created_at": self.created_at,
+            "related_finding_id": self.related_finding_id,
+            "schema_version": self.schema_version,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> "DiscoveryFinding":
+        return cls(
+            id=data["id"],
+            kind=DiscoveryFindingKind(data["kind"]),
+            title=data["title"],
+            description=data["description"],
+            input_ids=tuple(data["input_ids"]),
+            method=data["method"],
+            method_version=data["method_version"],
+            rationale=data["rationale"],
+            measures=tuple(DiscoveryMeasure.from_dict(item) for item in data["measures"]),
+            created_at=data["created_at"],
+            related_finding_id=data.get("related_finding_id"),
             schema_version=data.get("schema_version", SCHEMA_VERSION),
         )
 
