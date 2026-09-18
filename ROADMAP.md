@@ -193,7 +193,7 @@ If implementation reveals that the roadmap is wrong, revise the roadmap rather t
 
 ## Current Position
 
-**Phase 4 — Hypothesis and Prediction**
+**Phase 5 — Experiment Design**
 
 Phase 1 is complete. The grounded substrate, provenance boundary, relationships, deterministic serialization, validation, SQLite persistence, and externally grounded ingestion fixture are implemented and verified.
 
@@ -201,4 +201,6 @@ Phase 2 is complete. The substrate now has explicit provenance validation, contr
 
 Phase 3 is complete. Discovery findings can be traced to grounded inputs, expectation-based gaps preserve their exact basis, explicit contradictions are surfaced without semantic invention, bounded questions can be generated from supported findings, interpretable measures are recorded, and generated findings remain outside the grounded evidence boundary.
 
-Phase 4 is now the active objective: turn supported discovery findings into candidate explanations and predictions while preserving assumptions, provenance, uncertainty, and competing alternatives.
+Phase 4 is complete. Hypotheses, models, assumptions, competing explanations, and distinguishing predictions are represented and verified.
+
+Phase 5 is now the active objective: turn distinguishing predictions into experiment proposals that explain why proposed observations could discriminate among competing explanations, while preserving the distinction between prediction, proposed test, and observed result.
