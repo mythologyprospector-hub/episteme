@@ -1,7 +1,7 @@
 # Episteme Roadmap
 
 **Status:** Canonical planning document  
-**Version:** 0.3  
+**Version:** 0.4  
 **Last updated:** 2026-09-18
 
 ## Mission
@@ -53,7 +53,7 @@ Target capabilities:
 
 Target capabilities:
 
-- [ ] provenance validation beyond Phase 1 structural checks
+- [x] provenance validation beyond Phase 1 structural checks
 - [x] contradiction representation
 - [x] contextual evidence assessment
 - [x] immutable record content and append-only lifecycle history
@@ -61,6 +61,8 @@ Target capabilities:
 - [x] reproducible transformation records
 
 **Exit condition:** The system can explain why a represented statement exists and what evidence supports it.
+
+**Status:** Complete.
 
 ## Phase 3 — Discovery
 
@@ -169,4 +171,4 @@ If implementation reveals that the roadmap is wrong, revise the roadmap rather t
 
 Phase 1 is complete. The grounded substrate, provenance boundary, relationships, deterministic serialization, validation, SQLite persistence, and externally grounded ingestion fixture are implemented and verified.
 
-The immediate objective is to make epistemic state changes, contradictions, evidence quality, provenance history, and transformations explicit before adding discovery behavior.
+Phase 2 is complete. The substrate now has explicit provenance validation, contradiction representation, contextual evidence assessment, immutable records, append-only lifecycle history, explicit state transitions, and reproducible transformations. The next objective is to detect meaningful gaps and tensions without confusing generated structure with externally grounded evidence.
