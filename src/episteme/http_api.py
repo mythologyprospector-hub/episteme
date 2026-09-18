@@ -68,6 +68,22 @@ def _review_kind(value: str | None) -> ReviewTargetKind | None:
         raise _error(400, f"invalid review target kind: {value}") from exc
 
 
+def _record_kind(value: str | None) -> str | None:
+    if value is None:
+        return None
+    from .model import RecordKind
+    try:
+        return RecordKind(value).value
+    except ValueError as exc:
+        raise _error(400, f"invalid record kind: {value}") from exc
+
+
+def _reject_unexpected_query(query: dict[str, list[str]], allowed: set[str]) -> None:
+    unexpected = set(query) - allowed
+    if unexpected:
+        raise _error(400, f"unexpected query parameter: {sorted(unexpected)[0]}")
+
+
 class _Handler(BaseHTTPRequestHandler):
     server: "_EpistemeHTTPServer"
 
@@ -130,6 +146,7 @@ class _EpistemeHTTPServer(ThreadingHTTPServer):
 
         suffix = path[len(API_PREFIX):]
         if suffix == "":
+            _reject_unexpected_query(query, set())
             return {
                 "api": "episteme",
                 "version": API_VERSION,
@@ -139,7 +156,8 @@ class _EpistemeHTTPServer(ThreadingHTTPServer):
         parts = [part for part in suffix.split("/") if part]
         with Store(self.store_path) as store:
             if parts == ["records"]:
-                kind = _single_query(query, "kind")
+                _reject_unexpected_query(query, {"kind"})
+                kind = _record_kind(_single_query(query, "kind"))
                 return list_records(store, kind=kind), "application/json; charset=utf-8"
 
             if len(parts) == 2 and parts[0] == "records":
@@ -148,6 +166,7 @@ class _EpistemeHTTPServer(ThreadingHTTPServer):
                 return get_record(store, parts[1]), "application/json; charset=utf-8"
 
             if parts == ["reviews"]:
+                _reject_unexpected_query(query, {"target_kind", "target_id"})
                 target_kind = _review_kind(_single_query(query, "target_kind"))
                 target_id = _single_query(query, "target_id")
                 return list_reviews(
@@ -175,8 +194,7 @@ class _EpistemeHTTPServer(ThreadingHTTPServer):
                     report = discovery_report(store, parts[1], created_at)
                     from .html import render_discovery_report_html
                     return render_discovery_report_html(report).encode("utf-8"), "text/html; charset=utf-8"
-                if set(query) != allowed:
-                    raise _error(400, "unexpected query parameter")
+                _reject_unexpected_query(query, allowed)
                 if parts[2] == "trail":
                     return discovery_trail(store, parts[1], created_at), "application/json; charset=utf-8"
                 if parts[2] == "lineage":
