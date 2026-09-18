@@ -1,7 +1,7 @@
 # Episteme Discovery Model
 
 **Status:** Canonical Phase 3 design
-**Version:** 0.1
+**Version:** 0.2
 **Last updated:** 2026-09-18
 
 ## Purpose
@@ -190,7 +190,7 @@ The first trail begins at a renewed discovery finding and follows explicit refer
 
 The trail is read-only and preserves object identifiers and categories. It never treats generated material as evidence and never infers a missing connection.
 
-Reproducibility is defined relative to the same repository state, starting finding identifier, and trail-method version. The canonical serialized trail therefore contains ordered traversal entries, object kinds and identifiers, the explicit reference used at each step, method/version, trail creation timestamp, and schema version.
+The trail has a full serialized form and a reproducible lineage form. The full form includes the trail creation timestamp. The lineage form excludes that generation metadata, so the same repository state, starting finding identifier, and trail-method version produce the same canonical lineage representation regardless of when the trail was reconstructed. Both forms contain ordered traversal entries, object kinds and identifiers, the explicit reference used at each step, method/version, and schema version.
 
 Missing optional references are represented as absent. Missing required lineage fails explicitly.
 
