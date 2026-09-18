@@ -236,16 +236,19 @@ Phase 7 therefore satisfies its exit condition. Further domain-specific expansio
 
 **Goal:** Make Episteme genuinely useful outside its development environment.
 
-Potential capabilities:
+The canonical Phase 8 design is defined in PUBLIC_INSTRUMENT.md.
 
-- public knowledge imports
-- researcher-facing interfaces
-- reproducible discovery reports
-- collaboration
-- review workflows
-- domain adapters
-- documented APIs
-- transparent evaluation
+Initial target capabilities:
+
+- [x] read-only Python inspection API
+- [x] read-only command-line inspection surface
+- [x] provenance and lineage inspection
+- [x] deterministic discovery report representation
+- [ ] researcher-facing interface beyond the CLI
+- [ ] public knowledge imports
+- [ ] collaboration and review workflows
+- [ ] documented external HTTP/API surface
+- [ ] transparent public evaluation workflow
 
 The exact public product shape remains intentionally open.
 
@@ -284,3 +287,7 @@ Phase 4 is complete. Hypotheses, models, assumptions, competing explanations, an
 Phase 5 is complete. Experiment proposals explain why proposed observations could discriminate among competing explanations, actual results remain grounded and independently sourced, and explicit result-to-proposal/prediction relationships preserve the distinction between prediction, proposed test, and observed result.
 
 Phase 6 is complete. Result records can be ingested through the grounded JSONL ingestion boundary; prediction evaluations represent result-to-prediction comparison; failed predictions are represented by `inconsistent` evaluations rather than mutation; explicit knowledge-state consequences are persisted; renewed discovery can surface differing evaluation outcomes while keeping generated context separate from grounded evidence; and reproducible discovery trails can reconstruct a complete cycle as an auditable lineage. The Phase 6 exit condition is satisfied.
+
+Phase 7 is complete. Astronomy and Biology demonstrate materially different evidence shapes above the stable core, while provenance, explicit unknown/conflict/uncertainty states, generated-versus-grounded boundaries, closed-loop lineage, and reproducibility remain intact. The Phase 7 exit condition is satisfied.
+
+Phase 8 has begun with a read-only Python inspection API and command-line surface. These expose existing Episteme state rather than creating a parallel public data model. The initial public surface deliberately favors inspectability and reproducibility over frontend or distributed infrastructure.
