@@ -1,7 +1,7 @@
 # Episteme Public Scientific Instrument
 
 **Status:** Canonical Phase 8 design
-**Version:** 0.5
+**Version:** 0.6
 **Last updated:** 2026-09-18
 
 ## Purpose
@@ -163,6 +163,66 @@ The initial implementation should therefore establish:
 
 Network discovery, authentication, rate limiting, crawling, source ranking, universal format support, and web-scale scheduling remain separate decisions.
 
+
+
+## Collaboration and Review Architecture
+
+The next public capability is human review, but review is not treated as a new truth mechanism.
+
+A review is a **human-authored assessment of represented material**. It must preserve what was reviewed, who or what performed the review, what basis was used, what was concluded or questioned, and when the review occurred. The review must not mutate the reviewed object.
+
+The existing `EvidenceAssessment` primitive is intentionally narrower: it assesses the quality or basis of grounded evidence or relationships. It is therefore not sufficient as the general review object because public review may concern generated findings, hypotheses, predictions, proposals, evaluations, or other generated artifacts.
+
+The initial collaboration/review design will therefore introduce a distinct review layer above existing epistemic objects:
+
+**represented object → review → explicit review record**
+
+A review may target grounded or generated material, but targeting does not change that material's epistemic status.
+
+### Review Invariants
+
+A review must:
+
+- identify exactly what object was reviewed;
+- preserve the object's epistemic category rather than copying or reclassifying it;
+- identify the reviewer or review process through explicit reviewer provenance;
+- record the review basis and rationale;
+- record the review time;
+- remain immutable after insertion;
+- permit multiple independent reviews of the same object;
+- preserve disagreement between reviews rather than resolving it automatically;
+- remain inspectable alongside the reviewed material.
+
+A review must not:
+
+- overwrite the reviewed object;
+- silently promote generated material to grounded evidence;
+- silently retract or supersede grounded evidence;
+- collapse multiple reviewers into one consensus value;
+- become a universal truth or confidence score.
+
+### Review Versus Evidence Assessment
+
+These concepts remain separate:
+
+- **Evidence assessment** asks how a grounded record or relationship should be assessed under a stated method and basis.
+- **Review** records a human or review-process examination of represented material.
+
+A review may refer to an evidence assessment, but a review does not replace it. A review may also examine generated reasoning without pretending that the reasoning is evidence.
+
+### Initial Collaboration Scope
+
+The first collaboration implementation should remain deliberately small:
+
+- explicit review records;
+- reviewer identity/provenance;
+- target references to existing Episteme objects;
+- free-form review basis and rationale;
+- explicit review disposition without a universal score;
+- deterministic persistence and inspection;
+- tests showing that reviewing an object does not mutate it.
+
+User accounts, permissions, shared editing, threaded discussion, notifications, workflow automation, consensus computation, and externally hosted collaboration remain separate decisions.
 
 ## Public Ingestion Boundary
 
