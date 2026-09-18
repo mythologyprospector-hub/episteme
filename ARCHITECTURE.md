@@ -796,7 +796,22 @@ The discovery finding preserves both lists so a later reader can answer two sepa
 
 A renewed discovery method must preserve the same distinction in its rationale and method/version metadata. If generated context ultimately points back to grounded evidence, that upstream lineage remains available through the referenced evaluation or consequence and its underlying objects; the context identifier itself is not promoted into the evidential basis.
 
-Phase 6 does not define a universal renewed-discovery algorithm. The first implementation seam is therefore lineage and boundary preservation. Specific methods for finding new gaps, tensions, contradictions, or questions from accumulated evaluation state require their own explicit discovery rule before implementation.
+The first renewed-discovery method is deliberately conservative: it detects differing evaluation outcomes for the same prediction when the evaluations share the same recorded comparison conditions and assumptions.
+
+The method:
+
+1. groups prediction evaluations by prediction identifier, comparison conditions, and assumptions;
+2. requires at least two evaluations in a group;
+3. requires more than one outcome classification;
+4. produces a bounded `tension` finding;
+5. places the evaluated grounded result identifiers in `input_ids`;
+6. places the prediction evaluation identifiers in `context_ids`.
+
+This reports a conflict in the represented evaluation state. It does not determine which evaluation is correct, whether the prediction is true or false, or why the classifications differ.
+
+Knowledge-state consequences are not treated as evidence. Their future use in renewed discovery requires a separate documented comparison rule.
+
+The method is reproducible relative to the represented evaluation state and its method version. New evaluations may change what a later execution finds; earlier generated findings remain historical artifacts and are not silently rewritten.
 
 ### Failure and Uncertainty
 
