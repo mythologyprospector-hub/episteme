@@ -1,7 +1,7 @@
 # Episteme Public Scientific Instrument
 
 **Status:** Canonical Phase 8 design
-**Version:** 0.3
+**Version:** 0.4
 **Last updated:** 2026-09-18
 
 ## Purpose
@@ -85,6 +85,84 @@ A report should identify:
 - generation method/version where applicable.
 
 The report must not silently collapse generated interpretation into grounded evidence.
+
+
+## Public Knowledge Import Architecture
+
+The next Phase 8 capability is **public knowledge import**, but the first implementation remains deliberately narrower than a web-scale ingestion platform.
+
+The importer boundary is:
+
+**external source representation → source-specific adapter → canonical grounded record → ordinary Episteme validation/persistence**
+
+The adapter is responsible for translating an external representation. The core remains responsible for deciding whether the resulting grounded record is structurally admissible.
+
+A public import must preserve the distinction between **what the source said**, **what the adapter translated**, and **what Episteme later infers**.
+
+### Import Contract
+
+An import operation must:
+
+- identify the external source;
+- preserve the source location when available;
+- preserve source version, publication timestamp, or equivalent source state when available;
+- record when Episteme captured the material;
+- preserve source-provided content without silently changing its meaning;
+- produce canonical grounded records with ordinary provenance;
+- validate records before persistence;
+- report rejected material explicitly.
+
+An importer must not:
+
+- infer facts that are absent from the source;
+- convert source interpretation into independently observed evidence;
+- silently repair malformed source data;
+- invent missing provenance;
+- silently overwrite existing immutable records;
+- silently deduplicate records by semantic similarity;
+- silently discard source material that cannot be represented.
+
+If an external format contains both observations and interpretations, the adapter must preserve that distinction rather than placing everything into a generic grounded record. Unsupported interpretive material is retained as source material or explicitly rejected; it is not promoted into grounded evidence merely because the format contains it.
+
+### Source and Translation Provenance
+
+Imported records must retain enough provenance to reconstruct two different questions:
+
+1. **Where did the external material originate?**
+2. **How did Episteme represent it?**
+
+The first is source provenance. The second is translation provenance.
+
+A source identifier alone is insufficient when the external material can change over time. Where available, the importer should preserve a stable source location plus source version, publication timestamp, revision identifier, content digest, or equivalent source-state marker. The capture timestamp records when Episteme obtained the material.
+
+Translation details belong to the import operation, not to an invented claim about the external world. Where a transformation record is appropriate, it should preserve the source input, adapter name/version, assumptions, output identifiers, timestamp, and validation result.
+
+### Determinism and Re-import
+
+Import translation should be deterministic for a fixed source representation and adapter version.
+
+Re-importing the same source representation must not require semantic deduplication to remain safe. Record identity remains explicit. If an import produces a new UUID on each run, the repeated records are still distinct unless a later, explicitly documented equivalence mechanism is introduced.
+
+An importer may detect exact source-state repetition for operational reporting, but operational duplicate detection must not be confused with epistemic equivalence.
+
+### First Public Import Scope
+
+The first public importer should use a **caller-supplied, finite source representation** rather than discovering and crawling the public web autonomously.
+
+This keeps the first capability testable, reproducible, offline-capable, and explicit about what Episteme actually received.
+
+The initial implementation should therefore establish:
+
+- one documented external source format or fixture;
+- one explicit source-to-record adapter;
+- preservation of source and capture provenance;
+- deterministic translation;
+- explicit rejection of unsupported or malformed material;
+- re-import behavior that does not overwrite immutable records;
+- tests demonstrating that generated interpretations are not promoted during import.
+
+Network discovery, authentication, rate limiting, crawling, source ranking, universal format support, and web-scale scheduling remain separate decisions.
+
 
 ## Public Ingestion Boundary
 
