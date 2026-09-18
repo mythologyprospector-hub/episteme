@@ -259,15 +259,38 @@ class Store:
                 }
             )
 
+    def _object_exists(self, object_id: str) -> bool:
+        """Return whether an ID exists in any persisted epistemic collection."""
+        tables = (
+            "records",
+            "relationships",
+            "lifecycle_events",
+            "evidence_assessments",
+            "transformations",
+            "discovery_findings",
+            "hypotheses",
+            "models",
+            "predictions",
+            "experiment_proposals",
+        )
+        return any(
+            self._connection.execute(
+                f"SELECT 1 FROM {table} WHERE id = ? LIMIT 1",
+                (object_id,),
+            ).fetchone()
+            is not None
+            for table in tables
+        )
+
     def put_relationship(self, relationship: Relationship) -> None:
         missing = [
-            record_id
-            for record_id in (relationship.subject_id, relationship.object_id)
-            if self.get_record(record_id) is None
+            object_id
+            for object_id in (relationship.subject_id, relationship.object_id)
+            if not self._object_exists(object_id)
         ]
         if missing:
             raise ValueError(
-                "relationship references missing record(s): "
+                "relationship references missing object(s): "
                 + ", ".join(missing)
             )
 
