@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 
 from .html import render_discovery_report_html
+from .model import ReviewTargetKind
 from .public import (
     discovery_lineage,
     discovery_report,
@@ -38,7 +39,7 @@ def _parser() -> argparse.ArgumentParser:
     record.add_argument("record_id")
 
     reviews = subparsers.add_parser("reviews", help="List reviews.")
-    reviews.add_argument("--target-kind", default=None, choices=[kind.value for kind in __import__("episteme.model", fromlist=["ReviewTargetKind"]).ReviewTargetKind])
+    reviews.add_argument("--target-kind", default=None, choices=[kind.value for kind in ReviewTargetKind])
     reviews.add_argument("--target-id", default=None)
 
     review = subparsers.add_parser("review", help="Inspect one review.")
@@ -74,7 +75,6 @@ def main() -> int:
         if args.command == "records":
             result = list_records(store, kind=args.kind)
         elif args.command == "reviews":
-            from .model import ReviewTargetKind
             target_kind = ReviewTargetKind(args.target_kind) if args.target_kind else None
             result = list_reviews(store, target_kind=target_kind, target_id=args.target_id)
         elif args.command == "review":
