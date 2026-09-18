@@ -78,13 +78,13 @@ The first documents to read are:
 
 ## Project Status
 
-**Current phase:** Phase 7 — Broadening
+**Current phase:** Phase 8 — Public Scientific Instrument
 
 Phase 1 grounded substrate, Phase 2 knowledge integrity, and Phase 3 discovery are complete and verified. Phase 4 hypothesis and prediction, Phase 5 experiment design, and Phase 6 closed-loop discovery are also complete and verified.
 
-Current work is Phase 7: demonstrating that materially different scientific domains can use domain-specific layers while preserving Episteme's stable epistemic primitives, provenance, generated-versus-grounded boundaries, closed-loop lineage, and reproducibility.
+Phase 7 is complete and verified. The first two domain demonstrations are Astronomy and Biology, showing that materially different evidence shapes can use domain-specific layers while preserving Episteme's stable epistemic primitives, provenance, generated-versus-grounded boundaries, closed-loop lineage, and reproducibility.
 
-The first two domain demonstrations are Astronomy and Biology. Astronomy exercises quantitative measurement structure; Biology deliberately exercises categorical and structured observation structure. The domain adapters remain above the stable core.
+Current work is Phase 8: defining the public scientific instrument. The canonical Phase 8 design is documented in [PUBLIC_INSTRUMENT.md](PUBLIC_INSTRUMENT.md). The first public surface is deliberately read-oriented: inspectable knowledge, provenance, generated reasoning, reproducible lineage, and transparent discovery reports before broader platform machinery.
 
 ## Project Boundary
 
