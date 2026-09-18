@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from .model import ReviewTargetKind
 from .store import Store
 from .trail import build_discovery_trail
 
@@ -20,6 +21,26 @@ def list_records(store: Store, kind: str | None = None) -> list[dict[str, Any]]:
     """Return grounded records in the store's deterministic order."""
     return [record.to_dict() for record in store.iter_records(kind=kind)]
 
+
+
+def get_review(store: Store, review_id: str) -> dict[str, Any]:
+    """Return one immutable review as a public representation."""
+    review = store.get_review(review_id)
+    if review is None:
+        raise ValueError(f"review not found: {review_id}")
+    return review.to_dict()
+
+
+def list_reviews(
+    store: Store,
+    target_kind: ReviewTargetKind | None = None,
+    target_id: str | None = None,
+) -> list[dict[str, Any]]:
+    """Return reviews in deterministic order, optionally scoped to a target."""
+    return [
+        review.to_dict()
+        for review in store.iter_reviews(target_kind=target_kind, target_id=target_id)
+    ]
 
 def discovery_trail(
     store: Store,
@@ -69,6 +90,8 @@ def discovery_report(
 __all__ = [
     "get_record",
     "list_records",
+    "get_review",
+    "list_reviews",
     "discovery_trail",
     "discovery_lineage",
     "discovery_report",
