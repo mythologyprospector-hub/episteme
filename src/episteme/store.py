@@ -593,7 +593,7 @@ class Store:
                (id, source_id, consequence, conditions, assumptions, method,
                 method_version, rationale, comparison_hypothesis_ids, created_at,
                 schema_version)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (prediction.id, prediction.source_id, prediction.consequence,
              prediction.conditions, canonical_json(list(prediction.assumptions)),
              prediction.method, prediction.method_version, prediction.rationale,
