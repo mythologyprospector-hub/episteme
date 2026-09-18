@@ -1202,3 +1202,130 @@ def test_competing_hypotheses_produce_explicit_distinguishing_predictions():
     assert restored[1].comparison_hypothesis_ids == (first.id, second.id)
     assert restored[0].consequence != restored[1].consequence
     assert restored[0].conditions == restored[1].conditions
+
+
+def test_experiment_proposal_round_trip_preserves_prediction_lineage():
+    from episteme import propose_experiment, predict, propose_hypothesis
+
+    first = make_record(RecordKind.OBSERVATION, {"name": "A"}, (provenance(),), "2026-09-18T00:00:00Z")
+    second = make_record(RecordKind.OBSERVATION, {"name": "B"}, (provenance(),), "2026-09-18T00:00:01Z")
+
+    with Store() as store:
+        store.put_record(first)
+        store.put_record(second)
+        finding = _phase4_finding(first, second)
+        store.put_discovery_finding(finding)
+
+        hypothesis_a = propose_hypothesis(
+            statement="Explanation A.",
+            finding_ids=(finding.id,),
+            method="test",
+            method_version="1",
+            rationale="Candidate A.",
+            created_at="2026-09-18T00:00:02Z",
+        )
+        hypothesis_b = propose_hypothesis(
+            statement="Explanation B.",
+            finding_ids=(finding.id,),
+            method="test",
+            method_version="1",
+            rationale="Candidate B.",
+            created_at="2026-09-18T00:00:03Z",
+        )
+        store.put_hypothesis(hypothesis_a)
+        store.put_hypothesis(hypothesis_b)
+
+        prediction_a = predict(
+            source_id=hypothesis_a.id,
+            consequence="Outcome A.",
+            conditions="Same test condition.",
+            method="test",
+            method_version="1",
+            rationale="Distinguishing consequence A.",
+            comparison_hypothesis_ids=(hypothesis_a.id, hypothesis_b.id),
+            created_at="2026-09-18T00:00:04Z",
+        )
+        prediction_b = predict(
+            source_id=hypothesis_b.id,
+            consequence="Outcome B.",
+            conditions="Same test condition.",
+            method="test",
+            method_version="1",
+            rationale="Distinguishing consequence B.",
+            comparison_hypothesis_ids=(hypothesis_a.id, hypothesis_b.id),
+            created_at="2026-09-18T00:00:05Z",
+        )
+        store.put_prediction(prediction_a)
+        store.put_prediction(prediction_b)
+
+        proposal = propose_experiment(
+            prediction_ids=(prediction_a.id, prediction_b.id),
+            objective="Distinguish the competing explanations.",
+            proposed_observation="Measure the outcome under the shared test condition.",
+            conditions="Same test condition.",
+            assumptions=("The measurement remains comparable.",),
+            method="test",
+            method_version="1",
+            rationale="The proposed observation targets the explicit difference between predictions.",
+            created_at="2026-09-18T00:00:06Z",
+        )
+        store.put_experiment_proposal(proposal)
+
+        restored = store.get_experiment_proposal(proposal.id)
+
+    assert restored == proposal
+    assert restored is not None
+    assert restored.prediction_ids == (prediction_a.id, prediction_b.id)
+    assert restored.proposed_observation == "Measure the outcome under the shared test condition."
+
+
+def test_store_rejects_experiment_proposal_without_existing_prediction():
+    from episteme import ExperimentProposal
+
+    proposal = ExperimentProposal(
+        id="19191919-1919-4191-8191-191919191919",
+        prediction_ids=("20202020-2020-4202-8202-202020202020",),
+        objective="Test a prediction.",
+        proposed_observation="Observe the stated consequence.",
+        conditions="Under stated conditions.",
+        assumptions=(),
+        method="manual",
+        method_version="1",
+        rationale="Example.",
+        created_at="2026-09-18T00:00:00Z",
+    )
+
+    with Store() as store:
+        try:
+            store.put_experiment_proposal(proposal)
+        except ValueError as exc:
+            assert proposal.prediction_ids[0] in str(exc)
+        else:
+            raise AssertionError("proposal with missing prediction was accepted")
+
+
+def test_propose_experiment_preserves_explicit_content():
+    from episteme import propose_experiment
+
+    proposal = propose_experiment(
+        prediction_ids=(
+            "21212121-2121-4121-8121-212121212121",
+            "22222222-2222-4222-8222-222222222222",
+        ),
+        objective="Determine which predicted consequence occurs.",
+        proposed_observation="Measure the response.",
+        conditions="Under the bounded test conditions.",
+        assumptions=("The instrument is calibrated.",),
+        method="deterministic-test",
+        method_version="1",
+        rationale="Explicitly supplied experiment plan.",
+        created_at="2026-09-18T00:00:00Z",
+    )
+
+    assert proposal.prediction_ids == (
+        "21212121-2121-4121-8121-212121212121",
+        "22222222-2222-4222-8222-222222222222",
+    )
+    assert proposal.objective == "Determine which predicted consequence occurs."
+    assert proposal.proposed_observation == "Measure the response."
+    assert proposal.assumptions == ("The instrument is calibrated.",)
