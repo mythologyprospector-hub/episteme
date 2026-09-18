@@ -187,7 +187,7 @@ class Record:
 
 @dataclass(frozen=True, slots=True)
 class Relationship:
-    """A first-class relationship between two grounded records."""
+    """A first-class provenance-bearing relationship between Episteme objects."""
 
     id: str
     subject_id: str
