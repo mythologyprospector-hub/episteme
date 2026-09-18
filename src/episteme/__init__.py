@@ -1,5 +1,6 @@
 """Episteme package."""
 
+from .ingest import ingest_jsonl, ingest_jsonl_file
 from .model import (
     SCHEMA_VERSION,
     Provenance,
@@ -24,4 +25,6 @@ __all__ = [
     "canonical_json",
     "make_record",
     "make_relationship",
+    "ingest_jsonl",
+    "ingest_jsonl_file",
 ]
