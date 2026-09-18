@@ -53,7 +53,7 @@ def test_public_api_exposes_trail_and_report_without_reinterpreting_state():
     )
     finding = DiscoveryFinding(
         id="66666666-6666-4666-8666-666666666666",
-        kind=DiscoveryFindingKind.GAP,
+        kind=DiscoveryFindingKind.UNRESOLVED_QUESTION,
         title="Public inspection fixture",
         description="A deterministic finding used to exercise the public surface.",
         input_ids=(record.id,),
