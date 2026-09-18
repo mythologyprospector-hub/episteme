@@ -1,7 +1,7 @@
 # Episteme Domain Broadening
 
 **Status:** Canonical Phase 7 design
-**Version:** 0.2
+**Version:** 0.3
 **Last updated:** 2026-09-18
 
 ## Purpose
@@ -208,6 +208,20 @@ It is complete when the repository demonstrates that:
 6. the closed discovery loop remains traceable;
 7. reproducible lineage remains available;
 8. no domain-specific workaround has silently become a universal core rule.
+
+## Phase 7 Stress-Test Evidence
+
+The first executable cross-domain stress test is `tests/test_phase7_cross_domain.py`.
+
+It deliberately places an Astronomy `MEASUREMENT` and a Biology `OBSERVATION` into the same closed-loop fixture and sends them through the existing generic machinery:
+
+**domain records → discovery finding → hypothesis → prediction → experiment proposal → grounded result → prediction evaluation → renewed discovery → reproducible trail**
+
+The test demonstrates that both domain records persist through the ordinary Store API, retain their domain-specific payloads while remaining ordinary grounded records, serve as grounded inputs to the same discovery finding, and pass through generic hypothesis, prediction, experiment-proposal, result-evaluation, renewed-discovery, and trail machinery without a domain-specific branch.
+
+Separate adapter tests demonstrate explicit missing/unresolved states, conflicting Biology observations, Astronomy uncertainty metadata, deterministic translation, and unchanged caller-supplied provenance.
+
+The stress test therefore provides executable evidence that materially different domain evidence shapes can enter the same downstream epistemic machinery without requiring a domain-specific core primitive or changing the grounded/generated boundary.
 
 ## Failure Is an Architectural Result
 
