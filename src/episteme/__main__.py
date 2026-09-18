@@ -6,6 +6,8 @@ import argparse
 import json
 from pathlib import Path
 
+from .http_api import serve
+
 from .html import render_discovery_report_html
 from .model import ReviewTargetKind
 from .public import (
@@ -30,6 +32,9 @@ def _parser() -> argparse.ArgumentParser:
         default=":memory:",
         help="SQLite store path (default: :memory:)",
     )
+    parser.add_argument("--serve", action="store_true", help="Serve the read-only HTTP API.")
+    parser.add_argument("--host", default="127.0.0.1", help="HTTP bind host (default: 127.0.0.1).")
+    parser.add_argument("--port", type=int, default=8000, help="HTTP bind port (default: 8000).")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     records = subparsers.add_parser("records", help="List grounded records.")
@@ -70,6 +75,9 @@ def _parser() -> argparse.ArgumentParser:
 def main() -> int:
     args = _parser().parse_args()
     store_path = Path(args.store) if args.store != ":memory:" else args.store
+    if args.serve:
+        serve(store_path, host=args.host, port=args.port)
+        return 0
 
     with Store(store_path) as store:
         if args.command == "records":
