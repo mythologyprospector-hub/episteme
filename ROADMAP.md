@@ -1,7 +1,7 @@
 # Episteme Roadmap
 
 **Status:** Canonical planning document  
-**Version:** 0.1  
+**Version:** 0.2  
 **Last updated:** 2026-09-18
 
 ## Mission
@@ -18,9 +18,9 @@ The roadmap is deliberately staged. Each stage should leave the repository more 
 - [x] Establish canonical principles.
 - [x] Establish initial architecture.
 - [x] Establish documentation standard.
-- [ ] Establish initial project README.
-- [ ] Establish contribution/change discipline.
-- [ ] Establish first executable development baseline.
+- [x] Establish initial project README.
+- [x] Establish contribution/change discipline.
+- [x] Establish executable development baseline.
 
 **Exit condition:** The repository has a stable vocabulary and architectural boundary sufficient to begin implementation without guessing what Episteme means by knowledge, evidence, inference, or unknown.
 
@@ -158,6 +158,6 @@ If implementation reveals that the roadmap is wrong, revise the roadmap rather t
 
 ## Current Position
 
-**Phase 0 — Epistemic Foundation**
+**Phase 1 — Minimal Knowledge Substrate**
 
-The immediate objective is to establish the documentation and development baseline cleanly before implementation begins.
+The documentation foundation and executable development baseline are established. Implementation now begins with the smallest trustworthy representation of grounded knowledge.

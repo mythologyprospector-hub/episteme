@@ -1,7 +1,7 @@
 # Episteme Architecture
 
 **Status:** Canonical  
-**Version:** 0.1  
+**Version:** 0.2  
 **Last updated:** 2026-09-18
 
 ## Architectural Intent
@@ -10,7 +10,7 @@ Episteme is designed around one primary constraint:
 
 > The architecture must preserve the difference between what the world provides, what the system infers, and what remains unknown.
 
-The architecture therefore follows the epistemic model established in `CANON.md`.
+The architecture therefore follows the epistemic model established by CANON.md.
 
 ## System Shape
 
@@ -28,7 +28,6 @@ External Evidence
 ┌───────────────────┐
 │ Grounded Knowledge│
 └─────────┬─────────┘
-          │
           ├──────────────┐
           ▼              ▼
 ┌───────────────────┐  ┌──────────────────┐
@@ -177,6 +176,35 @@ Higher-level discovery behavior may depend on evidence, provenance, relationship
 Those primitives must not depend on a particular discovery strategy, language model, user interface, or external provider.
 
 This keeps the scientific substrate independent from the mechanism used to reason over it.
+
+## Implementation Baseline
+
+The initial executable baseline is deliberately small and boring.
+
+- **Language:** Python.
+- **Packaging:** standard pyproject.toml project metadata.
+- **Source layout:** src/episteme/.
+- **Tests:** tests/, using pytest.
+- **Dependencies:** standard-library-first; external dependencies require a demonstrated need.
+- **Automation:** GitHub Actions may verify the baseline and later project invariants.
+- **Interfaces:** no web UI, API server, database, model provider, or distributed runtime is part of the baseline.
+
+The baseline exists to make development reproducible. It is not the Phase 1 knowledge substrate.
+
+### Python Boundary
+
+Python is an implementation choice, not an epistemic commitment.
+
+Core epistemic semantics must remain independent of framework-specific behavior and external service providers.
+
+### Dependency Rule
+
+A dependency should be introduced only when:
+
+1. the current implementation cannot reasonably provide the required capability;
+2. the dependency has a clear responsibility;
+3. its role is documented;
+4. its effect on reproducibility, provenance, security, and portability is understood.
 
 ## External Models
 
