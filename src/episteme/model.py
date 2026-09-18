@@ -46,6 +46,25 @@ class AssessmentTargetKind(StrEnum):
     RELATIONSHIP = "relationship"
 
 
+class ReviewTargetKind(StrEnum):
+    RECORD = "record"
+    RELATIONSHIP = "relationship"
+    DISCOVERY_FINDING = "discovery_finding"
+    HYPOTHESIS = "hypothesis"
+    MODEL = "model"
+    PREDICTION = "prediction"
+    EXPERIMENT_PROPOSAL = "experiment_proposal"
+    PREDICTION_EVALUATION = "prediction_evaluation"
+    KNOWLEDGE_STATE_CONSEQUENCE = "knowledge_state_consequence"
+
+
+class ReviewDisposition(StrEnum):
+    NOTE = "note"
+    QUESTION = "question"
+    CHALLENGE = "challenge"
+    ACKNOWLEDGE = "acknowledge"
+
+
 class DiscoveryFindingKind(StrEnum):
     GAP = "gap"
     TENSION = "tension"
@@ -351,6 +370,67 @@ class EvidenceAssessment:
             rationale=data["rationale"],
             provenance=tuple(Provenance.from_dict(item) for item in data["provenance"]),
             assessed_at=data["assessed_at"],
+            schema_version=data.get("schema_version", SCHEMA_VERSION),
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class Review:
+    """An immutable human or review-process examination of represented material."""
+
+    id: str
+    target_kind: ReviewTargetKind
+    target_id: str
+    reviewer: str
+    disposition: ReviewDisposition
+    basis: str
+    rationale: str
+    provenance: tuple[Provenance, ...]
+    reviewed_at: str
+    schema_version: int = SCHEMA_VERSION
+
+    def __post_init__(self) -> None:
+        _require_uuid(self.id, "id")
+        if not isinstance(self.target_kind, ReviewTargetKind):
+            raise ValueError("target_kind must be a ReviewTargetKind")
+        _require_uuid(self.target_id, "target_id")
+        _require_text(self.reviewer, "reviewer")
+        if not isinstance(self.disposition, ReviewDisposition):
+            raise ValueError("disposition must be a ReviewDisposition")
+        _require_text(self.basis, "basis")
+        _require_text(self.rationale, "rationale")
+        if not self.provenance:
+            raise ValueError("review requires provenance")
+        _require_iso_timestamp(self.reviewed_at, "reviewed_at")
+        if self.schema_version != SCHEMA_VERSION:
+            raise ValueError(f"unsupported schema_version: {self.schema_version}")
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "target_kind": self.target_kind.value,
+            "target_id": self.target_id,
+            "reviewer": self.reviewer,
+            "disposition": self.disposition.value,
+            "basis": self.basis,
+            "rationale": self.rationale,
+            "provenance": [item.to_dict() for item in self.provenance],
+            "reviewed_at": self.reviewed_at,
+            "schema_version": self.schema_version,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> "Review":
+        return cls(
+            id=data["id"],
+            target_kind=ReviewTargetKind(data["target_kind"]),
+            target_id=data["target_id"],
+            reviewer=data["reviewer"],
+            disposition=ReviewDisposition(data["disposition"]),
+            basis=data["basis"],
+            rationale=data["rationale"],
+            provenance=tuple(Provenance.from_dict(item) for item in data["provenance"]),
+            reviewed_at=data["reviewed_at"],
             schema_version=data.get("schema_version", SCHEMA_VERSION),
         )
 
