@@ -27,7 +27,7 @@ def _record() -> object:
     return make_record(
         kind=RecordKind.OBSERVATION,
         payload={"observation": "test"},
-        provenance=[Provenance(source_id="test", source_location="fixture")],
+        provenance=[Provenance(source_id="test", captured_at="2026-01-01T00:00:00+00:00", source_location="fixture")],
         created_at="2026-01-01T00:00:00+00:00",
     )
 
