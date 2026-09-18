@@ -743,6 +743,39 @@ When a generated hypothesis, prediction, or other interpretive artifact needs re
 
 This means "knowledge-state update" is not a single universal truth flag. It is the accumulation of explicit evidence, relationships, evaluations, lifecycle events, and generated revisions from which the current state can be inspected.
 
+### Explicit Knowledge-State Consequences
+
+Phase 6 represents a knowledge-state consequence as a distinct generated artifact when an evaluation is used to state an explicit change in how an interpretive target is regarded.
+
+A knowledge-state consequence is not a mutable property of the target. It is an append-only record that says, in effect, "given these evaluation(s), this process derived this consequence for this target."
+
+The initial consequence vocabulary is deliberately bounded:
+
+- **supports** — the cited evaluation(s) provide grounds that increase support for the target under the stated conditions and assumptions;
+- **weakens** — the cited evaluation(s) provide grounds that reduce support for the target under the stated conditions and assumptions;
+- **contradicts** — the cited evaluation(s) provide grounds that conflict with the target under the stated conditions and assumptions;
+- **leaves_unresolved** — the cited evaluation(s) do not justify a directional consequence for the target.
+
+These are contextual generated consequences, not truth values, confidence scores, or universal rankings. In particular, **supports** does not mean true, and **contradicts** does not mean false.
+
+A consequence must preserve:
+
+- a stable identifier;
+- one or more prediction-evaluation identifiers that motivate it;
+- the target identifier;
+- the consequence classification;
+- the assumptions under which the consequence is stated;
+- the rationale explaining the transition;
+- the method and method version;
+- the creation timestamp;
+- the schema version.
+
+The target may be a generated hypothesis, model, or prediction. A consequence does not mutate that target. If the target itself must change, a distinct generated artifact is created and linked to the prior artifact and the motivating consequence.
+
+A consequence is separate from a relationship because its primary purpose is to record a generated epistemic transition with its basis and reasoning. Relationships remain the general-purpose graph connection primitive; they do not need to carry the semantics of state change.
+
+Multiple consequences may accumulate for the same target as new evaluations arrive. Later discovery inspects that accumulation rather than reading a single mutable state field.
+
 ### Failure and Uncertainty
 
 A failed prediction is recorded as a result evaluation, not by mutating the prediction.
