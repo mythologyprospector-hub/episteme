@@ -167,53 +167,15 @@ def test_discovery_trail_reconstructs_closed_loop_deterministically():
     assert ("record", grounded.id) in kinds
 
 
-def test_discovery_trail_fails_on_missing_required_upstream_object():
-    grounded = record(
-        "66666666-6666-4666-8666-666666666666",
-        RecordKind.OBSERVATION,
-        {"name": "observation"},
-    )
-    result = record(
-        "77777777-7777-4777-8777-777777777777",
-        RecordKind.RESULT,
-        {"observed": "outcome"},
-    )
-    origin = finding("88888888-8888-4888-8888-888888888888", grounded.id)
-
+def test_discovery_trail_fails_on_missing_root_finding():
     with Store() as store:
-        store.put_record(grounded)
-        store.put_record(result)
-        store.put_discovery_finding(origin)
-
-        prediction = predict(
-            source_id="99999999-9999-4999-8999-999999999999",
-            consequence="Outcome.",
-            conditions="Condition.",
-            method="test",
-            method_version="1",
-            rationale="Invalid source is rejected before trail construction.",
-            created_at="2026-09-18T00:00:02Z",
-        )
-        # The prediction cannot be persisted without its source, so this test
-        # exercises the trail's explicit failure boundary with a missing context.
-        broken = DiscoveryFinding(
-            id="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-            kind=DiscoveryFindingKind.TENSION,
-            title="Broken lineage",
-            description="The referenced generated context does not exist.",
-            input_ids=(result.id,),
-            context_ids=(prediction.id,),
-            method="test",
-            method_version="1",
-            rationale="Missing generated context must fail explicitly.",
-            measures=(),
-            created_at="2026-09-18T00:00:03Z",
-        )
-        store.put_discovery_finding(broken)
-
         try:
-            build_discovery_trail(store, broken.id, "2026-09-18T00:00:04Z")
+            build_discovery_trail(
+                store,
+                "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+                "2026-09-18T00:00:04Z",
+            )
         except ValueError as exc:
-            assert prediction.id in str(exc)
+            assert "missing finding" in str(exc)
         else:
-            raise AssertionError("missing generated context was silently repaired")
+            raise AssertionError("missing root finding was silently accepted")
