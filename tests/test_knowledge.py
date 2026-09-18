@@ -155,3 +155,19 @@ def test_jsonl_ingestion_rejects_malformed_record(tmp_path):
             assert "line 1" in str(exc)
         else:
             raise AssertionError("malformed record was accepted")
+
+
+
+def test_bipm_fixture_ingests_end_to_end():
+    from pathlib import Path
+    from episteme import ingest_jsonl_file
+
+    fixture = Path(__file__).parent / "fixtures" / "bipm_si_sample.jsonl"
+
+    with Store() as store:
+        assert ingest_jsonl_file(fixture, store) == 2
+        records = list(store.iter_records())
+
+    assert [record.kind for record in records] == [RecordKind.SOURCE, RecordKind.MEASUREMENT]
+    assert records[1].payload["value"] == 299792458
+    assert records[1].provenance[0].source_id == "bipm:si-metre"
