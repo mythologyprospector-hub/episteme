@@ -622,7 +622,9 @@ Phase 4 records what would distinguish explanations; Phase 5 determines how to o
 
 The Phase 4 / Phase 5 boundary is:
 
-**Prediction → proposed test/observation → result**
+**Prediction → Experiment Proposal → Result**
+
+An experiment proposal preserves the predictions it is intended to test and describes a proposed observation or measurement. It is generated planning material, not grounded evidence.
 
 A prediction states an expected consequence under conditions and assumptions. An experiment proposal specifies a possible way to obtain an observation capable of testing that consequence. A result records what was actually observed. These are distinct epistemic objects and must not be collapsed.
 
