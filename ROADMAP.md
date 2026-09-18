@@ -246,7 +246,7 @@ Initial target capabilities:
 - [x] deterministic discovery report representation
 - [x] researcher-facing interface beyond the CLI
 - [x] public knowledge imports
-- [ ] collaboration and review workflows
+- [x] collaboration and review workflows
 - [ ] documented external HTTP/API surface
 - [ ] transparent public evaluation workflow
 
@@ -324,4 +324,4 @@ Phase 6 is complete. Result records can be ingested through the grounded JSONL i
 
 Phase 7 is complete. Astronomy and Biology demonstrate materially different evidence shapes above the stable core, while provenance, explicit unknown/conflict/uncertainty states, generated-versus-grounded boundaries, closed-loop lineage, and reproducibility remain intact. The Phase 7 exit condition is satisfied.
 
-Phase 8 has established its first researcher-facing public instrument and its initial public knowledge-import capability: a read-only Python inspection API, the installed `episteme` command, deterministic discovery reports, and a self-contained browser-readable report renderer. These expose existing Episteme state rather than creating a parallel public data model. The Phase 8 initial implementation exit condition is satisfied: a person outside the development workflow can inspect a complete representative discovery cycle and reconstruct why generated steps exist without losing the grounded/generated boundary. Collaboration/review workflows, a documented external HTTP/API surface, and a transparent public evaluation workflow remain open Phase 8 work. Broader source import remains future work beyond the initial Crossref capability.
+Phase 8 has established its first researcher-facing public instrument and its initial public knowledge-import capability: a read-only Python inspection API, the installed `episteme` command, deterministic discovery reports, and a self-contained browser-readable report renderer. These expose existing Episteme state rather than creating a parallel public data model. The Phase 8 initial implementation exit condition is satisfied: a person outside the development workflow can inspect a complete representative discovery cycle and reconstruct why generated steps exist without losing the grounded/generated boundary. A documented external HTTP/API surface and a transparent public evaluation workflow remain open Phase 8 work. Collaboration/review workflows are complete. Broader source import remains future work beyond the initial Crossref capability.
