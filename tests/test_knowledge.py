@@ -352,3 +352,163 @@ def test_transformation_requires_existing_inputs_and_outputs():
         store.put_record(second)
         store.put_transformation(transformation)
         assert store.get_transformation(transformation.id) == transformation
+
+
+
+def test_discovery_explicit_contradiction_is_traceable_and_persistent():
+    from episteme import (
+        DiscoveryFindingKind,
+        discover_explicit_contradictions,
+    )
+
+    first = make_record(
+        RecordKind.OBSERVATION,
+        {"value": 1},
+        (provenance(),),
+        "2026-09-18T00:00:00Z",
+    )
+    second = make_record(
+        RecordKind.OBSERVATION,
+        {"value": 2},
+        (provenance(),),
+        "2026-09-18T00:00:01Z",
+    )
+    contradiction = make_relationship(
+        first.id,
+        "contradicts",
+        second.id,
+        (provenance(),),
+        "2026-09-18T00:00:02Z",
+    )
+
+    with Store() as store:
+        store.put_record(first)
+        store.put_record(second)
+        store.put_relationship(contradiction)
+
+        findings = discover_explicit_contradictions(
+            store,
+            "2026-09-18T00:00:03Z",
+        )
+        assert len(findings) == 1
+        finding = findings[0]
+        assert finding.kind is DiscoveryFindingKind.CONTRADICTION
+        assert contradiction.id in finding.input_ids
+        assert first.id in finding.input_ids
+        assert second.id in finding.input_ids
+
+        store.put_discovery_finding(finding)
+        restored = store.get_discovery_finding(finding.id)
+
+    assert restored == finding
+
+
+def test_discovery_gap_requires_explicit_expectation():
+    from episteme import DiscoveryFindingKind, detect_expected_gap
+
+    first = make_record(
+        RecordKind.OBSERVATION,
+        {"name": "A"},
+        (provenance(),),
+        "2026-09-18T00:00:00Z",
+    )
+    second = make_record(
+        RecordKind.OBSERVATION,
+        {"name": "B"},
+        (provenance(),),
+        "2026-09-18T00:00:01Z",
+    )
+
+    with Store() as store:
+        store.put_record(first)
+        store.put_record(second)
+
+        finding = detect_expected_gap(
+            store,
+            first.id,
+            "related_to",
+            second.id,
+            "2026-09-18T00:00:02Z",
+        )
+
+    assert finding is not None
+    assert finding.kind is DiscoveryFindingKind.GAP
+    assert finding.input_ids == (first.id, second.id)
+
+
+def test_discovery_gap_disappears_when_expected_relationship_exists():
+    from episteme import detect_expected_gap
+
+    first = make_record(
+        RecordKind.OBSERVATION,
+        {"name": "A"},
+        (provenance(),),
+        "2026-09-18T00:00:00Z",
+    )
+    second = make_record(
+        RecordKind.OBSERVATION,
+        {"name": "B"},
+        (provenance(),),
+        "2026-09-18T00:00:01Z",
+    )
+    relationship = make_relationship(
+        first.id,
+        "related_to",
+        second.id,
+        (provenance(),),
+        "2026-09-18T00:00:02Z",
+    )
+
+    with Store() as store:
+        store.put_record(first)
+        store.put_record(second)
+        store.put_relationship(relationship)
+
+        assert (
+            detect_expected_gap(
+                store,
+                first.id,
+                "related_to",
+                second.id,
+                "2026-09-18T00:00:03Z",
+            )
+            is None
+        )
+
+
+def test_unresolved_question_preserves_grounded_inputs():
+    from episteme import (
+        DiscoveryFindingKind,
+        detect_expected_gap,
+        question_from_finding,
+    )
+
+    first = make_record(
+        RecordKind.OBSERVATION,
+        {"name": "A"},
+        (provenance(),),
+        "2026-09-18T00:00:00Z",
+    )
+    second = make_record(
+        RecordKind.OBSERVATION,
+        {"name": "B"},
+        (provenance(),),
+        "2026-09-18T00:00:01Z",
+    )
+
+    with Store() as store:
+        store.put_record(first)
+        store.put_record(second)
+        gap = detect_expected_gap(
+            store,
+            first.id,
+            "related_to",
+            second.id,
+            "2026-09-18T00:00:02Z",
+        )
+        assert gap is not None
+
+    question = question_from_finding(gap, "2026-09-18T00:00:03Z")
+    assert question.kind is DiscoveryFindingKind.UNRESOLVED_QUESTION
+    assert question.related_finding_id == gap.id
+    assert question.input_ids == gap.input_ids
