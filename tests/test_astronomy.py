@@ -98,3 +98,27 @@ def test_domain_translation_is_deterministic_except_for_record_identity():
 
     assert record_a.payload == record_b.payload
     assert record_a.to_dict()["payload"] == record_b.to_dict()["payload"]
+
+
+def test_measured_value_can_carry_domain_uncertainty_metadata():
+    payload = {
+        "quantity": "apparent_magnitude",
+        "value": 12.4,
+        "unit": "mag",
+        "uncertainty": {"type": "standard_error", "value": 0.2, "unit": "mag"},
+    }
+
+    validate_measurement(payload)
+
+
+def test_uncertainty_does_not_change_core_record_kind():
+    payload = {
+        "quantity": "flux",
+        "value": 1.5,
+        "unit": "Jy",
+        "uncertainty": {"type": "absolute", "value": 0.1, "unit": "Jy"},
+    }
+    record = make_astronomy_measurement(payload, PROVENANCE, "2026-09-18T12:00:00+00:00")
+
+    assert record.kind is RecordKind.MEASUREMENT
+    assert record.payload["data"]["uncertainty"] == payload["uncertainty"]
