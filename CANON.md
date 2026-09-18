@@ -1,7 +1,7 @@
 # Episteme Canon
 
 **Status:** Canonical  
-**Version:** 0.2  
+**Version:** 0.3  
 **Last updated:** 2026-09-18
 
 ## Purpose
