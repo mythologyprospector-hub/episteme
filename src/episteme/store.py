@@ -51,9 +51,7 @@ class Store:
                 object_id TEXT NOT NULL,
                 provenance TEXT NOT NULL,
                 created_at TEXT NOT NULL,
-                schema_version INTEGER NOT NULL,
-                FOREIGN KEY(subject_id) REFERENCES records(id),
-                FOREIGN KEY(object_id) REFERENCES records(id)
+                schema_version INTEGER NOT NULL
             );
 
             CREATE INDEX IF NOT EXISTS idx_records_kind
@@ -175,6 +173,34 @@ class Store:
             );
             """
         )
+        relationship_columns = self._connection.execute(
+            "PRAGMA foreign_key_list(relationships)"
+        ).fetchall()
+        if relationship_columns:
+            self._connection.executescript(
+                """
+                ALTER TABLE relationships RENAME TO relationships_legacy;
+                CREATE TABLE relationships (
+                    id TEXT PRIMARY KEY,
+                    subject_id TEXT NOT NULL,
+                    predicate TEXT NOT NULL,
+                    object_id TEXT NOT NULL,
+                    provenance TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    schema_version INTEGER NOT NULL
+                );
+                INSERT INTO relationships
+                    (id, subject_id, predicate, object_id, provenance, created_at, schema_version)
+                SELECT id, subject_id, predicate, object_id, provenance, created_at, schema_version
+                FROM relationships_legacy;
+                DROP TABLE relationships_legacy;
+                CREATE INDEX IF NOT EXISTS idx_relationships_subject
+                    ON relationships(subject_id);
+                CREATE INDEX IF NOT EXISTS idx_relationships_object
+                    ON relationships(object_id);
+                """
+            )
+
         discovery_columns = {
             row["name"]
             for row in self._connection.execute("PRAGMA table_info(discovery_findings)")
