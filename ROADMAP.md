@@ -152,12 +152,12 @@ The audit found no Phase 5 capability that requires new machinery before advanci
 
 Target capabilities:
 
-- [ ] experiment result ingestion
-- [ ] explicit result-to-prediction evaluation
-- [ ] failed-prediction recording
+- [x] experiment result ingestion
+- [x] explicit result-to-prediction evaluation
+- [x] failed-prediction recording
 - [x] explicit knowledge-state consequences
 - [x] iterative discovery
-- [ ] renewed evaluation-conflict discovery
+- [x] renewed evaluation-conflict discovery
 - [ ] reproducible discovery trails
 
 **Exit condition:** A complete discovery cycle can run from grounded evidence through hypothesis, prediction, experiment, result, result evaluation, explicit knowledge-state consequence, and renewed discovery while preserving the distinction between observation and interpretation.
@@ -176,7 +176,7 @@ The Phase 6 implementation now treats an explicit knowledge-state consequence as
 
 The implementation must preserve the evaluation identifiers, target identifier, consequence classification, assumptions, rationale, method/version, timestamp, and schema version so the transition can be reconstructed.
 
-The first closed-loop discovery seam is now explicit: discovery findings may preserve generated Phase 6 objects as `context_ids` while keeping grounded/integrity evidence in `input_ids`. This permits renewed discovery to inspect accumulated evaluations and consequences without promoting generated state to evidence. A specific renewed-discovery algorithm remains subject to its own documented rule.
+The first closed-loop discovery seam is now explicit: discovery findings may preserve generated Phase 6 objects as `context_ids` while keeping grounded/integrity evidence in `input_ids`. This permits renewed discovery to inspect accumulated evaluations and consequences without promoting generated state to evidence. The first renewed-discovery algorithm is now documented as conservative evaluation-conflict detection and is implemented and tested.
 
 
 
@@ -239,4 +239,4 @@ Phase 4 is complete. Hypotheses, models, assumptions, competing explanations, an
 
 Phase 5 is complete. Experiment proposals explain why proposed observations could discriminate among competing explanations, actual results remain grounded and independently sourced, and explicit result-to-proposal/prediction relationships preserve the distinction between prediction, proposed test, and observed result.
 
-Phase 6 is now the active objective: connect the represented chain into a repeatable closed discovery cycle that can ingest results, record failed predictions, update knowledge state, and preserve a reproducible discovery trail.
+Phase 6 is the active objective. Result records can be ingested through the grounded JSONL ingestion boundary; prediction evaluations represent result-to-prediction comparison; failed predictions are represented by `inconsistent` evaluations rather than mutation; explicit knowledge-state consequences are persisted; and renewed discovery can surface differing evaluation outcomes while keeping generated context separate from grounded evidence. The remaining Phase 6 capability is a reproducible discovery trail that makes a complete cycle auditable as a single trace.
