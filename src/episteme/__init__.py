@@ -24,6 +24,7 @@ from .model import (
 )
 from .discovery import detect_expected_gap, discover_explicit_contradictions, question_from_finding
 from .store import Store
+from .proposals import predict, propose_hypothesis, represent_model
 
 __version__ = "0.1.0"
 
@@ -53,4 +54,7 @@ __all__ = [
     "question_from_finding",
     "ingest_jsonl",
     "ingest_jsonl_file",
+    "propose_hypothesis",
+    "represent_model",
+    "predict",
 ]
