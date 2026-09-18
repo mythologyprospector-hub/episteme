@@ -1197,24 +1197,27 @@ class Store:
             "schema_version": row["schema_version"],
         })
 
-    def iter_reviews(self, target_id: str | None = None) -> Iterator[Review]:
-        if target_id is None:
-            rows = self._connection.execute(
-                """
-                SELECT id, target_kind, target_id, reviewer, disposition, basis, rationale,
-                       provenance, reviewed_at, schema_version
-                FROM reviews ORDER BY reviewed_at, id
-                """
-            )
-        else:
-            rows = self._connection.execute(
-                """
-                SELECT id, target_kind, target_id, reviewer, disposition, basis, rationale,
-                       provenance, reviewed_at, schema_version
-                FROM reviews WHERE target_id = ? ORDER BY reviewed_at, id
-                """,
-                (target_id,),
-            )
+    def iter_reviews(
+        self,
+        target_kind: ReviewTargetKind | None = None,
+        target_id: str | None = None,
+    ) -> Iterator[Review]:
+        clauses: list[str] = []
+        parameters: list[str] = []
+        if target_kind is not None:
+            clauses.append("target_kind = ?")
+            parameters.append(target_kind.value)
+        if target_id is not None:
+            clauses.append("target_id = ?")
+            parameters.append(target_id)
+        where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
+        rows = self._connection.execute(
+            """
+            SELECT id, target_kind, target_id, reviewer, disposition, basis, rationale,
+                   provenance, reviewed_at, schema_version
+            FROM reviews""" + where + " ORDER BY reviewed_at, id",
+            parameters,
+        )
         for row in rows:
             yield Review.from_dict({
                 "id": row["id"],
