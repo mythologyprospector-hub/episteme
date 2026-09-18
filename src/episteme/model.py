@@ -1,8 +1,8 @@
-"""Core Phase 1 knowledge records.
+"""Core knowledge records.
 
-This module contains the smallest domain model required by the grounded
-knowledge substrate. It deliberately avoids persistence, frameworks, and
-external services.
+This module contains the domain model required by the grounded knowledge
+substrate and its integrity layer. It deliberately avoids persistence,
+frameworks, and external services.
 """
 
 from __future__ import annotations
