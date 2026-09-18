@@ -146,7 +146,7 @@ def test_core_store_round_trip_keeps_domain_payload():
         "2026-09-18T00:01:00+00:00",
     )
 
-    store.add_record(record)
+    store.put_record(record)
     loaded = store.get_record(record.id)
 
     assert loaded == record
