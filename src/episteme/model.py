@@ -9,9 +9,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any, Mapping
-from uuid import UUID, uuid4
+from datetime import datetime
 import json
+from typing import Any, Mapping
+from urllib.parse import urlparse
+from uuid import UUID, uuid4
 
 
 SCHEMA_VERSION = 1
@@ -50,6 +52,23 @@ def _require_uuid(value: str, field: str) -> None:
         raise ValueError(f"{field} must be a UUID string") from exc
 
 
+def _require_iso_timestamp(value: str, field: str) -> None:
+    _require_text(value, field)
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ValueError(f"{field} must be an ISO-8601/RFC-3339 timestamp") from exc
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise ValueError(f"{field} must include a timezone")
+
+
+def _require_absolute_uri(value: str, field: str) -> None:
+    _require_text(value, field)
+    parsed = urlparse(value)
+    if not parsed.scheme:
+        raise ValueError(f"{field} must be an absolute URI")
+
+
 def canonical_json(value: Any) -> str:
     """Return deterministic JSON for values accepted by the substrate."""
 
@@ -77,14 +96,13 @@ class Provenance:
 
     def __post_init__(self) -> None:
         _require_text(self.source_id, "source_id")
-        _require_text(self.captured_at, "captured_at")
-        for value, field in (
-            (self.source_location, "source_location"),
-            (self.source_version, "source_version"),
-            (self.note, "note"),
-        ):
-            if value is not None and not isinstance(value, str):
-                raise ValueError(f"{field} must be a string or None")
+        _require_iso_timestamp(self.captured_at, "captured_at")
+        if self.source_location is not None:
+            _require_absolute_uri(self.source_location, "source_location")
+        if self.source_version is not None:
+            _require_text(self.source_version, "source_version")
+        if self.note is not None:
+            _require_text(self.note, "note")
 
     def to_dict(self) -> dict[str, str]:
         data: dict[str, str] = {
