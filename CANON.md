@@ -153,3 +153,19 @@ A discovery finding may identify where evidence is incomplete or in conflict, bu
 A missing relationship, field, measurement, or document is not by itself evidence that the corresponding scientific fact is unknown, false, or important.
 
 Episteme may identify a gap only relative to an explicit expectation or grounded context, and it must preserve the basis for that expectation.
+
+### 15. Results do not interpret themselves
+
+A grounded result records what was observed or measured. It does not by itself establish whether a prediction succeeded, failed, or was inconclusive.
+
+Any evaluation of a result against a prediction is generated interpretation and must preserve the result, prediction, conditions, assumptions, method, and rationale that support the evaluation.
+
+A result may therefore affect several competing explanations differently without being promoted into a universal verdict about any of them.
+
+### 16. Knowledge changes explicitly
+
+A new result must not silently rewrite the knowledge state.
+
+When evidence changes an existing interpretation, the change must be represented as an explicit, traceable transition or generated assessment. Earlier hypotheses, predictions, and records remain inspectable.
+
+A closed discovery loop therefore means that evidence can change what Episteme considers unresolved, supported, contradicted, superseded, or still uncertain without collapsing those distinctions into a single truth value.
