@@ -47,6 +47,20 @@ class DiscoveryTrail:
             "schema_version": self.schema_version,
         }
 
+    def to_lineage_dict(self) -> dict[str, Any]:
+        """Return the reproducible lineage representation without generation metadata."""
+        return {
+            "finding_id": self.finding_id,
+            "entries": [entry.to_dict() for entry in self.entries],
+            "method": self.method,
+            "method_version": self.method_version,
+            "schema_version": self.schema_version,
+        }
+
+    def to_lineage_json(self) -> str:
+        """Serialize only the deterministic lineage representation."""
+        return canonical_json(self.to_lineage_dict())
+
     def to_json(self) -> str:
         return canonical_json(self.to_dict())
 
