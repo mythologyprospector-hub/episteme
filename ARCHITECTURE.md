@@ -1,7 +1,7 @@
 # Episteme Architecture
 
 **Status:** Canonical  
-**Version:** 0.9  
+**Version:** 1.0  
 
 ## Architectural Intent
 
@@ -775,6 +775,28 @@ The target may be a generated hypothesis, model, or prediction. A consequence do
 A consequence is separate from a relationship because its primary purpose is to record a generated epistemic transition with its basis and reasoning. Relationships remain the general-purpose graph connection primitive; they do not need to carry the semantics of state change.
 
 Multiple consequences may accumulate for the same target as new evaluations arrive. Later discovery inspects that accumulation rather than reading a single mutable state field.
+
+### Renewed Discovery Context
+
+Phase 6 closes the loop without changing the meaning of discovery evidence.
+
+Renewed discovery may inspect generated result evaluations and knowledge-state consequences as **derived context**. This context is not evidence and must never be placed in a discovery finding's evidential `input_ids`.
+
+A discovery finding therefore distinguishes two kinds of lineage:
+
+- `input_ids` — the grounded or integrity-layer objects that constitute the finding's evidential basis;
+- `context_ids` — generated Phase 6 artifacts inspected by the discovery method while producing the finding.
+
+`context_ids` may reference represented prediction evaluations and knowledge-state consequences. The repository validates that each context identifier resolves to one of those generated collections. A generated context object does not become evidence merely because discovery inspected it.
+
+The discovery finding preserves both lists so a later reader can answer two separate questions:
+
+1. **What evidence was this finding based on?**
+2. **What generated state did the discovery method inspect?**
+
+A renewed discovery method must preserve the same distinction in its rationale and method/version metadata. If generated context ultimately points back to grounded evidence, that upstream lineage remains available through the referenced evaluation or consequence and its underlying objects; the context identifier itself is not promoted into the evidential basis.
+
+Phase 6 does not define a universal renewed-discovery algorithm. The first implementation seam is therefore lineage and boundary preservation. Specific methods for finding new gaps, tensions, contradictions, or questions from accumulated evaluation state require their own explicit discovery rule before implementation.
 
 ### Failure and Uncertainty
 
