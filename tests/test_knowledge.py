@@ -1445,3 +1445,223 @@ def test_result_can_be_related_to_proposal_and_predictions_without_promoting_the
     assert restored[0].subject_id == result.id
     assert restored[0].object_id == proposal.id
     assert restored[1].object_id == prediction_a.id
+
+
+def test_prediction_evaluation_round_trip_preserves_result_prediction_and_proposal():
+    from episteme import (
+        PredictionEvaluation,
+        PredictionEvaluationOutcome,
+        propose_experiment,
+        predict,
+        propose_hypothesis,
+    )
+
+    first = make_record(
+        RecordKind.OBSERVATION,
+        {"name": "A"},
+        (provenance(),),
+        "2026-09-18T00:00:00Z",
+    )
+    second = make_record(
+        RecordKind.OBSERVATION,
+        {"name": "B"},
+        (provenance(),),
+        "2026-09-18T00:00:01Z",
+    )
+    result = make_record(
+        RecordKind.RESULT,
+        {"observed": "Outcome A"},
+        (provenance(),),
+        "2026-09-18T00:00:07Z",
+    )
+
+    with Store() as store:
+        store.put_record(first)
+        store.put_record(second)
+        store.put_record(result)
+
+        finding = _phase4_finding(first, second)
+        store.put_discovery_finding(finding)
+
+        hypothesis_a = propose_hypothesis(
+            statement="Explanation A.",
+            finding_ids=(finding.id,),
+            method="test",
+            method_version="1",
+            rationale="Candidate A.",
+            created_at="2026-09-18T00:00:02Z",
+        )
+        hypothesis_b = propose_hypothesis(
+            statement="Explanation B.",
+            finding_ids=(finding.id,),
+            method="test",
+            method_version="1",
+            rationale="Candidate B.",
+            created_at="2026-09-18T00:00:03Z",
+        )
+        store.put_hypothesis(hypothesis_a)
+        store.put_hypothesis(hypothesis_b)
+
+        prediction = predict(
+            source_id=hypothesis_a.id,
+            consequence="Outcome A.",
+            conditions="Same test condition.",
+            method="test",
+            method_version="1",
+            rationale="Prediction A.",
+            comparison_hypothesis_ids=(hypothesis_a.id, hypothesis_b.id),
+            created_at="2026-09-18T00:00:04Z",
+        )
+        store.put_prediction(prediction)
+
+        proposal = propose_experiment(
+            prediction_ids=(prediction.id,),
+            objective="Test the predicted consequence.",
+            proposed_observation="Measure the outcome.",
+            discrimination_basis="The observed outcome can be compared directly with the prediction.",
+            conditions="Same test condition.",
+            assumptions=("The measurement is comparable.",),
+            method="test",
+            method_version="1",
+            rationale="The proposal obtains the observation needed for comparison.",
+            created_at="2026-09-18T00:00:06Z",
+        )
+        store.put_experiment_proposal(proposal)
+
+        before = store.get_prediction(prediction.id)
+        evaluations = []
+        for number, outcome in enumerate(PredictionEvaluationOutcome, start=1):
+            evaluation = PredictionEvaluation(
+                id=f"30{number:02d}0303-0303-4303-8303-030303030303",
+                result_id=result.id,
+                prediction_id=prediction.id,
+                experiment_proposal_id=proposal.id,
+                comparison_conditions="Same test condition.",
+                assumptions=("The measurement is comparable.",),
+                outcome=outcome,
+                rationale=f"Evaluation classified as {outcome.value}.",
+                method="comparison",
+                method_version="1",
+                created_at=f"2026-09-18T00:00:{10 + number:02d}Z",
+            )
+            store.put_prediction_evaluation(evaluation)
+            evaluations.append(evaluation)
+
+        restored = tuple(store.iter_prediction_evaluations())
+        after = store.get_prediction(prediction.id)
+
+    assert restored == tuple(evaluations)
+    assert [item.outcome for item in restored] == list(PredictionEvaluationOutcome)
+    assert before == after
+    assert all(item.result_id == result.id for item in restored)
+    assert all(item.prediction_id == prediction.id for item in restored)
+    assert all(item.experiment_proposal_id == proposal.id for item in restored)
+
+
+def test_prediction_evaluation_requires_grounded_result_and_matching_proposal():
+    from episteme import (
+        PredictionEvaluation,
+        PredictionEvaluationOutcome,
+        propose_hypothesis,
+        predict,
+        propose_experiment,
+    )
+
+    first = make_record(
+        RecordKind.OBSERVATION,
+        {"name": "A"},
+        (provenance(),),
+        "2026-09-18T00:00:00Z",
+    )
+    second = make_record(
+        RecordKind.OBSERVATION,
+        {"name": "B"},
+        (provenance(),),
+        "2026-09-18T00:00:01Z",
+    )
+    not_a_result = make_record(
+        RecordKind.OBSERVATION,
+        {"observed": "Not a result"},
+        (provenance(),),
+        "2026-09-18T00:00:07Z",
+    )
+
+    with Store() as store:
+        store.put_record(first)
+        store.put_record(second)
+        store.put_record(not_a_result)
+
+        finding = _phase4_finding(first, second)
+        store.put_discovery_finding(finding)
+        hypothesis = propose_hypothesis(
+            statement="Explanation.",
+            finding_ids=(finding.id,),
+            method="test",
+            method_version="1",
+            rationale="Candidate explanation.",
+            created_at="2026-09-18T00:00:02Z",
+        )
+        store.put_hypothesis(hypothesis)
+        prediction = predict(
+            source_id=hypothesis.id,
+            consequence="Outcome.",
+            conditions="Same test condition.",
+            method="test",
+            method_version="1",
+            rationale="Bounded prediction.",
+            created_at="2026-09-18T00:00:03Z",
+        )
+        store.put_prediction(prediction)
+        proposal = propose_experiment(
+            prediction_ids=(prediction.id,),
+            objective="Test prediction.",
+            proposed_observation="Measure outcome.",
+            discrimination_basis="The measurement tests the predicted consequence.",
+            conditions="Same test condition.",
+            assumptions=(),
+            method="test",
+            method_version="1",
+            rationale="Direct test.",
+            created_at="2026-09-18T00:00:04Z",
+        )
+        store.put_experiment_proposal(proposal)
+
+        bad_result = PredictionEvaluation(
+            id="31313131-3131-4131-8131-313131313131",
+            result_id=not_a_result.id,
+            prediction_id=prediction.id,
+            experiment_proposal_id=proposal.id,
+            comparison_conditions="Same test condition.",
+            assumptions=(),
+            outcome=PredictionEvaluationOutcome.INCONCLUSIVE,
+            rationale="Cannot compare.",
+            method="comparison",
+            method_version="1",
+            created_at="2026-09-18T00:00:05Z",
+        )
+        try:
+            store.put_prediction_evaluation(bad_result)
+        except ValueError as exc:
+            assert not_a_result.id in str(exc)
+        else:
+            raise AssertionError("non-result record was accepted for evaluation")
+
+        missing_prediction = PredictionEvaluation(
+            id="32323232-3232-4232-8232-323232323232",
+            result_id=not_a_result.id,
+            prediction_id="33333333-3333-4333-8333-333333333333",
+            experiment_proposal_id=None,
+            comparison_conditions="Same test condition.",
+            assumptions=(),
+            outcome=PredictionEvaluationOutcome.INCONCLUSIVE,
+            rationale="Cannot compare.",
+            method="comparison",
+            method_version="1",
+            created_at="2026-09-18T00:00:06Z",
+        )
+        try:
+            store.put_prediction_evaluation(missing_prediction)
+        except ValueError as exc:
+            assert missing_prediction.prediction_id in str(exc)
+        else:
+            raise AssertionError("missing prediction was accepted for evaluation")
