@@ -623,6 +623,45 @@ def test_iter_discovery_findings_preserves_expectation():
 
 
 
+def test_question_generation_rejects_contradiction_findings():
+    from episteme import (
+        DiscoveryFinding,
+        DiscoveryFindingKind,
+        DiscoveryMeasure,
+        question_from_finding,
+    )
+
+    finding = DiscoveryFinding(
+        id="77777777-7777-4777-8777-777777777777",
+        kind=DiscoveryFindingKind.CONTRADICTION,
+        title="Explicit contradiction",
+        description="Example contradiction",
+        input_ids=(
+            "11111111-1111-4111-8111-111111111111",
+            "22222222-2222-4222-8222-222222222222",
+        ),
+        method="explicit-contradiction-discovery",
+        method_version="1",
+        rationale="Example",
+        measures=(
+            DiscoveryMeasure(
+                name="input_count",
+                value=2,
+                scale="count",
+                basis="two inputs",
+            ),
+        ),
+        created_at="2026-09-18T00:00:03Z",
+    )
+
+    try:
+        question_from_finding(finding, "2026-09-18T00:00:04Z")
+    except ValueError as exc:
+        assert str(exc) == "questions can only be generated from gap or tension findings"
+    else:
+        raise AssertionError("contradiction finding was accepted for question generation")
+
+
 def test_discovery_finding_rejects_unexpected_expectation():
     from episteme import DiscoveryFinding, DiscoveryFindingKind, DiscoveryMeasure
 
