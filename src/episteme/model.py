@@ -234,6 +234,10 @@ class LifecycleEvent:
             _require_uuid(self.replacement_record_id, "replacement_record_id")
         if self.reason is not None:
             _require_text(self.reason, "reason")
+        if self.kind is LifecycleEventKind.SUPERSEDED and self.replacement_record_id is None:
+            raise ValueError("superseded event requires replacement_record_id")
+        if self.kind is LifecycleEventKind.RETRACTED and self.reason is None:
+            raise ValueError("retracted event requires reason")
         if self.schema_version != SCHEMA_VERSION:
             raise ValueError(f"unsupported schema_version: {self.schema_version}")
 
