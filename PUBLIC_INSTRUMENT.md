@@ -1,7 +1,7 @@
 # Episteme Public Scientific Instrument
 
 **Status:** Canonical Phase 8 design
-**Version:** 0.4
+**Version:** 0.5
 **Last updated:** 2026-09-18
 
 ## Purpose
