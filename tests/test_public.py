@@ -4,6 +4,14 @@ from episteme import (
     DiscoveryFinding,
     DiscoveryFindingKind,
     DiscoveryMeasure,
+    ExperimentProposal,
+    Hypothesis,
+    KnowledgeStateConsequence,
+    KnowledgeStateConsequenceKind,
+    KnowledgeStateTargetKind,
+    Prediction,
+    PredictionEvaluation,
+    PredictionEvaluationOutcome,
     Provenance,
     RecordKind,
     Store,
@@ -112,3 +120,142 @@ def test_cli_records_reads_a_store(tmp_path, capsys):
 
     import json
     assert json.loads(capsys.readouterr().out) == [record.to_dict()]
+
+
+def test_public_report_reconstructs_a_complete_discovery_cycle():
+    initial = make_record(
+        kind=RecordKind.OBSERVATION,
+        payload={"value": "initial-observation"},
+        provenance=PROVENANCE,
+        created_at=CREATED,
+    )
+    result = make_record(
+        kind=RecordKind.RESULT,
+        payload={"value": "observed-result"},
+        provenance=PROVENANCE,
+        created_at=CREATED,
+    )
+    finding_id = "66666666-6666-4666-8666-666666666661"
+    hypothesis_id = "66666666-6666-4666-8666-666666666662"
+    prediction_id = "66666666-6666-4666-8666-666666666663"
+    proposal_id = "66666666-6666-4666-8666-666666666664"
+    evaluation_id = "66666666-6666-4666-8666-666666666665"
+    consequence_id = "66666666-6666-4666-8666-666666666666"
+    final_finding_id = "66666666-6666-4666-8666-666666666667"
+
+    finding = DiscoveryFinding(
+        id=finding_id,
+        kind=DiscoveryFindingKind.TENSION,
+        title="Cycle starting point",
+        description="A bounded starting finding.",
+        input_ids=(initial.id,),
+        method="public-cycle-test",
+        method_version="1",
+        rationale="Test fixture only.",
+        measures=(),
+        created_at=CREATED,
+    )
+    hypothesis = Hypothesis(
+        id=hypothesis_id,
+        statement="The observed condition has the proposed cause.",
+        finding_ids=(finding.id,),
+        input_ids=(initial.id,),
+        method="public-cycle-test",
+        method_version="1",
+        rationale="Test fixture only.",
+        assumptions=("fixture assumption",),
+        created_at=CREATED,
+    )
+    prediction = Prediction(
+        id=prediction_id,
+        source_id=hypothesis.id,
+        consequence="The proposed measurement will be observed.",
+        conditions="Fixture conditions.",
+        assumptions=("fixture assumption",),
+        method="public-cycle-test",
+        method_version="1",
+        rationale="Test fixture only.",
+        comparison_hypothesis_ids=(),
+        created_at=CREATED,
+    )
+    proposal = ExperimentProposal(
+        id=proposal_id,
+        prediction_ids=(prediction.id,),
+        objective="Test the prediction.",
+        proposed_observation="Measure the fixture result.",
+        discrimination_basis="The observation distinguishes the proposed consequence.",
+        conditions="Fixture conditions.",
+        assumptions=("fixture assumption",),
+        method="public-cycle-test",
+        method_version="1",
+        rationale="Test fixture only.",
+        created_at=CREATED,
+    )
+    evaluation = PredictionEvaluation(
+        id=evaluation_id,
+        result_id=result.id,
+        prediction_id=prediction.id,
+        experiment_proposal_id=proposal.id,
+        comparison_conditions="Fixture conditions.",
+        assumptions=("fixture assumption",),
+        outcome=PredictionEvaluationOutcome.CONSISTENT,
+        rationale="The observed result matches the stated prediction under the fixture conditions.",
+        method="public-cycle-test",
+        method_version="1",
+        created_at=CREATED,
+    )
+    consequence = KnowledgeStateConsequence(
+        id=consequence_id,
+        evaluation_ids=(evaluation.id,),
+        target_kind=KnowledgeStateTargetKind.HYPOTHESIS,
+        target_id=hypothesis.id,
+        consequence=KnowledgeStateConsequenceKind.SUPPORTS,
+        assumptions=("fixture assumption",),
+        rationale="Fixture consequence only.",
+        method="public-cycle-test",
+        method_version="1",
+        created_at=CREATED,
+    )
+    final_finding = DiscoveryFinding(
+        id=final_finding_id,
+        kind=DiscoveryFindingKind.TENSION,
+        title="Cycle continuation",
+        description="A finding generated from the evaluated result.",
+        input_ids=(result.id,),
+        context_ids=(consequence.id,),
+        method="public-cycle-test",
+        method_version="1",
+        rationale="Test fixture only.",
+        measures=(),
+        created_at=CREATED,
+    )
+
+    with Store() as store:
+        store.put_record(initial)
+        store.put_discovery_finding(finding)
+        store.put_hypothesis(hypothesis)
+        store.put_prediction(prediction)
+        store.put_experiment_proposal(proposal)
+        store.put_record(result)
+        store.put_prediction_evaluation(evaluation)
+        store.put_knowledge_state_consequence(consequence)
+        store.put_discovery_finding(final_finding)
+
+        report = discovery_report(store, final_finding.id, "2026-09-18T00:01:00Z")
+
+    kinds = {entry["kind"] for entry in report["trail"]["entries"]}
+    assert {
+        "record",
+        "discovery_finding",
+        "hypothesis",
+        "prediction",
+        "experiment_proposal",
+        "prediction_evaluation",
+        "knowledge_state_consequence",
+    } <= kinds
+    assert report["grounded_records"]
+    assert report["generated_artifacts"]
+    assert any(entry["id"] == initial.id for entry in report["grounded_records"])
+    assert any(entry["id"] == result.id for entry in report["grounded_records"])
+    assert report["lineage"]["finding_id"] == final_finding.id
+    assert "created_at" not in report["lineage"]
