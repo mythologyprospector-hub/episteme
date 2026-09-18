@@ -1,7 +1,7 @@
 # Episteme Public Scientific Instrument
 
 **Status:** Canonical Phase 8 design
-**Version:** 0.6
+**Version:** 0.7
 **Last updated:** 2026-09-18
 
 ## Purpose
@@ -224,6 +224,18 @@ The first collaboration implementation should remain deliberately small:
 
 User accounts, permissions, shared editing, threaded discussion, notifications, workflow automation, consensus computation, and externally hosted collaboration remain separate decisions.
 
+### Review Inspection
+
+The collaboration layer is also exposed through the read-only public API. `get_review(store, review_id)` returns one persisted review, while `list_reviews(store, target_kind=None, target_id=None)` returns reviews in deterministic `reviewed_at, id` order and can scope inspection to an exact target kind and identifier.
+
+The installed CLI exposes the same inspection surface:
+
+- `episteme --store path/to/episteme.sqlite review <review-id>`
+- `episteme --store path/to/episteme.sqlite reviews`
+- `episteme --store path/to/episteme.sqlite reviews --target-kind record --target-id <record-id>`
+
+Review inspection is read-only. It exposes review metadata without rewriting the target, calculating consensus, or turning a disposition into a truth score.
+
 ## Public Ingestion Boundary
 
 Public knowledge imports remain subject to the existing grounded ingestion rules.
@@ -327,6 +339,9 @@ Examples:
 - `episteme --store path/to/episteme.sqlite records`
 - `episteme --store path/to/episteme.sqlite records --kind measurement`
 - `episteme --store path/to/episteme.sqlite record <record-id>`
+- `episteme --store path/to/episteme.sqlite review <review-id>`
+- `episteme --store path/to/episteme.sqlite reviews`
+- `episteme --store path/to/episteme.sqlite reviews --target-kind record --target-id <record-id>`
 - `episteme --store path/to/episteme.sqlite trail <finding-id> --created-at <timestamp>`
 - `episteme --store path/to/episteme.sqlite lineage <finding-id> --created-at <timestamp>`
 - `episteme --store path/to/episteme.sqlite report <finding-id> --created-at <timestamp>`
