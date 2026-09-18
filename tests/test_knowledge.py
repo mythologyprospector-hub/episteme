@@ -953,21 +953,38 @@ def test_prediction_round_trip_preserves_distinguishing_consequence():
 def test_prediction_rejects_unknown_comparison_hypothesis():
     from episteme import Hypothesis, Prediction
 
+    first_record = make_record(
+        RecordKind.OBSERVATION,
+        {"name": "A"},
+        (provenance(),),
+        "2026-09-18T00:00:00Z",
+    )
+    second_record = make_record(
+        RecordKind.OBSERVATION,
+        {"name": "B"},
+        (provenance(),),
+        "2026-09-18T00:00:01Z",
+    )
+    finding = _phase4_finding(first_record, second_record)
     first = Hypothesis(
         id="15151515-1515-4151-8151-151515151515", statement="Explanation",
-        finding_ids=("16161616-1616-4161-8161-161616161616",), input_ids=(),
+        finding_ids=(finding.id,), input_ids=(),
         method="manual", method_version="1", rationale="Example", assumptions=(),
-        created_at="2026-09-18T00:00:00Z",
+        created_at="2026-09-18T00:00:03Z",
     )
     prediction = Prediction(
         id="17171717-1717-4171-8171-171717171717", source_id=first.id,
         consequence="A consequence.", conditions="A bounded condition.",
         assumptions=(), method="manual", method_version="1", rationale="Example",
         comparison_hypothesis_ids=(first.id, "18181818-1818-4181-8181-181818181818"),
-        created_at="2026-09-18T00:00:01Z",
+        created_at="2026-09-18T00:00:04Z",
     )
 
     with Store() as store:
+        store.put_record(first_record)
+        store.put_record(second_record)
+        store.put_discovery_finding(finding)
+        store.put_hypothesis(first)
         try:
             store.put_prediction(prediction)
         except ValueError as exc:
