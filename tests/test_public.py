@@ -19,7 +19,9 @@ from episteme import (
     discovery_report,
     discovery_trail,
     get_record,
+    get_review,
     list_records,
+    list_reviews,
     make_record,
 )
 
@@ -361,3 +363,34 @@ def test_review_rejects_missing_target_without_creating_state():
         else:
             raise AssertionError("missing review target should be rejected")
         assert list(store.iter_reviews()) == []
+
+
+def test_public_review_api_scopes_by_target_kind_and_id():
+    from episteme import Review, ReviewDisposition, ReviewTargetKind
+
+    record = make_record(
+        kind=RecordKind.OBSERVATION,
+        payload={"value": "public-review"},
+        provenance=PROVENANCE,
+        created_at=CREATED,
+    )
+    review = Review(
+        id="77777777-7777-4777-8777-777777777776",
+        target_kind=ReviewTargetKind.RECORD,
+        target_id=record.id,
+        reviewer="public-reviewer",
+        disposition=ReviewDisposition.NOTE,
+        basis="Public inspection test.",
+        rationale="The review is represented without changing the record.",
+        provenance=PROVENANCE,
+        reviewed_at=CREATED,
+    )
+
+    with Store() as store:
+        store.put_record(record)
+        store.put_review(review)
+
+        assert get_review(store, review.id) == review.to_dict()
+        assert list_reviews(store) == [review.to_dict()]
+        assert list_reviews(store, target_kind=ReviewTargetKind.RECORD, target_id=record.id) == [review.to_dict()]
+        assert list_reviews(store, target_kind=ReviewTargetKind.HYPOTHESIS, target_id=record.id) == []
