@@ -1,7 +1,7 @@
 # Episteme Roadmap
 
 **Status:** Canonical planning document  
-**Version:** 0.7  
+**Version:** 0.8  
 **Last updated:** 2026-09-18
 
 ## Mission
@@ -118,19 +118,33 @@ Target capabilities:
 
 ## Phase 5 — Experiment Design
 
-**Status:** Active.
+**Status:** Complete.
 
 **Goal:** Find observations that efficiently discriminate among possibilities.
 
 Target capabilities:
 
-- experiment proposals
-- predicted outcomes
-- discriminating-power analysis
-- uncertainty tracking
-- experiment/result linkage
+- [x] experiment proposals
+- [x] predicted outcomes
+- [x] discriminating-power analysis
+- [x] explicit uncertainty/discrimination basis without a universal score
+- [x] experiment/result linkage
 
-**Exit condition:** Episteme can identify why a proposed observation would reduce uncertainty between competing explanations.
+**Exit condition:** Episteme can identify why a proposed observation would reduce uncertainty between competing explanations while preserving the distinction between prediction, proposed test, and observed result.
+
+### Phase 5 Exit Audit
+
+The implemented Phase 5 behavior satisfies the stated exit condition:
+
+- experiment proposals preserve the predictions they test, their objective, proposed observation, conditions, assumptions, method/version, rationale, and explicit discrimination basis;
+- the discrimination basis records why competing predictions are expected to produce different observable outcomes without becoming a universal truth or quality score;
+- proposals remain generated planning artifacts and are persisted separately from grounded records;
+- actual results remain grounded records with their own provenance and are not rewritten to fit a proposal;
+- relationships can explicitly connect a grounded result to a generated experiment proposal and prediction without promoting either generated object to evidence;
+- prediction, experiment proposal, and result remain distinct objects throughout the represented chain;
+- the complete lineage is exercised by the Phase 5 result-linkage test.
+
+The audit found no Phase 5 capability that requires new machinery before advancing. Universal statistical semantics, autonomous experiment optimization or laboratory control, instrument/provider protocols, automatic hypothesis selection, and universal uncertainty calculus remain deferred.
 
 ## Phase 6 — Closed Discovery Loop
 
@@ -203,4 +217,6 @@ Phase 3 is complete. Discovery findings can be traced to grounded inputs, expect
 
 Phase 4 is complete. Hypotheses, models, assumptions, competing explanations, and distinguishing predictions are represented and verified.
 
-Phase 5 is now the active objective: turn distinguishing predictions into experiment proposals that explain why proposed observations could discriminate among competing explanations, while preserving the distinction between prediction, proposed test, and observed result.
+Phase 5 is complete. Experiment proposals explain why proposed observations could discriminate among competing explanations, actual results remain grounded and independently sourced, and explicit result-to-proposal/prediction relationships preserve the distinction between prediction, proposed test, and observed result.
+
+Phase 6 is now the active objective: connect the represented chain into a repeatable closed discovery cycle that can ingest results, record failed predictions, update knowledge state, and preserve a reproducible discovery trail.
