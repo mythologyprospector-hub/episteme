@@ -16,6 +16,8 @@ It must expose provenance, uncertainty, generated status, lineage, and failure r
 
 Phase 8 begins with a **read-oriented scientific workspace**, not an autonomous researcher and not a broad platform.
 
+The first public surface is a small standard-library command-line interface backed by a documented Python read API.
+
 The first public surface should let a person:
 
 1. inspect grounded knowledge;
@@ -26,6 +28,20 @@ The first public surface should let a person:
 6. export an inspectable report.
 
 The interface does not decide what is true.
+
+## Public API Boundary
+
+The Python public API is read-only over an existing `Store`. It exposes inspection and trail reconstruction without introducing a second persistence model.
+
+The initial operations are:
+
+- inspect a grounded record by identifier;
+- list grounded records in deterministic order;
+- reconstruct a discovery trail;
+- serialize a trail as full JSON or timestamp-independent lineage JSON;
+- produce a deterministic inspection report from a discovery finding.
+
+The CLI is an interface to these operations, not a separate application domain.
 
 ## Public Boundary
 
