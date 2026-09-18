@@ -65,3 +65,36 @@ def test_domain_validation_does_not_change_provenance():
     payload = {"quantity": "flux", "value": 1.5, "unit": "Jy"}
     record = make_astronomy_measurement(payload, PROVENANCE, "2026-09-18T12:00:00+00:00")
     assert record.provenance[0].to_dict() == PROVENANCE[0].to_dict()
+
+
+def test_astronomy_record_survives_core_store_round_trip():
+    from episteme import Store
+
+    payload = {"quantity": "flux", "value": 2.5, "unit": "Jy", "target": "example-star"}
+    record = make_astronomy_measurement(payload, PROVENANCE, "2026-09-18T12:00:00+00:00")
+
+    with Store() as store:
+        store.put_record(record)
+        restored = store.get_record(record.id)
+
+    assert restored == record
+
+
+def test_invalid_status_type_is_rejected_as_domain_error():
+    try:
+        validate_measurement({"quantity": "flux", "status": {"unexpected": "mapping"}})
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("non-string status must be rejected")
+
+
+def test_domain_translation_is_deterministic_except_for_record_identity():
+    payload_a = {"quantity": "flux", "unit": "Jy", "value": 2.5, "target": "example-star"}
+    payload_b = {"target": "example-star", "value": 2.5, "unit": "Jy", "quantity": "flux"}
+
+    record_a = make_astronomy_measurement(payload_a, PROVENANCE, "2026-09-18T12:00:00+00:00")
+    record_b = make_astronomy_measurement(payload_b, PROVENANCE, "2026-09-18T12:00:00+00:00")
+
+    assert record_a.payload == record_b.payload
+    assert record_a.to_dict()["payload"] == record_b.to_dict()["payload"]
