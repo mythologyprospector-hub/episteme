@@ -54,11 +54,11 @@ Target capabilities:
 Target capabilities:
 
 - [ ] provenance validation beyond Phase 1 structural checks
-- [ ] contradiction representation
-- [ ] contextual evidence assessment
-- [ ] immutable record content and append-only lifecycle history
-- [ ] explicit state transitions
-- [ ] reproducible transformation records
+- [x] contradiction representation
+- [x] contextual evidence assessment
+- [x] immutable record content and append-only lifecycle history
+- [x] explicit state transitions
+- [x] reproducible transformation records
 
 **Exit condition:** The system can explain why a represented statement exists and what evidence supports it.
 
