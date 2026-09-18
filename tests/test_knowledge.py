@@ -434,6 +434,7 @@ def test_discovery_gap_requires_explicit_expectation():
     assert finding is not None
     assert finding.kind is DiscoveryFindingKind.GAP
     assert finding.input_ids == (first.id, second.id)
+    assert finding.expectation == (first.id, "related_to", second.id)
 
 
 def test_discovery_gap_disappears_when_expected_relationship_exists():
@@ -512,3 +513,72 @@ def test_unresolved_question_preserves_grounded_inputs():
     assert question.kind is DiscoveryFindingKind.UNRESOLVED_QUESTION
     assert question.related_finding_id == gap.id
     assert question.input_ids == gap.input_ids
+    assert question.expectation == gap.expectation
+
+
+def test_discovery_gap_round_trip_preserves_expectation():
+    from episteme import detect_expected_gap
+
+    first = make_record(
+        RecordKind.OBSERVATION,
+        {"name": "A"},
+        (provenance(),),
+        "2026-09-18T00:00:00Z",
+    )
+    second = make_record(
+        RecordKind.OBSERVATION,
+        {"name": "B"},
+        (provenance(),),
+        "2026-09-18T00:00:01Z",
+    )
+
+    with Store() as store:
+        store.put_record(first)
+        store.put_record(second)
+        finding = detect_expected_gap(
+            store,
+            first.id,
+            "related_to",
+            second.id,
+            "2026-09-18T00:00:02Z",
+        )
+        assert finding is not None
+        store.put_discovery_finding(finding)
+        restored = store.get_discovery_finding(finding.id)
+
+    assert restored == finding
+    assert restored is not None
+    assert restored.expectation == (first.id, "related_to", second.id)
+
+
+def test_discovery_finding_rejects_unexpected_expectation():
+    from episteme import DiscoveryFinding, DiscoveryFindingKind, DiscoveryMeasure
+
+    first = "11111111-1111-4111-8111-111111111111"
+    second = "22222222-2222-4222-8222-222222222222"
+
+    try:
+        DiscoveryFinding(
+            id="33333333-3333-4333-8333-333333333333",
+            kind=DiscoveryFindingKind.CONTRADICTION,
+            title="Contradiction",
+            description="Example",
+            input_ids=(first, second),
+            method="example",
+            method_version="1",
+            rationale="Example",
+            measures=(
+                DiscoveryMeasure(
+                    name="input_count",
+                    value=2,
+                    scale="count",
+                    basis="two inputs",
+                ),
+            ),
+            created_at="2026-09-18T00:00:03Z",
+            expectation=(first, "contradicts", second),
+        )
+    except ValueError as exc:
+        assert "only gap findings" in str(exc)
+    else:
+        raise AssertionError("non-gap finding accepted an expectation")
