@@ -1,7 +1,7 @@
 # Episteme Roadmap
 
 **Status:** Canonical planning document  
-**Version:** 0.4  
+**Version:** 0.5  
 **Last updated:** 2026-09-18
 
 ## Mission
@@ -167,8 +167,10 @@ If implementation reveals that the roadmap is wrong, revise the roadmap rather t
 
 ## Current Position
 
-**Phase 2 — Knowledge Integrity**
+**Phase 3 — Discovery**
 
 Phase 1 is complete. The grounded substrate, provenance boundary, relationships, deterministic serialization, validation, SQLite persistence, and externally grounded ingestion fixture are implemented and verified.
 
-Phase 2 is complete. The substrate now has explicit provenance validation, contradiction representation, contextual evidence assessment, immutable records, append-only lifecycle history, explicit state transitions, and reproducible transformations. The next objective is to detect meaningful gaps and tensions without confusing generated structure with externally grounded evidence.
+Phase 2 is complete. The substrate now has explicit provenance validation, contradiction representation, contextual evidence assessment, immutable records, append-only lifecycle history, explicit state transitions, and reproducible transformations.
+
+Phase 3 is now the active objective: detect meaningful gaps and tensions without confusing generated structure with externally grounded evidence. Phase 3 architecture is deliberately narrow: discovery findings remain derived artifacts, explicit contradictions are surfaced before semantic contradiction inference, and gaps require an explicit expectation or grounded context.
