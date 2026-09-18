@@ -373,7 +373,7 @@ class Store:
             rows = self._connection.execute(
                 """
                 SELECT id, kind, title, description, input_ids, method, method_version,
-                       rationale, measures, created_at, related_finding_id, schema_version
+                       rationale, measures, created_at, related_finding_id, expectation, schema_version
                 FROM discovery_findings
                 WHERE kind = ?
                 ORDER BY created_at, id
