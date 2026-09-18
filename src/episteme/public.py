@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from .model import Record
 from .store import Store
 from .trail import build_discovery_trail
 
