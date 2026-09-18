@@ -6,6 +6,7 @@ import argparse
 import json
 from pathlib import Path
 
+from .html import render_discovery_report_html
 from .public import (
     discovery_lineage,
     discovery_report,
@@ -46,6 +47,12 @@ def _parser() -> argparse.ArgumentParser:
             required=True,
             help="Timestamp to place in the full trail representation.",
         )
+        if name == "report":
+            command.add_argument(
+                "--html",
+                metavar="PATH",
+                help="Write the same report as a self-contained HTML document.",
+            )
 
     return parser
 
@@ -65,6 +72,12 @@ def main() -> int:
             result = discovery_lineage(store, args.finding_id, args.created_at)
         else:
             result = discovery_report(store, args.finding_id, args.created_at)
+            if args.html:
+                Path(args.html).write_text(
+                    render_discovery_report_html(result),
+                    encoding="utf-8",
+                )
+                return 0
 
     print(json.dumps(result, ensure_ascii=False, sort_keys=True, separators=(",", ":")))
     return 0
