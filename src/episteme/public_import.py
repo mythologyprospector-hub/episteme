@@ -86,7 +86,6 @@ def _source_version(item: Mapping[str, Any]) -> str | None:
 
 
 def _record_id(doi: str) -> str:
-    import hashlib
+    import uuid
 
-    digest = hashlib.sha256(doi.strip().lower().encode("utf-8")).hexdigest()
-    return f"crossref-{digest}"
+    return str(uuid.uuid5(uuid.NAMESPACE_URL, f"https://doi.org/{doi.strip().lower()}"))
