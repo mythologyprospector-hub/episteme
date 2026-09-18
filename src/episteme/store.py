@@ -98,6 +98,7 @@ class Store:
                 measures TEXT NOT NULL,
                 created_at TEXT NOT NULL,
                 related_finding_id TEXT,
+                expectation TEXT,
                 schema_version INTEGER NOT NULL
             );
 
@@ -298,8 +299,8 @@ class Store:
             """
             INSERT INTO discovery_findings
                 (id, kind, title, description, input_ids, method, method_version,
-                 rationale, measures, created_at, related_finding_id, schema_version)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 rationale, measures, created_at, related_finding_id, expectation, schema_version)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 finding.id,
@@ -313,6 +314,7 @@ class Store:
                 canonical_json([measure.to_dict() for measure in finding.measures]),
                 finding.created_at,
                 finding.related_finding_id,
+                canonical_json(list(finding.expectation)) if finding.expectation is not None else None,
                 finding.schema_version,
             ),
         )
@@ -322,7 +324,7 @@ class Store:
         row = self._connection.execute(
             """
             SELECT id, kind, title, description, input_ids, method, method_version,
-                   rationale, measures, created_at, related_finding_id, schema_version
+                   rationale, measures, created_at, related_finding_id, expectation, schema_version
             FROM discovery_findings
             WHERE id = ?
             """,
@@ -344,6 +346,7 @@ class Store:
                 "measures": json.loads(row["measures"]),
                 "created_at": row["created_at"],
                 "related_finding_id": row["related_finding_id"],
+                "expectation": json.loads(row["expectation"]) if row["expectation"] is not None else None,
                 "schema_version": row["schema_version"],
             }
         )
@@ -353,7 +356,7 @@ class Store:
             rows = self._connection.execute(
                 """
                 SELECT id, kind, title, description, input_ids, method, method_version,
-                       rationale, measures, created_at, related_finding_id, schema_version
+                       rationale, measures, created_at, related_finding_id, expectation, schema_version
                 FROM discovery_findings
                 ORDER BY created_at, id
                 """
