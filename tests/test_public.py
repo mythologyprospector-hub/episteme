@@ -86,3 +86,29 @@ def test_public_api_exposes_trail_and_report_without_reinterpreting_state():
     assert report["grounded_records"][0]["id"] == record.id
     assert report["generated_artifacts"][0]["id"] == finding.id
     assert report["lineage"] == lineage
+
+
+
+def test_cli_records_reads_a_store(tmp_path, capsys):
+    record = make_record(
+        kind=RecordKind.OBSERVATION,
+        payload={"value": "cli-fixture"},
+        provenance=PROVENANCE,
+        created_at=CREATED,
+    )
+    store_path = tmp_path / "episteme.sqlite"
+    with Store(store_path) as store:
+        store.put_record(record)
+
+    from episteme.__main__ import main
+
+    import sys
+    original = sys.argv
+    try:
+        sys.argv = ["python -m episteme", "--store", str(store_path), "records"]
+        assert main() == 0
+    finally:
+        sys.argv = original
+
+    import json
+    assert json.loads(capsys.readouterr().out) == [record.to_dict()]
