@@ -1,7 +1,7 @@
 # Episteme Public Scientific Instrument
 
 **Status:** Canonical Phase 8 design
-**Version:** 0.1
+**Version:** 0.2
 **Last updated:** 2026-09-18
 
 ## Purpose
@@ -137,6 +137,33 @@ Phase 8 does not yet establish:
 - a distributed deployment architecture.
 
 Those remain separate decisions.
+
+## Researcher Workflow
+
+The intended first-use workflow is deliberately simple:
+
+1. **Start with a subject or discovery finding.**
+   Use a known record or finding identifier rather than asking the interface to invent context.
+2. **Inspect the grounded material.**
+   Records show what Episteme received or recorded, including provenance.
+3. **Inspect the generated reasoning chain.**
+   A discovery trail connects findings to hypotheses, predictions, experiment proposals, results, evaluations, and explicit knowledge-state consequences where those objects exist.
+4. **Check the boundary.**
+   The report separates grounded records from generated artifacts. Generated material is never presented as independently grounded evidence.
+5. **Follow lineage.**
+   The lineage representation removes generation timestamps so the structural chain can be compared reproducibly.
+6. **Export the report.**
+   The deterministic report is suitable for inspection, archival by the caller, or use as input to another tool.
+
+The interface is therefore an inspection instrument first. It does not require the researcher to understand SQLite, internal Python classes, or the implementation of the discovery algorithms.
+
+### Public Acceptance Test
+
+The public surface is tested against a complete representative cycle:
+
+**grounded observation → discovery finding → hypothesis → prediction → experiment proposal → grounded result → prediction evaluation → knowledge-state consequence → renewed discovery finding**
+
+The acceptance test verifies that the resulting report contains both grounded records and generated artifacts, preserves their distinction, and exposes reproducible lineage. This test is an interface contract, not merely an internal implementation test.
 
 ## Initial Exit Condition
 
