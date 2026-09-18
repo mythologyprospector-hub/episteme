@@ -1,7 +1,7 @@
 # Episteme Experiment Design
 
 **Status:** Canonical Phase 5 design
-**Version:** 0.2
+**Version:** 0.3
 **Last updated:** 2026-09-18
 **Phase status:** Complete
 
