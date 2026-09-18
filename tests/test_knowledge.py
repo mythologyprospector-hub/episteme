@@ -724,7 +724,7 @@ def test_store_rejects_discovery_finding_as_input():
         try:
             store.put_discovery_finding(downstream)
         except ValueError as exc:
-            assert "references missing record or relationship" in str(exc)
+            assert generated.id in str(exc)
         else:
             raise AssertionError("generated discovery finding was accepted as evidence")
 
