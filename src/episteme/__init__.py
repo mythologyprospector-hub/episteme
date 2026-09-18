@@ -34,6 +34,7 @@ from .trail import DiscoveryTrail, TrailEntry, build_discovery_trail
 from .proposals import predict, propose_experiment, propose_hypothesis, represent_model
 from .public import discovery_lineage, discovery_report, discovery_trail, get_record, list_records
 from .html import render_discovery_report_html
+from .public_import import import_crossref_works
 
 __version__ = "0.1.0"
 
@@ -83,4 +84,5 @@ __all__ = [
     "discovery_lineage",
     "discovery_report",
     "render_discovery_report_html",
+    "import_crossref_works",
 ]
