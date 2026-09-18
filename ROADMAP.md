@@ -40,10 +40,12 @@ Target capabilities:
 - [x] SQLite persistence
 - [x] deterministic serialization
 - [x] validation
-- [ ] externally grounded ingestion workflow
-- [ ] representative end-to-end fixture
+- [x] externally grounded ingestion workflow
+- [x] representative end-to-end fixture
 
 **Exit condition:** Episteme can ingest a small body of externally grounded material and represent it without collapsing evidence and interpretation.
+
+**Status:** Complete.
 
 ## Phase 2 — Knowledge Integrity
 
