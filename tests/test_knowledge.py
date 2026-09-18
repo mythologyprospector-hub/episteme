@@ -662,6 +662,72 @@ def test_question_generation_rejects_contradiction_findings():
         raise AssertionError("contradiction finding was accepted for question generation")
 
 
+
+def test_store_rejects_discovery_finding_as_input():
+    from episteme import DiscoveryFinding, DiscoveryFindingKind, DiscoveryMeasure
+
+    first = make_record(
+        RecordKind.OBSERVATION,
+        {"name": "A"},
+        (provenance(),),
+        "2026-09-18T00:00:00Z",
+    )
+    second = make_record(
+        RecordKind.OBSERVATION,
+        {"name": "B"},
+        (provenance(),),
+        "2026-09-18T00:00:01Z",
+    )
+    generated = DiscoveryFinding(
+        id="88888888-8888-4888-8888-888888888888",
+        kind=DiscoveryFindingKind.CONTRADICTION,
+        title="Generated finding",
+        description="Example generated finding",
+        input_ids=(first.id, second.id),
+        method="example",
+        method_version="1",
+        rationale="Example",
+        measures=(
+            DiscoveryMeasure(
+                name="input_count",
+                value=2,
+                scale="count",
+                basis="two grounded inputs",
+            ),
+        ),
+        created_at="2026-09-18T00:00:02Z",
+    )
+    downstream = DiscoveryFinding(
+        id="99999999-9999-4999-8999-999999999999",
+        kind=DiscoveryFindingKind.CONTRADICTION,
+        title="Downstream finding",
+        description="Must not use generated material as evidence",
+        input_ids=(generated.id,),
+        method="example",
+        method_version="1",
+        rationale="Example",
+        measures=(
+            DiscoveryMeasure(
+                name="input_count",
+                value=1,
+                scale="count",
+                basis="one generated input",
+            ),
+        ),
+        created_at="2026-09-18T00:00:03Z",
+    )
+
+    with Store() as store:
+        store.put_record(first)
+        store.put_record(second)
+        store.put_discovery_finding(generated)
+        try:
+            store.put_discovery_finding(downstream)
+        except ValueError as exc:
+            assert "references missing record or relationship" in str(exc)
+        else:
+            raise AssertionError("generated discovery finding was accepted as evidence")
+
 def test_discovery_finding_rejects_unexpected_expectation():
     from episteme import DiscoveryFinding, DiscoveryFindingKind, DiscoveryMeasure
 
