@@ -6,13 +6,13 @@ import argparse
 import json
 from pathlib import Path
 
-from .public import discovery_lineage, discovery_report, discovery_trail, get_record, list_records
+from .public import (\n    discovery_lineage,\n    discovery_report,\n    discovery_trail,\n    get_record,\n    list_records,\n)
 from .store import Store
 
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="python -m episteme",
+        prog="episteme",
         description="Inspect Episteme state without modifying the repository.",
     )
     parser.add_argument(
