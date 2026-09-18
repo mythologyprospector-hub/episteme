@@ -588,6 +588,40 @@ def test_unresolved_question_round_trip_preserves_expectation():
     assert restored.related_finding_id == gap.id
     assert restored.expectation == gap.expectation
 
+def test_iter_discovery_findings_preserves_expectation():
+    from episteme import detect_expected_gap
+
+    first = make_record(
+        RecordKind.OBSERVATION,
+        {"name": "A"},
+        (provenance(),),
+        "2026-09-18T00:00:00Z",
+    )
+    second = make_record(
+        RecordKind.OBSERVATION,
+        {"name": "B"},
+        (provenance(),),
+        "2026-09-18T00:00:01Z",
+    )
+
+    with Store() as store:
+        store.put_record(first)
+        store.put_record(second)
+        finding = detect_expected_gap(
+            store,
+            first.id,
+            "related_to",
+            second.id,
+            "2026-09-18T00:00:02Z",
+        )
+        assert finding is not None
+        store.put_discovery_finding(finding)
+        restored = tuple(store.iter_discovery_findings())
+
+    assert restored == (finding,)
+    assert restored[0].expectation == (first.id, "related_to", second.id)
+
+
 
 def test_discovery_finding_rejects_unexpected_expectation():
     from episteme import DiscoveryFinding, DiscoveryFindingKind, DiscoveryMeasure
