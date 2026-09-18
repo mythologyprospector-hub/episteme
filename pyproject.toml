@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "episteme"
+version = "0.1.0"
+description = "An open scientific discovery engine for mapping knowledge, exposing unknowns, testing hypotheses, and finding the experiments that matter."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "License pending" }
+authors = [
+  { name = "James Earl Stambaugh III", email = "mythologyprospector@gmail.com" },
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.setuptools.packages.find]
+where = ["src"]
