@@ -419,6 +419,87 @@ class Transformation:
         )
 
 
+class KnowledgeStateTargetKind(StrEnum):
+    HYPOTHESIS = "hypothesis"
+    MODEL = "model"
+    PREDICTION = "prediction"
+
+
+class KnowledgeStateConsequenceKind(StrEnum):
+    SUPPORTS = "supports"
+    WEAKENS = "weakens"
+    CONTRADICTS = "contradicts"
+    LEAVES_UNRESOLVED = "leaves_unresolved"
+
+
+@dataclass(frozen=True, slots=True)
+class KnowledgeStateConsequence:
+    """A generated contextual consequence derived from prediction evaluations."""
+
+    id: str
+    evaluation_ids: tuple[str, ...]
+    target_kind: KnowledgeStateTargetKind
+    target_id: str
+    consequence: KnowledgeStateConsequenceKind
+    assumptions: tuple[str, ...]
+    rationale: str
+    method: str
+    method_version: str
+    created_at: str
+    schema_version: int = SCHEMA_VERSION
+
+    def __post_init__(self) -> None:
+        _require_uuid(self.id, "id")
+        if not self.evaluation_ids:
+            raise ValueError("knowledge-state consequence requires at least one evaluation")
+        for evaluation_id in self.evaluation_ids:
+            _require_uuid(evaluation_id, "evaluation_id")
+        if not isinstance(self.target_kind, KnowledgeStateTargetKind):
+            raise ValueError("target_kind must be a KnowledgeStateTargetKind")
+        _require_uuid(self.target_id, "target_id")
+        if not isinstance(self.consequence, KnowledgeStateConsequenceKind):
+            raise ValueError("consequence must be a KnowledgeStateConsequenceKind")
+        for assumption in self.assumptions:
+            _require_text(assumption, "assumption")
+        _require_text(self.rationale, "rationale")
+        _require_text(self.method, "method")
+        _require_text(self.method_version, "method_version")
+        _require_iso_timestamp(self.created_at, "created_at")
+        if self.schema_version != SCHEMA_VERSION:
+            raise ValueError(f"unsupported schema_version: {self.schema_version}")
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "evaluation_ids": list(self.evaluation_ids),
+            "target_kind": self.target_kind.value,
+            "target_id": self.target_id,
+            "consequence": self.consequence.value,
+            "assumptions": list(self.assumptions),
+            "rationale": self.rationale,
+            "method": self.method,
+            "method_version": self.method_version,
+            "created_at": self.created_at,
+            "schema_version": self.schema_version,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> "KnowledgeStateConsequence":
+        return cls(
+            id=data["id"],
+            evaluation_ids=tuple(data["evaluation_ids"]),
+            target_kind=KnowledgeStateTargetKind(data["target_kind"]),
+            target_id=data["target_id"],
+            consequence=KnowledgeStateConsequenceKind(data["consequence"]),
+            assumptions=tuple(data["assumptions"]),
+            rationale=data["rationale"],
+            method=data["method"],
+            method_version=data["method_version"],
+            created_at=data["created_at"],
+            schema_version=data.get("schema_version", SCHEMA_VERSION),
+        )
+
+
 @dataclass(frozen=True, slots=True)
 class DiscoveryMeasure:
     """A named discovery signal; not a universal truth or confidence score."""
@@ -469,6 +550,7 @@ class DiscoveryFinding:
     rationale: str
     measures: tuple[DiscoveryMeasure, ...]
     created_at: str
+    context_ids: tuple[str, ...] = ()
     related_finding_id: str | None = None
     expectation: tuple[str, str, str] | None = None
     schema_version: int = SCHEMA_VERSION
@@ -483,6 +565,8 @@ class DiscoveryFinding:
             raise ValueError("discovery finding requires at least one input")
         for input_id in self.input_ids:
             _require_uuid(input_id, "input_id")
+        for context_id in self.context_ids:
+            _require_uuid(context_id, "context_id")
         _require_text(self.method, "method")
         _require_text(self.method_version, "method_version")
         _require_text(self.rationale, "rationale")
@@ -514,6 +598,7 @@ class DiscoveryFinding:
             "title": self.title,
             "description": self.description,
             "input_ids": list(self.input_ids),
+            "context_ids": list(self.context_ids),
             "method": self.method,
             "method_version": self.method_version,
             "rationale": self.rationale,
@@ -532,6 +617,7 @@ class DiscoveryFinding:
             title=data["title"],
             description=data["description"],
             input_ids=tuple(data["input_ids"]),
+            context_ids=tuple(data.get("context_ids", ())),
             method=data["method"],
             method_version=data["method_version"],
             rationale=data["rationale"],
