@@ -494,6 +494,8 @@ A finding must preserve:
 - creation timestamp;
 - schema version.
 
+Gap findings additionally preserve the exact explicit expectation that caused the gap test to run. The expectation is structured as subject, predicate, and object; it is a discovery request, not evidence.
+
 The input identifiers are the finding's evidential basis. The discovery method explains the transformation from those inputs to the finding.
 
 ### Discovery Traceability
@@ -503,6 +505,12 @@ A discovery result is acceptable only when its inputs can be traced to grounded 
 A discovery method must never use a generated finding as independent evidence for another finding.
 
 If a discovery process consumes generated material, that material remains explicitly generated and its upstream grounded basis must remain inspectable.
+
+### Expectation Traceability
+
+A gap-producing expectation must remain inspectable after discovery. The expected subject, predicate, and object are stored with the gap finding so the discovery operation does not depend on reconstructing request semantics from generated prose.
+
+The expectation itself does not establish that the requested relationship should exist in the external world. It establishes only the question being evaluated against the represented knowledge state.
 
 ### Meaningful Gaps
 
