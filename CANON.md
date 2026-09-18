@@ -1,7 +1,7 @@
 # Episteme Canon
 
 **Status:** Canonical  
-**Version:** 0.1  
+**Version:** 0.2  
 **Last updated:** 2026-09-18
 
 ## Purpose
@@ -139,3 +139,17 @@ Canon describes commitments the project intends to preserve.
 It does not claim that the implementation is complete, that every scientific assumption is correct, or that future evidence cannot require revision.
 
 When canon changes, the change should be visible in version history.
+
+### 13. Discovery outputs are not evidence
+
+Episteme may generate gaps, tensions, questions, hypotheses, and other structures while analyzing knowledge.
+
+Generated structures remain generated.
+
+A discovery finding may identify where evidence is incomplete or in conflict, but its existence does not establish an external fact. Discovery methods must preserve the grounded inputs and reasoning path that produced the finding.
+
+### 14. Absence is not automatically a discovery
+
+A missing relationship, field, measurement, or document is not by itself evidence that the corresponding scientific fact is unknown, false, or important.
+
+Episteme may identify a gap only relative to an explicit expectation or grounded context, and it must preserve the basis for that expectation.
