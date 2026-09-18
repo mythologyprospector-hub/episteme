@@ -30,6 +30,7 @@ from .model import (
 )
 from .discovery import detect_expected_gap, discover_evaluation_tensions, discover_explicit_contradictions, question_from_finding
 from .store import Store
+from .trail import DiscoveryTrail, TrailEntry, build_discovery_trail
 from .proposals import predict, propose_experiment, propose_hypothesis, represent_model
 
 __version__ = "0.1.0"
@@ -58,6 +59,9 @@ __all__ = [
     "Relationship",
     "Transformation",
     "Store",
+    "DiscoveryTrail",
+    "TrailEntry",
+    "build_discovery_trail",
     "canonical_json",
     "make_record",
     "make_relationship",
