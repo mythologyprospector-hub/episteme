@@ -236,3 +236,36 @@ Those remain separate architectural decisions.
 ## Exit Condition
 
 Phase 7 is complete when two materially different scientific domains have been represented through domain-specific layers while preserving the same core epistemic semantics, and the repository can demonstrate that the domain layer adds scientific meaning without changing the meaning of evidence, inference, unknown, result, evaluation, or reproducibility.
+
+
+## Astronomy Adapter — First Implementation Boundary
+
+The first implementation deliberately uses the existing `RecordKind.MEASUREMENT` primitive. No astronomy-specific core record kind is introduced.
+
+The adapter lives under `src/episteme/domains/astronomy.py` and owns only astronomy-specific payload meaning.
+
+Its canonical payload shape is:
+
+- `domain`: `astronomy`
+- `schema`: `astronomy-measurement-v1`
+- `data`: domain-specific measurement fields
+
+The initial domain fields are intentionally small:
+
+- `quantity`: named astronomical quantity;
+- `value` and `unit`: required only when status is `measured`;
+- `status`: `measured`, `not_measured`, `not_reported`, or `uncertain`;
+- optional `target`;
+- optional `instrument`;
+- optional `observed_at`;
+- optional structured `conditions`.
+
+The adapter validates structure and JSON compatibility. It does not convert units, identify celestial objects, infer missing values, judge instrument quality, or interpret scientific significance.
+
+This creates the intended boundary:
+
+**astronomy meaning → domain validation → ordinary Episteme measurement record → normal provenance/integrity machinery**
+
+In particular, missing measurements remain explicit status values rather than becoming zero, null, or silently absent. Provenance is supplied by the caller and passed unchanged into the core record.
+
+The first adapter is intentionally not an astronomy ontology or analysis engine. Its purpose is to prove that quantitative domain structure can remain above the stable epistemic substrate.
