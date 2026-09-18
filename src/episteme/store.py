@@ -3,12 +3,17 @@
 from __future__ import annotations
 
 from pathlib import Path
+import json
 import sqlite3
 from typing import Iterator
 
 from .model import (
+    AssessmentTargetKind,
+    EvidenceAssessment,
+    LifecycleEvent,
     Record,
     Relationship,
+    Transformation,
     canonical_json,
 )
 
@@ -54,6 +59,44 @@ class Store:
 
             CREATE INDEX IF NOT EXISTS idx_relationships_object
                 ON relationships(object_id);
+
+            CREATE TABLE IF NOT EXISTS lifecycle_events (
+                id TEXT PRIMARY KEY,
+                record_id TEXT NOT NULL,
+                kind TEXT NOT NULL,
+                occurred_at TEXT NOT NULL,
+                provenance TEXT NOT NULL,
+                replacement_record_id TEXT,
+                reason TEXT,
+                schema_version INTEGER NOT NULL,
+                FOREIGN KEY(record_id) REFERENCES records(id),
+                FOREIGN KEY(replacement_record_id) REFERENCES records(id)
+            );
+
+            CREATE TABLE IF NOT EXISTS evidence_assessments (
+                id TEXT PRIMARY KEY,
+                target_kind TEXT NOT NULL,
+                target_id TEXT NOT NULL,
+                method TEXT NOT NULL,
+                basis TEXT NOT NULL,
+                rationale TEXT NOT NULL,
+                provenance TEXT NOT NULL,
+                assessed_at TEXT NOT NULL,
+                schema_version INTEGER NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS transformations (
+                id TEXT PRIMARY KEY,
+                input_ids TEXT NOT NULL,
+                operation TEXT NOT NULL,
+                operation_version TEXT NOT NULL,
+                assumptions TEXT NOT NULL,
+                output_ids TEXT NOT NULL,
+                executed_at TEXT NOT NULL,
+                validation_result TEXT NOT NULL,
+                provenance TEXT NOT NULL,
+                schema_version INTEGER NOT NULL
+            );
             """
         )
         self._connection.commit()
@@ -87,8 +130,6 @@ class Store:
         ).fetchone()
         if row is None:
             return None
-        import json
-
         return Record.from_dict(
             {
                 "id": row["id"],
@@ -175,8 +216,6 @@ class Store:
         ).fetchone()
         if row is None:
             return None
-        import json
-
         return Relationship.from_dict(
             {
                 "id": row["id"],
@@ -185,6 +224,188 @@ class Store:
                 "object_id": row["object_id"],
                 "provenance": json.loads(row["provenance"]),
                 "created_at": row["created_at"],
+                "schema_version": row["schema_version"],
+            }
+        )
+
+    def put_lifecycle_event(self, event: LifecycleEvent) -> None:
+        if self.get_record(event.record_id) is None:
+            raise ValueError(f"lifecycle event references missing record: {event.record_id}")
+        if event.replacement_record_id is not None and self.get_record(event.replacement_record_id) is None:
+            raise ValueError(
+                "lifecycle event references missing replacement record: "
+                + event.replacement_record_id
+            )
+
+        self._connection.execute(
+            """
+            INSERT INTO lifecycle_events
+                (id, record_id, kind, occurred_at, provenance, replacement_record_id, reason, schema_version)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                event.id,
+                event.record_id,
+                event.kind.value,
+                event.occurred_at,
+                canonical_json([item.to_dict() for item in event.provenance]),
+                event.replacement_record_id,
+                event.reason,
+                event.schema_version,
+            ),
+        )
+        self._connection.commit()
+
+    def iter_lifecycle_events(self, record_id: str | None = None) -> Iterator[LifecycleEvent]:
+        if record_id is None:
+            rows = self._connection.execute(
+                """
+                SELECT id, record_id, kind, occurred_at, provenance,
+                       replacement_record_id, reason, schema_version
+                FROM lifecycle_events
+                ORDER BY occurred_at, id
+                """
+            )
+        else:
+            rows = self._connection.execute(
+                """
+                SELECT id, record_id, kind, occurred_at, provenance,
+                       replacement_record_id, reason, schema_version
+                FROM lifecycle_events
+                WHERE record_id = ?
+                ORDER BY occurred_at, id
+                """,
+                (record_id,),
+            )
+
+        for row in rows:
+            yield LifecycleEvent.from_dict(
+                {
+                    "id": row["id"],
+                    "record_id": row["record_id"],
+                    "kind": row["kind"],
+                    "occurred_at": row["occurred_at"],
+                    "provenance": json.loads(row["provenance"]),
+                    "replacement_record_id": row["replacement_record_id"],
+                    "reason": row["reason"],
+                    "schema_version": row["schema_version"],
+                }
+            )
+
+    def put_evidence_assessment(self, assessment: EvidenceAssessment) -> None:
+        if assessment.target_kind is AssessmentTargetKind.RECORD:
+            exists = self.get_record(assessment.target_id) is not None
+        else:
+            exists = self.get_relationship(assessment.target_id) is not None
+
+        if not exists:
+            raise ValueError(
+                f"assessment references missing {assessment.target_kind.value}: "
+                + assessment.target_id
+            )
+
+        self._connection.execute(
+            """
+            INSERT INTO evidence_assessments
+                (id, target_kind, target_id, method, basis, rationale,
+                 provenance, assessed_at, schema_version)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                assessment.id,
+                assessment.target_kind.value,
+                assessment.target_id,
+                assessment.method,
+                assessment.basis,
+                assessment.rationale,
+                canonical_json([item.to_dict() for item in assessment.provenance]),
+                assessment.assessed_at,
+                assessment.schema_version,
+            ),
+        )
+        self._connection.commit()
+
+    def get_evidence_assessment(self, assessment_id: str) -> EvidenceAssessment | None:
+        row = self._connection.execute(
+            """
+            SELECT id, target_kind, target_id, method, basis, rationale,
+                   provenance, assessed_at, schema_version
+            FROM evidence_assessments
+            WHERE id = ?
+            """,
+            (assessment_id,),
+        ).fetchone()
+        if row is None:
+            return None
+
+        return EvidenceAssessment.from_dict(
+            {
+                "id": row["id"],
+                "target_kind": row["target_kind"],
+                "target_id": row["target_id"],
+                "method": row["method"],
+                "basis": row["basis"],
+                "rationale": row["rationale"],
+                "provenance": json.loads(row["provenance"]),
+                "assessed_at": row["assessed_at"],
+                "schema_version": row["schema_version"],
+            }
+        )
+
+    def put_transformation(self, transformation: Transformation) -> None:
+        record_ids = (*transformation.input_ids, *transformation.output_ids)
+        missing = [record_id for record_id in record_ids if self.get_record(record_id) is None]
+        if missing:
+            raise ValueError(
+                "transformation references missing record(s): " + ", ".join(missing)
+            )
+
+        self._connection.execute(
+            """
+            INSERT INTO transformations
+                (id, input_ids, operation, operation_version, assumptions,
+                 output_ids, executed_at, validation_result, provenance, schema_version)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                transformation.id,
+                canonical_json(list(transformation.input_ids)),
+                transformation.operation,
+                transformation.operation_version,
+                canonical_json(list(transformation.assumptions)),
+                canonical_json(list(transformation.output_ids)),
+                transformation.executed_at,
+                transformation.validation_result,
+                canonical_json([item.to_dict() for item in transformation.provenance]),
+                transformation.schema_version,
+            ),
+        )
+        self._connection.commit()
+
+    def get_transformation(self, transformation_id: str) -> Transformation | None:
+        row = self._connection.execute(
+            """
+            SELECT id, input_ids, operation, operation_version, assumptions,
+                   output_ids, executed_at, validation_result, provenance, schema_version
+            FROM transformations
+            WHERE id = ?
+            """,
+            (transformation_id,),
+        ).fetchone()
+        if row is None:
+            return None
+
+        return Transformation.from_dict(
+            {
+                "id": row["id"],
+                "input_ids": json.loads(row["input_ids"]),
+                "operation": row["operation"],
+                "operation_version": row["operation_version"],
+                "assumptions": json.loads(row["assumptions"]),
+                "output_ids": json.loads(row["output_ids"]),
+                "executed_at": row["executed_at"],
+                "validation_result": row["validation_result"],
+                "provenance": json.loads(row["provenance"]),
                 "schema_version": row["schema_version"],
             }
         )
