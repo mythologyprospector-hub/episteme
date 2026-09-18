@@ -692,6 +692,56 @@ class Prediction:
 
 
 
+@dataclass(frozen=True, slots=True)
+class ExperimentProposal:
+    """A generated plan for obtaining observations to test predictions."""
+    id: str
+    prediction_ids: tuple[str, ...]
+    objective: str
+    proposed_observation: str
+    conditions: str
+    assumptions: tuple[str, ...]
+    method: str
+    method_version: str
+    rationale: str
+    created_at: str
+    schema_version: int = SCHEMA_VERSION
+
+    def __post_init__(self) -> None:
+        _require_uuid(self.id, "id")
+        if not self.prediction_ids:
+            raise ValueError("experiment proposal requires at least one prediction")
+        for value in self.prediction_ids:
+            _require_uuid(value, "prediction_id")
+        _require_text(self.objective, "objective")
+        _require_text(self.proposed_observation, "proposed_observation")
+        _require_text(self.conditions, "conditions")
+        for value in self.assumptions:
+            _require_text(value, "assumption")
+        _require_text(self.method, "method")
+        _require_text(self.method_version, "method_version")
+        _require_text(self.rationale, "rationale")
+        _require_iso_timestamp(self.created_at, "created_at")
+        if self.schema_version != SCHEMA_VERSION:
+            raise ValueError(f"unsupported schema_version: {self.schema_version}")
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"id": self.id, "prediction_ids": list(self.prediction_ids),
+                "objective": self.objective, "proposed_observation": self.proposed_observation,
+                "conditions": self.conditions, "assumptions": list(self.assumptions),
+                "method": self.method, "method_version": self.method_version,
+                "rationale": self.rationale, "created_at": self.created_at,
+                "schema_version": self.schema_version}
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> "ExperimentProposal":
+        return cls(id=data["id"], prediction_ids=tuple(data["prediction_ids"]),
+                   objective=data["objective"], proposed_observation=data["proposed_observation"],
+                   conditions=data["conditions"], assumptions=tuple(data["assumptions"]),
+                   method=data["method"], method_version=data["method_version"],
+                   rationale=data["rationale"], created_at=data["created_at"],
+                   schema_version=data.get("schema_version", SCHEMA_VERSION))
+
 def make_record(
     kind: RecordKind,
     payload: Mapping[str, Any],
