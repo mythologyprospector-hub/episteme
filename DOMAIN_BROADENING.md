@@ -287,3 +287,32 @@ This preserves the distinction between:
 - a result whose domain interpretation is explicitly uncertain.
 
 No core primitive or core field is added as a result of this stress test.
+
+
+## Biology Adapter — First Implementation Boundary
+
+Biology deliberately uses the existing `RecordKind.OBSERVATION` primitive rather than `MEASUREMENT`. This is an intentional architectural contrast with Astronomy.
+
+The adapter lives under `src/episteme/domains/biology.py` and owns the meaning of structured biological observations without requiring the core to understand biological traits, specimens, trials, or experimental conditions.
+
+Its canonical payload shape is:
+
+- `domain`: `biology`
+- `schema`: `biology-observation-v1`
+- `observation`: domain-specific structured observation
+- `status`: `observed`, `not_observed`, `not_reported`, or `unresolved`
+- optional `subject`
+- optional `trial`
+- optional `conditions`
+
+The `observation` field may contain categorical or structured JSON data. It is not required to be numeric and carries no universal measurement semantics.
+
+The adapter validates structure and JSON compatibility only. It does not infer biological identity, determine whether an observation is scientifically correct, reconcile conflicting studies, or assign statistical meaning.
+
+Missing or unresolved information remains explicit status rather than being converted to false, zero, null, or silent absence. Conflicting observations remain separate grounded records and are handled by ordinary Episteme relationships/integrity mechanisms rather than silently reconciled by the domain adapter.
+
+This creates a deliberately different boundary:
+
+**biology meaning → domain validation → ordinary Episteme observation record → normal provenance/integrity machinery**
+
+The contrast with Astronomy is intentional: Astronomy demonstrates quantitative measurement structure above the core; Biology demonstrates structured/categorical observation structure above the same core.
