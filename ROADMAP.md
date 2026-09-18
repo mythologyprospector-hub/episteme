@@ -157,6 +157,7 @@ Target capabilities:
 - [ ] failed-prediction recording
 - [x] explicit knowledge-state consequences
 - [x] iterative discovery
+- [ ] renewed evaluation-conflict discovery
 - [ ] reproducible discovery trails
 
 **Exit condition:** A complete discovery cycle can run from grounded evidence through hypothesis, prediction, experiment, result, result evaluation, explicit knowledge-state consequence, and renewed discovery while preserving the distinction between observation and interpretation.
