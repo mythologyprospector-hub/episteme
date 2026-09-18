@@ -480,7 +480,7 @@ class Store:
     def get_discovery_finding(self, finding_id: str) -> DiscoveryFinding | None:
         row = self._connection.execute(
             """
-            SELECT id, kind, title, description, input_ids, method, method_version,
+            SELECT id, kind, title, description, input_ids, context_ids, method, method_version,
                    rationale, measures, created_at, related_finding_id, expectation, schema_version
             FROM discovery_findings
             WHERE id = ?
@@ -522,7 +522,7 @@ class Store:
         else:
             rows = self._connection.execute(
                 """
-                SELECT id, kind, title, description, input_ids, method, method_version,
+                SELECT id, kind, title, description, input_ids, context_ids, method, method_version,
                        rationale, measures, created_at, related_finding_id, expectation, schema_version
                 FROM discovery_findings
                 WHERE kind = ?
@@ -539,6 +539,7 @@ class Store:
                     "title": row["title"],
                     "description": row["description"],
                     "input_ids": json.loads(row["input_ids"]),
+                    "context_ids": json.loads(row["context_ids"]),
                     "method": row["method"],
                     "method_version": row["method_version"],
                     "rationale": row["rationale"],
