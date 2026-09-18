@@ -1558,7 +1558,7 @@ def test_prediction_evaluation_round_trip_preserves_result_prediction_and_propos
     assert all(item.experiment_proposal_id == proposal.id for item in restored)
 
 
-def test_prediction_evaluation_requires_grounded_result_and_matching_proposal():
+def test_prediction_evaluation_requires_grounded_result_existing_prediction_and_matching_proposal():
     from episteme import (
         PredictionEvaluation,
         PredictionEvaluationOutcome,
@@ -1585,11 +1585,18 @@ def test_prediction_evaluation_requires_grounded_result_and_matching_proposal():
         (provenance(),),
         "2026-09-18T00:00:07Z",
     )
+    result = make_record(
+        RecordKind.RESULT,
+        {"observed": "Outcome"},
+        (provenance(),),
+        "2026-09-18T00:00:08Z",
+    )
 
     with Store() as store:
         store.put_record(first)
         store.put_record(second)
         store.put_record(not_a_result)
+        store.put_record(result)
 
         finding = _phase4_finding(first, second)
         store.put_discovery_finding(finding)
@@ -1611,7 +1618,18 @@ def test_prediction_evaluation_requires_grounded_result_and_matching_proposal():
             rationale="Bounded prediction.",
             created_at="2026-09-18T00:00:03Z",
         )
+        other_prediction = predict(
+            source_id=hypothesis.id,
+            consequence="Other outcome.",
+            conditions="Different test condition.",
+            method="test",
+            method_version="1",
+            rationale="Second bounded prediction.",
+            created_at="2026-09-18T00:00:03Z",
+        )
         store.put_prediction(prediction)
+        store.put_prediction(other_prediction)
+
         proposal = propose_experiment(
             prediction_ids=(prediction.id,),
             objective="Test prediction.",
@@ -1624,7 +1642,20 @@ def test_prediction_evaluation_requires_grounded_result_and_matching_proposal():
             rationale="Direct test.",
             created_at="2026-09-18T00:00:04Z",
         )
+        other_proposal = propose_experiment(
+            prediction_ids=(other_prediction.id,),
+            objective="Test another prediction.",
+            proposed_observation="Measure another outcome.",
+            discrimination_basis="The measurement tests the other predicted consequence.",
+            conditions="Different test condition.",
+            assumptions=(),
+            method="test",
+            method_version="1",
+            rationale="Direct test.",
+            created_at="2026-09-18T00:00:04Z",
+        )
         store.put_experiment_proposal(proposal)
+        store.put_experiment_proposal(other_proposal)
 
         bad_result = PredictionEvaluation(
             id="31313131-3131-4131-8131-313131313131",
@@ -1648,7 +1679,7 @@ def test_prediction_evaluation_requires_grounded_result_and_matching_proposal():
 
         missing_prediction = PredictionEvaluation(
             id="32323232-3232-4232-8232-323232323232",
-            result_id=not_a_result.id,
+            result_id=result.id,
             prediction_id="33333333-3333-4333-8333-333333333333",
             experiment_proposal_id=None,
             comparison_conditions="Same test condition.",
@@ -1665,3 +1696,23 @@ def test_prediction_evaluation_requires_grounded_result_and_matching_proposal():
             assert missing_prediction.prediction_id in str(exc)
         else:
             raise AssertionError("missing prediction was accepted for evaluation")
+
+        mismatched_proposal = PredictionEvaluation(
+            id="34343434-3434-4434-8434-343434343434",
+            result_id=result.id,
+            prediction_id=prediction.id,
+            experiment_proposal_id=other_proposal.id,
+            comparison_conditions="Same test condition.",
+            assumptions=(),
+            outcome=PredictionEvaluationOutcome.INCONCLUSIVE,
+            rationale="Proposal does not contain this prediction.",
+            method="comparison",
+            method_version="1",
+            created_at="2026-09-18T00:00:07Z",
+        )
+        try:
+            store.put_prediction_evaluation(mismatched_proposal)
+        except ValueError as exc:
+            assert prediction.id in str(exc)
+        else:
+            raise AssertionError("evaluation accepted a proposal that did not test its prediction")
