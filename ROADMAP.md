@@ -70,7 +70,7 @@ Target capabilities:
 
 Target capabilities:
 
-- gap detection
+- gap detection with explicit expectation traceability
 - unresolved-question generation
 - contradiction discovery
 - competing-model identification
