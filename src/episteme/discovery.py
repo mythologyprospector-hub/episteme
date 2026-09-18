@@ -130,6 +130,7 @@ def detect_expected_gap(
         ),
         measures=_measures(store, input_ids),
         created_at=created_at,
+        expectation=(subject_id, predicate, object_id),
     )
 
 
@@ -137,14 +138,14 @@ def question_from_finding(
     finding: DiscoveryFinding,
     created_at: str,
 ) -> DiscoveryFinding:
-    """Turn a gap or tension into a bounded unresolved question."""
+    """Turn a gap, tension, or contradiction into a bounded unresolved question."""
 
     if finding.kind not in {
         DiscoveryFindingKind.GAP,
         DiscoveryFindingKind.TENSION,
         DiscoveryFindingKind.CONTRADICTION,
     }:
-        raise ValueError("questions can only be generated from gap or tension findings")
+        raise ValueError("questions can only be generated from gap, tension, or contradiction findings")
 
     return DiscoveryFinding(
         id=str(uuid4()),
@@ -161,4 +162,5 @@ def question_from_finding(
         measures=finding.measures,
         created_at=created_at,
         related_finding_id=finding.id,
+        expectation=finding.expectation,
     )
