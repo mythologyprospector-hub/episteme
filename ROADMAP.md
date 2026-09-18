@@ -1,7 +1,7 @@
 # Episteme Roadmap
 
 **Status:** Canonical planning document  
-**Version:** 0.8  
+**Version:** 0.9  
 **Last updated:** 2026-09-18
 
 ## Mission
@@ -148,17 +148,32 @@ The audit found no Phase 5 capability that requires new machinery before advanci
 
 ## Phase 6 — Closed Discovery Loop
 
-**Goal:** Connect evidence acquisition, reasoning, experiments, and results.
+**Goal:** Connect evidence acquisition, reasoning, experiments, and results without collapsing observation into interpretation.
 
 Target capabilities:
 
-- experiment result ingestion
-- automatic knowledge-state updates
-- failed-prediction recording
-- iterative discovery
-- reproducible discovery trails
+- [ ] experiment result ingestion
+- [ ] explicit result-to-prediction evaluation
+- [ ] failed-prediction recording
+- [ ] explicit knowledge-state consequences
+- [ ] iterative discovery
+- [ ] reproducible discovery trails
 
-**Exit condition:** A complete discovery cycle can run from grounded evidence through hypothesis, prediction, experiment, result, and updated knowledge.
+**Exit condition:** A complete discovery cycle can run from grounded evidence through hypothesis, prediction, experiment, result, result evaluation, explicit knowledge-state consequence, and renewed discovery while preserving the distinction between observation and interpretation.
+
+### Phase 6 Architecture Decision
+
+The Phase 6 audit established that the existing result, relationship, lifecycle, evidence-assessment, and transformation primitives do not by themselves represent the semantic comparison between a result and a prediction.
+
+Phase 6 therefore requires a distinct generated **result evaluation** concept rather than overloading evidence assessment or lifecycle events.
+
+The evaluation is contextual and non-binary: **consistent**, **inconsistent**, or **inconclusive** under stated conditions and assumptions. It does not become evidence, does not rewrite the result or prediction, and does not constitute a universal truth or confidence score.
+
+"Knowledge-state update" is defined as an explicit accumulation of evidence, relationships, evaluations, lifecycle events, and generated revisions. It is not a mutable universal truth flag.
+
+The implementation phase must document the evaluation model and persistence semantics before code is added.
+
+
 
 ## Phase 7 — Broadening
 
