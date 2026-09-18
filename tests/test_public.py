@@ -259,3 +259,105 @@ def test_public_report_reconstructs_a_complete_discovery_cycle():
     assert any(entry["id"] == result.id for entry in report["grounded_records"])
     assert report["lineage"]["finding_id"] == final_finding.id
     assert "created_at" not in report["lineage"]
+
+
+
+def test_review_is_immutable_and_does_not_mutate_target():
+    record = make_record(
+        kind=RecordKind.OBSERVATION,
+        payload={"value": "review-target"},
+        provenance=PROVENANCE,
+        created_at=CREATED,
+    )
+    from episteme import Review, ReviewDisposition, ReviewTargetKind
+
+    review = Review(
+        id="77777777-7777-4777-8777-777777777771",
+        target_kind=ReviewTargetKind.RECORD,
+        target_id=record.id,
+        reviewer="researcher@example",
+        disposition=ReviewDisposition.CHALLENGE,
+        basis="The observation requires clarification.",
+        rationale="The supplied context is insufficient to reproduce the observation.",
+        provenance=PROVENANCE,
+        reviewed_at=CREATED,
+    )
+
+    with Store() as store:
+        store.put_record(record)
+        before = record.to_dict()
+        store.put_review(review)
+
+        assert store.get_review(review.id).to_dict() == review.to_dict()
+        assert list(store.iter_reviews(record.id))[0].id == review.id
+        assert store.get_record(record.id).to_dict() == before
+
+
+def test_multiple_reviews_preserve_disagreement():
+    record = make_record(
+        kind=RecordKind.OBSERVATION,
+        payload={"value": "disputed"},
+        provenance=PROVENANCE,
+        created_at=CREATED,
+    )
+    from episteme import Review, ReviewDisposition, ReviewTargetKind
+
+    reviews = (
+        Review(
+            id="77777777-7777-4777-8777-777777777772",
+            target_kind=ReviewTargetKind.RECORD,
+            target_id=record.id,
+            reviewer="reviewer-a",
+            disposition=ReviewDisposition.ACKNOWLEDGE,
+            basis="The supplied record is internally clear.",
+            rationale="No issue found in the represented material.",
+            provenance=PROVENANCE,
+            reviewed_at=CREATED,
+        ),
+        Review(
+            id="77777777-7777-4777-8777-777777777773",
+            target_kind=ReviewTargetKind.RECORD,
+            target_id=record.id,
+            reviewer="reviewer-b",
+            disposition=ReviewDisposition.CHALLENGE,
+            basis="The supplied record lacks needed context.",
+            rationale="Additional context is required before relying on it.",
+            provenance=PROVENANCE,
+            reviewed_at="2026-09-18T00:01:00Z",
+        ),
+    )
+
+    with Store() as store:
+        store.put_record(record)
+        for review in reviews:
+            store.put_review(review)
+
+        assert [item.disposition.value for item in store.iter_reviews(record.id)] == [
+            "acknowledge",
+            "challenge",
+        ]
+
+
+def test_review_rejects_missing_target_without_creating_state():
+    from episteme import Review, ReviewDisposition, ReviewTargetKind
+
+    review = Review(
+        id="77777777-7777-4777-8777-777777777774",
+        target_kind=ReviewTargetKind.RECORD,
+        target_id="77777777-7777-4777-8777-777777777775",
+        reviewer="reviewer",
+        disposition=ReviewDisposition.NOTE,
+        basis="Inspection basis.",
+        rationale="Target does not exist.",
+        provenance=PROVENANCE,
+        reviewed_at=CREATED,
+    )
+
+    with Store() as store:
+        try:
+            store.put_review(review)
+        except ValueError as exc:
+            assert "references missing record" in str(exc)
+        else:
+            raise AssertionError("missing review target should be rejected")
+        assert list(store.iter_reviews()) == []
