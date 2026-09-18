@@ -42,6 +42,9 @@ def validate_measurement(payload: Mapping[str, Any]) -> None:
     elif "value" in payload or "unit" in payload:
         raise ValueError("non-measured astronomy status must not carry value or unit")
 
+    if "uncertainty" in payload:
+        canonical_json(payload["uncertainty"])
+
     if "target" in payload:
         _require_text(payload["target"], "target")
     if "instrument" in payload:
