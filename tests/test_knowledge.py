@@ -171,3 +171,125 @@ def test_bipm_fixture_ingests_end_to_end():
     assert [record.kind for record in records] == [RecordKind.SOURCE, RecordKind.MEASUREMENT]
     assert records[1].payload["value"] == 299792458
     assert records[1].provenance[0].source_id == "bipm:si-metre"
+
+
+
+def test_lifecycle_history_is_append_only():
+    from episteme import LifecycleEvent, LifecycleEventKind
+
+    record = make_record(
+        RecordKind.OBSERVATION,
+        {"value": 42},
+        (provenance(),),
+        "2026-09-18T00:00:00Z",
+    )
+    replacement = make_record(
+        RecordKind.OBSERVATION,
+        {"value": 43},
+        (provenance(),),
+        "2026-09-18T00:00:01Z",
+    )
+    event = LifecycleEvent(
+        id="22222222-2222-4222-8222-222222222222",
+        record_id=record.id,
+        kind=LifecycleEventKind.SUPERSEDED,
+        occurred_at="2026-09-18T00:00:02Z",
+        replacement_record_id=replacement.id,
+        reason="Corrected source value",
+        provenance=(provenance(),),
+    )
+
+    with Store() as store:
+        store.put_record(record)
+        store.put_record(replacement)
+        store.put_lifecycle_event(event)
+        history = list(store.iter_lifecycle_events(record.id))
+
+    assert history == [event]
+    assert history[0].replacement_record_id == replacement.id
+
+
+def test_retracted_event_requires_reason():
+    from episteme import LifecycleEvent, LifecycleEventKind
+
+    try:
+        LifecycleEvent(
+            id="33333333-3333-4333-8333-333333333333",
+            record_id="44444444-4444-4444-8444-444444444444",
+            kind=LifecycleEventKind.RETRACTED,
+            occurred_at="2026-09-18T00:00:00Z",
+            provenance=(provenance(),),
+        )
+    except ValueError as exc:
+        assert "reason" in str(exc)
+    else:
+        raise AssertionError("retracted event without reason was accepted")
+
+
+def test_evidence_assessment_is_contextual_and_persistent():
+    from episteme import AssessmentTargetKind, EvidenceAssessment
+
+    record = make_record(
+        RecordKind.OBSERVATION,
+        {"value": 42},
+        (provenance(),),
+        "2026-09-18T00:00:00Z",
+    )
+    assessment = EvidenceAssessment(
+        id="55555555-5555-4555-8555-555555555555",
+        target_kind=AssessmentTargetKind.RECORD,
+        target_id=record.id,
+        method="source-review",
+        basis="primary-source inspection",
+        rationale="The source directly states the observation.",
+        provenance=(provenance(),),
+        assessed_at="2026-09-18T00:00:02Z",
+    )
+
+    with Store() as store:
+        store.put_record(record)
+        store.put_evidence_assessment(assessment)
+        restored = store.get_evidence_assessment(assessment.id)
+
+    assert restored == assessment
+
+
+def test_transformation_requires_existing_inputs_and_outputs():
+    from episteme import Transformation
+
+    first = make_record(
+        RecordKind.OBSERVATION,
+        {"value": 1},
+        (provenance(),),
+        "2026-09-18T00:00:00Z",
+    )
+    second = make_record(
+        RecordKind.RESULT,
+        {"value": 2},
+        (provenance(),),
+        "2026-09-18T00:00:01Z",
+    )
+    transformation = Transformation(
+        id="66666666-6666-4666-8666-666666666666",
+        input_ids=(first.id,),
+        operation="example-transform",
+        operation_version="1",
+        assumptions=("example input is valid",),
+        output_ids=(second.id,),
+        executed_at="2026-09-18T00:00:02Z",
+        validation_result="verified",
+        provenance=(provenance(),),
+    )
+
+    with Store() as store:
+        store.put_record(first)
+        try:
+            store.put_transformation(transformation)
+        except ValueError as exc:
+            assert second.id in str(exc)
+        else:
+            raise AssertionError("transformation with missing output was accepted")
+
+        store.put_record(second)
+        store.put_transformation(transformation)
+        assert store.get_transformation(transformation.id) == transformation
