@@ -62,6 +62,8 @@ The discovery engine evaluates the expectation against the current grounded stat
 
 For example, an analysis request may ask whether a particular subject has a particular relationship to a particular object. If the requested relationship is absent, the engine may produce a **candidate gap**.
 
+The expectation is preserved with the finding as a structured subject, predicate, and object. This keeps the exact request inspectable rather than reconstructing it from generated prose.
+
 The candidate gap means:
 
 > “This expected item is not represented in the inspected knowledge state.”
@@ -69,6 +71,10 @@ The candidate gap means:
 It does **not** mean:
 
 > “The item does not exist in the external world.”
+
+## Expectation Traceability
+
+An expectation is part of the discovery input for gap detection, not evidence about the external world. A gap finding preserves the exact expected subject, predicate, and object so that the discovery operation can be reproduced and audited. The absence of the expected relationship remains a property of the inspected knowledge state only.
 
 ## Contradiction Discovery
 
