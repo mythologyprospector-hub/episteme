@@ -1332,3 +1332,116 @@ def test_propose_experiment_preserves_explicit_content():
     assert proposal.objective == "Determine which predicted consequence occurs."
     assert proposal.proposed_observation == "Measure the response."
     assert proposal.assumptions == ("The instrument is calibrated.",)
+
+
+def test_result_can_be_related_to_proposal_and_predictions_without_promoting_them():
+    from episteme import Relationship, propose_experiment, predict, propose_hypothesis
+
+    first_record = make_record(
+        RecordKind.OBSERVATION,
+        {"name": "A"},
+        (provenance(),),
+        "2026-09-18T00:00:00Z",
+    )
+    second_record = make_record(
+        RecordKind.OBSERVATION,
+        {"name": "B"},
+        (provenance(),),
+        "2026-09-18T00:00:01Z",
+    )
+    result = make_record(
+        RecordKind.RESULT,
+        {"observed": "Outcome A"},
+        (provenance(),),
+        "2026-09-18T00:00:07Z",
+    )
+
+    with Store() as store:
+        store.put_record(first_record)
+        store.put_record(second_record)
+        store.put_record(result)
+
+        finding = _phase4_finding(first_record, second_record)
+        store.put_discovery_finding(finding)
+
+        hypothesis_a = propose_hypothesis(
+            statement="Explanation A.",
+            finding_ids=(finding.id,),
+            method="test",
+            method_version="1",
+            rationale="Candidate A.",
+            created_at="2026-09-18T00:00:02Z",
+        )
+        hypothesis_b = propose_hypothesis(
+            statement="Explanation B.",
+            finding_ids=(finding.id,),
+            method="test",
+            method_version="1",
+            rationale="Candidate B.",
+            created_at="2026-09-18T00:00:03Z",
+        )
+        store.put_hypothesis(hypothesis_a)
+        store.put_hypothesis(hypothesis_b)
+
+        prediction_a = predict(
+            source_id=hypothesis_a.id,
+            consequence="Outcome A.",
+            conditions="Same test condition.",
+            method="test",
+            method_version="1",
+            rationale="Prediction A.",
+            comparison_hypothesis_ids=(hypothesis_a.id, hypothesis_b.id),
+            created_at="2026-09-18T00:00:04Z",
+        )
+        prediction_b = predict(
+            source_id=hypothesis_b.id,
+            consequence="Outcome B.",
+            conditions="Same test condition.",
+            method="test",
+            method_version="1",
+            rationale="Prediction B.",
+            comparison_hypothesis_ids=(hypothesis_a.id, hypothesis_b.id),
+            created_at="2026-09-18T00:00:05Z",
+        )
+        store.put_prediction(prediction_a)
+        store.put_prediction(prediction_b)
+
+        proposal = propose_experiment(
+            prediction_ids=(prediction_a.id, prediction_b.id),
+            objective="Distinguish the competing explanations.",
+            proposed_observation="Measure the outcome under the shared test condition.",
+            discrimination_basis="The predictions specify different outcomes under the same condition.",
+            conditions="Same test condition.",
+            assumptions=("The measurement remains comparable.",),
+            method="test",
+            method_version="1",
+            rationale="The proposal targets the distinguishing consequences.",
+            created_at="2026-09-18T00:00:06Z",
+        )
+        store.put_experiment_proposal(proposal)
+
+        result_link = Relationship(
+            id="23232323-2323-4232-8232-232323232323",
+            subject_id=result.id,
+            predicate="resulted_from",
+            object_id=proposal.id,
+            provenance=(provenance(),),
+            created_at="2026-09-18T00:00:08Z",
+        )
+        prediction_link = Relationship(
+            id="24242424-2424-4242-8242-242424242424",
+            subject_id=result.id,
+            predicate="tests",
+            object_id=prediction_a.id,
+            provenance=(provenance(),),
+            created_at="2026-09-18T00:00:09Z",
+        )
+        store.put_relationship(result_link)
+        store.put_relationship(prediction_link)
+
+        restored = tuple(store.iter_relationships())
+
+    assert restored == (result_link, prediction_link)
+    assert restored[0].subject_id == result.id
+    assert restored[0].object_id == proposal.id
+    assert restored[1].object_id == prediction_a.id
