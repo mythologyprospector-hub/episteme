@@ -494,8 +494,8 @@ class DiscoveryFinding:
             _require_uuid(self.expectation[2], "expectation object_id")
         if self.kind is DiscoveryFindingKind.GAP and self.expectation is None:
             raise ValueError("gap finding requires explicit expectation")
-        if self.kind is not DiscoveryFindingKind.GAP and self.expectation is not None:
-            raise ValueError("only gap findings may carry an expectation")
+        if self.kind not in {DiscoveryFindingKind.GAP, DiscoveryFindingKind.UNRESOLVED_QUESTION} and self.expectation is not None:
+            raise ValueError("only gap and unresolved-question findings may carry an expectation")
         if self.kind is DiscoveryFindingKind.UNRESOLVED_QUESTION and self.related_finding_id is None:
             raise ValueError("unresolved question requires related_finding_id")
         if self.schema_version != SCHEMA_VERSION:
