@@ -138,14 +138,13 @@ def question_from_finding(
     finding: DiscoveryFinding,
     created_at: str,
 ) -> DiscoveryFinding:
-    """Turn a gap, tension, or contradiction into a bounded unresolved question."""
+    """Turn a gap or tension into a bounded unresolved question."""
 
     if finding.kind not in {
         DiscoveryFindingKind.GAP,
         DiscoveryFindingKind.TENSION,
-        DiscoveryFindingKind.CONTRADICTION,
     }:
-        raise ValueError("questions can only be generated from gap, tension, or contradiction findings")
+        raise ValueError("questions can only be generated from gap or tension findings")
 
     return DiscoveryFinding(
         id=str(uuid4()),
