@@ -819,3 +819,158 @@ def test_discovery_expectation_flows_from_gap_to_persisted_question():
     assert restored.expectation == (first.id, "related_to", second.id)
     assert all(item.id != question.id for item in iterated if item.kind is DiscoveryFindingKind.GAP)
 
+
+
+def _phase4_finding(first, second):
+    from episteme import DiscoveryFinding, DiscoveryFindingKind, DiscoveryMeasure
+    return DiscoveryFinding(
+        id="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        kind=DiscoveryFindingKind.GAP,
+        title="Expected relation is absent",
+        description="An explicitly expected relationship is not represented.",
+        input_ids=(first.id, second.id),
+        method="expectation-gap-detection",
+        method_version="1",
+        rationale="The explicit expectation is not present.",
+        measures=(DiscoveryMeasure("input_count", 2, "count", "two inputs"),),
+        created_at="2026-09-18T00:00:02Z",
+        expectation=(first.id, "related_to", second.id),
+    )
+
+
+def test_hypothesis_round_trip_preserves_findings_and_assumptions():
+    from episteme import Hypothesis
+
+    first = make_record(RecordKind.OBSERVATION, {"name": "A"}, (provenance(),), "2026-09-18T00:00:00Z")
+    second = make_record(RecordKind.OBSERVATION, {"name": "B"}, (provenance(),), "2026-09-18T00:00:01Z")
+    finding = _phase4_finding(first, second)
+    hypothesis = Hypothesis(
+        id="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        statement="A hidden relation may explain the observed pattern.",
+        finding_ids=(finding.id,),
+        input_ids=(first.id, second.id),
+        method="manual-hypothesis",
+        method_version="1",
+        rationale="The missing relation motivates this candidate explanation.",
+        assumptions=("The observations are comparable.",),
+        created_at="2026-09-18T00:00:03Z",
+    )
+
+    with Store() as store:
+        store.put_record(first)
+        store.put_record(second)
+        store.put_discovery_finding(finding)
+        store.put_hypothesis(hypothesis)
+        assert store.get_hypothesis(hypothesis.id) == hypothesis
+        assert tuple(store.iter_hypotheses()) == (hypothesis,)
+
+
+def test_store_rejects_hypothesis_without_existing_finding():
+    from episteme import Hypothesis
+
+    hypothesis = Hypothesis(
+        id="cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+        statement="Candidate explanation",
+        finding_ids=("dddddddd-dddd-4ddd-8ddd-dddddddddddd",),
+        input_ids=(),
+        method="manual",
+        method_version="1",
+        rationale="Example",
+        assumptions=(),
+        created_at="2026-09-18T00:00:00Z",
+    )
+
+    with Store() as store:
+        try:
+            store.put_hypothesis(hypothesis)
+        except ValueError as exc:
+            assert hypothesis.finding_ids[0] in str(exc)
+        else:
+            raise AssertionError("hypothesis with missing finding was accepted")
+
+
+def test_competing_hypotheses_remain_distinct_and_can_share_finding():
+    from episteme import Hypothesis
+
+    first_record = make_record(RecordKind.OBSERVATION, {"name": "A"}, (provenance(),), "2026-09-18T00:00:00Z")
+    second_record = make_record(RecordKind.OBSERVATION, {"name": "B"}, (provenance(),), "2026-09-18T00:00:01Z")
+    finding = _phase4_finding(first_record, second_record)
+    common = dict(
+        finding_ids=(finding.id,), input_ids=(), method="manual", method_version="1",
+        rationale="Two alternatives are retained.", assumptions=(),
+        created_at="2026-09-18T00:00:03Z",
+    )
+    first = Hypothesis(id="eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee", statement="Explanation A", **common)
+    second = Hypothesis(id="ffffffff-ffff-4fff-8fff-ffffffffffff", statement="Explanation B", **common)
+
+    with Store() as store:
+        store.put_record(first_record)
+        store.put_record(second_record)
+        store.put_discovery_finding(finding)
+        store.put_hypothesis(first)
+        store.put_hypothesis(second)
+        assert tuple(store.iter_hypotheses()) == (first, second)
+
+
+def test_prediction_round_trip_preserves_distinguishing_consequence():
+    from episteme import Hypothesis, Prediction
+
+    first_record = make_record(RecordKind.OBSERVATION, {"name": "A"}, (provenance(),), "2026-09-18T00:00:00Z")
+    second_record = make_record(RecordKind.OBSERVATION, {"name": "B"}, (provenance(),), "2026-09-18T00:00:01Z")
+    finding = _phase4_finding(first_record, second_record)
+    first = Hypothesis(
+        id="12121212-1212-4121-8121-121212121212", statement="Explanation A",
+        finding_ids=(finding.id,), input_ids=(), method="manual", method_version="1",
+        rationale="Example", assumptions=("Condition A holds.",), created_at="2026-09-18T00:00:03Z",
+    )
+    second = Hypothesis(
+        id="13131313-1313-4131-8131-131313131313", statement="Explanation B",
+        finding_ids=(finding.id,), input_ids=(), method="manual", method_version="1",
+        rationale="Example", assumptions=("Condition B holds.",), created_at="2026-09-18T00:00:04Z",
+    )
+    prediction = Prediction(
+        id="14141414-1414-4141-8141-141414141414", source_id=first.id,
+        consequence="The measured response will increase.",
+        conditions="Under the stated test conditions.",
+        assumptions=("The system is stable.",),
+        method="manual-prediction", method_version="1",
+        rationale="This consequence differs from the competing explanation.",
+        comparison_hypothesis_ids=(first.id, second.id),
+        created_at="2026-09-18T00:00:05Z",
+    )
+
+    with Store() as store:
+        store.put_record(first_record)
+        store.put_record(second_record)
+        store.put_discovery_finding(finding)
+        store.put_hypothesis(first)
+        store.put_hypothesis(second)
+        store.put_prediction(prediction)
+        assert store.get_prediction(prediction.id) == prediction
+        assert tuple(store.iter_predictions()) == (prediction,)
+
+
+def test_prediction_rejects_unknown_comparison_hypothesis():
+    from episteme import Hypothesis, Prediction
+
+    first = Hypothesis(
+        id="15151515-1515-4151-8151-151515151515", statement="Explanation",
+        finding_ids=("16161616-1616-4161-8161-161616161616",), input_ids=(),
+        method="manual", method_version="1", rationale="Example", assumptions=(),
+        created_at="2026-09-18T00:00:00Z",
+    )
+    prediction = Prediction(
+        id="17171717-1717-4171-8171-171717171717", source_id=first.id,
+        consequence="A consequence.", conditions="A bounded condition.",
+        assumptions=(), method="manual", method_version="1", rationale="Example",
+        comparison_hypothesis_ids=(first.id, "18181818-1818-4181-8181-181818181818"),
+        created_at="2026-09-18T00:00:01Z",
+    )
+
+    with Store() as store:
+        try:
+            store.put_prediction(prediction)
+        except ValueError as exc:
+            assert "18181818-1818-4181-8181-181818181818" in str(exc)
+        else:
+            raise AssertionError("prediction with missing comparison hypothesis was accepted")
