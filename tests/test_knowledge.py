@@ -35,6 +35,65 @@ def test_canonical_json_is_deterministic():
     assert canonical_json({"b": 2, "a": 1}) == '{"a":1,"b":2}'
 
 
+def test_provenance_requires_timezone_aware_timestamp():
+    from episteme import Provenance
+
+    for captured_at in ("2026-09-18T00:00:00", "not-a-timestamp"):
+        try:
+            Provenance(
+                source_id="source:example",
+                captured_at=captured_at,
+            )
+        except ValueError as exc:
+            assert "captured_at" in str(exc)
+        else:
+            raise AssertionError("invalid provenance timestamp was accepted")
+
+
+def test_provenance_source_location_must_be_absolute_uri():
+    from episteme import Provenance
+
+    try:
+        Provenance(
+            source_id="source:example",
+            source_location="relative/path",
+            captured_at="2026-09-18T00:00:00Z",
+        )
+    except ValueError as exc:
+        assert "source_location" in str(exc)
+    else:
+        raise AssertionError("relative source location was accepted")
+
+
+def test_provenance_optional_fields_cannot_be_empty():
+    from episteme import Provenance
+
+    for field, kwargs in (
+        ("source_version", {"source_version": ""}),
+        ("note", {"note": ""}),
+    ):
+        try:
+            Provenance(
+                source_id="source:example",
+                captured_at="2026-09-18T00:00:00Z",
+                **kwargs,
+            )
+        except ValueError as exc:
+            assert field in str(exc)
+        else:
+            raise AssertionError(f"empty {field} was accepted")
+
+
+def test_provenance_accepts_non_url_absolute_uri():
+    entry = Provenance(
+        source_id="source:example",
+        source_location="urn:example:source",
+        captured_at="2026-09-18T00:00:00Z",
+    )
+
+    assert entry.source_location == "urn:example:source"
+
+
 def test_store_round_trip_for_record():
     record = make_record(
         RecordKind.OBSERVATION,
