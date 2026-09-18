@@ -537,6 +537,161 @@ class DiscoveryFinding:
         )
 
 
+
+@dataclass(frozen=True, slots=True)
+class Hypothesis:
+    """A generated candidate explanation, never grounded evidence."""
+    id: str
+    statement: str
+    finding_ids: tuple[str, ...]
+    input_ids: tuple[str, ...]
+    method: str
+    method_version: str
+    rationale: str
+    assumptions: tuple[str, ...]
+    created_at: str
+    schema_version: int = SCHEMA_VERSION
+
+    def __post_init__(self) -> None:
+        _require_uuid(self.id, "id")
+        _require_text(self.statement, "statement")
+        if not self.finding_ids:
+            raise ValueError("hypothesis requires at least one finding")
+        for value in self.finding_ids:
+            _require_uuid(value, "finding_id")
+        for value in self.input_ids:
+            _require_uuid(value, "input_id")
+        _require_text(self.method, "method")
+        _require_text(self.method_version, "method_version")
+        _require_text(self.rationale, "rationale")
+        for value in self.assumptions:
+            _require_text(value, "assumption")
+        _require_iso_timestamp(self.created_at, "created_at")
+        if self.schema_version != SCHEMA_VERSION:
+            raise ValueError(f"unsupported schema_version: {self.schema_version}")
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"id": self.id, "statement": self.statement,
+                "finding_ids": list(self.finding_ids), "input_ids": list(self.input_ids),
+                "method": self.method, "method_version": self.method_version,
+                "rationale": self.rationale, "assumptions": list(self.assumptions),
+                "created_at": self.created_at, "schema_version": self.schema_version}
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> "Hypothesis":
+        return cls(id=data["id"], statement=data["statement"],
+                   finding_ids=tuple(data["finding_ids"]),
+                   input_ids=tuple(data.get("input_ids", ())),
+                   method=data["method"], method_version=data["method_version"],
+                   rationale=data["rationale"], assumptions=tuple(data["assumptions"]),
+                   created_at=data["created_at"],
+                   schema_version=data.get("schema_version", SCHEMA_VERSION))
+
+
+@dataclass(frozen=True, slots=True)
+class Model:
+    """A generated structured explanatory representation."""
+    id: str
+    description: str
+    hypothesis_ids: tuple[str, ...]
+    input_ids: tuple[str, ...]
+    assumptions: tuple[str, ...]
+    method: str
+    method_version: str
+    rationale: str
+    created_at: str
+    schema_version: int = SCHEMA_VERSION
+
+    def __post_init__(self) -> None:
+        _require_uuid(self.id, "id")
+        _require_text(self.description, "description")
+        if not self.hypothesis_ids and not self.input_ids:
+            raise ValueError("model requires a hypothesis or grounded/integrity input")
+        for value in (*self.hypothesis_ids, *self.input_ids):
+            _require_uuid(value, "model input_id")
+        for value in self.assumptions:
+            _require_text(value, "assumption")
+        _require_text(self.method, "method")
+        _require_text(self.method_version, "method_version")
+        _require_text(self.rationale, "rationale")
+        _require_iso_timestamp(self.created_at, "created_at")
+        if self.schema_version != SCHEMA_VERSION:
+            raise ValueError(f"unsupported schema_version: {self.schema_version}")
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"id": self.id, "description": self.description,
+                "hypothesis_ids": list(self.hypothesis_ids), "input_ids": list(self.input_ids),
+                "assumptions": list(self.assumptions), "method": self.method,
+                "method_version": self.method_version, "rationale": self.rationale,
+                "created_at": self.created_at, "schema_version": self.schema_version}
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> "Model":
+        return cls(id=data["id"], description=data["description"],
+                   hypothesis_ids=tuple(data.get("hypothesis_ids", ())),
+                   input_ids=tuple(data.get("input_ids", ())),
+                   assumptions=tuple(data["assumptions"]), method=data["method"],
+                   method_version=data["method_version"], rationale=data["rationale"],
+                   created_at=data["created_at"],
+                   schema_version=data.get("schema_version", SCHEMA_VERSION))
+
+
+@dataclass(frozen=True, slots=True)
+class Prediction:
+    """A generated, bounded consequence of a hypothesis or model."""
+    id: str
+    source_id: str
+    consequence: str
+    conditions: str
+    assumptions: tuple[str, ...]
+    method: str
+    method_version: str
+    rationale: str
+    comparison_hypothesis_ids: tuple[str, ...]
+    created_at: str
+    schema_version: int = SCHEMA_VERSION
+
+    def __post_init__(self) -> None:
+        _require_uuid(self.id, "id")
+        _require_uuid(self.source_id, "source_id")
+        _require_text(self.consequence, "consequence")
+        _require_text(self.conditions, "conditions")
+        for value in self.assumptions:
+            _require_text(value, "assumption")
+        _require_text(self.method, "method")
+        _require_text(self.method_version, "method_version")
+        _require_text(self.rationale, "rationale")
+        for value in self.comparison_hypothesis_ids:
+            _require_uuid(value, "comparison_hypothesis_id")
+        if self.comparison_hypothesis_ids:
+            if len(self.comparison_hypothesis_ids) < 2:
+                raise ValueError("distinguishing prediction requires at least two hypotheses")
+            if self.source_id not in self.comparison_hypothesis_ids:
+                raise ValueError("distinguishing prediction must include its source hypothesis")
+        _require_iso_timestamp(self.created_at, "created_at")
+        if self.schema_version != SCHEMA_VERSION:
+            raise ValueError(f"unsupported schema_version: {self.schema_version}")
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"id": self.id, "source_id": self.source_id,
+                "consequence": self.consequence, "conditions": self.conditions,
+                "assumptions": list(self.assumptions), "method": self.method,
+                "method_version": self.method_version, "rationale": self.rationale,
+                "comparison_hypothesis_ids": list(self.comparison_hypothesis_ids),
+                "created_at": self.created_at, "schema_version": self.schema_version}
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> "Prediction":
+        return cls(id=data["id"], source_id=data["source_id"],
+                   consequence=data["consequence"], conditions=data["conditions"],
+                   assumptions=tuple(data["assumptions"]), method=data["method"],
+                   method_version=data["method_version"], rationale=data["rationale"],
+                   comparison_hypothesis_ids=tuple(data.get("comparison_hypothesis_ids", ())),
+                   created_at=data["created_at"],
+                   schema_version=data.get("schema_version", SCHEMA_VERSION))
+
+
+
 def make_record(
     kind: RecordKind,
     payload: Mapping[str, Any],
