@@ -165,8 +165,8 @@ If implementation reveals that the roadmap is wrong, revise the roadmap rather t
 
 ## Current Position
 
-**Phase 1 — Minimal Knowledge Substrate**
+**Phase 2 — Knowledge Integrity**
 
-The foundational documentation and executable baseline are established. The first grounded record model, provenance boundary, relationship model, deterministic serialization, validation, and SQLite persistence are implemented and verified.
+Phase 1 is complete. The grounded substrate, provenance boundary, relationships, deterministic serialization, validation, SQLite persistence, and externally grounded ingestion fixture are implemented and verified.
 
-The immediate objective is to prove the substrate against a small externally grounded ingestion path before adding discovery behavior.
+The immediate objective is to make epistemic state changes, contradictions, evidence quality, provenance history, and transformations explicit before adding discovery behavior.
