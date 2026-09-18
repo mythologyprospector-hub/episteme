@@ -116,6 +116,14 @@ class Store:
             );
             """
         )
+        discovery_columns = {
+            row["name"]
+            for row in self._connection.execute("PRAGMA table_info(discovery_findings)")
+        }
+        if "expectation" not in discovery_columns:
+            self._connection.execute(
+                "ALTER TABLE discovery_findings ADD COLUMN expectation TEXT"
+            )
         self._connection.commit()
 
     def put_record(self, record: Record) -> None:
