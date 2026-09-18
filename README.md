@@ -78,9 +78,13 @@ The first documents to read are:
 
 ## Project Status
 
-**Current phase:** Phase 5 — Experiment Design
+**Current phase:** Phase 7 — Broadening
 
-Phase 1 grounded substrate, Phase 2 knowledge integrity, and Phase 3 discovery are complete and verified. The current work is Phase 5: turning distinguishing predictions into experiment proposals that explain why proposed observations could discriminate among competing explanations while keeping planning material distinct from evidence.
+Phase 1 grounded substrate, Phase 2 knowledge integrity, and Phase 3 discovery are complete and verified. Phase 4 hypothesis and prediction, Phase 5 experiment design, and Phase 6 closed-loop discovery are also complete and verified.
+
+Current work is Phase 7: demonstrating that materially different scientific domains can use domain-specific layers while preserving Episteme's stable epistemic primitives, provenance, generated-versus-grounded boundaries, closed-loop lineage, and reproducibility.
+
+The first two domain demonstrations are Astronomy and Biology. Astronomy exercises quantitative measurement structure; Biology deliberately exercises categorical and structured observation structure. The domain adapters remain above the stable core.
 
 ## Project Boundary
 
