@@ -78,9 +78,9 @@ The first documents to read are:
 
 ## Project Status
 
-**Current phase:** Phase 1 — Minimal Knowledge Substrate
+**Current phase:** Phase 2 — Knowledge Integrity
 
-The first grounded record model and SQLite persistence boundary are implemented and verified by the repository's automated test workflow. The substrate is intentionally small; discovery and autonomous reasoning have not been introduced.
+The Phase 1 grounded substrate is complete and verified, including an externally grounded ingestion fixture. The next work protects provenance, contradiction visibility, evidence quality, explicit state transitions, and reproducible transformations before discovery behavior is introduced.
 
 ## Project Boundary
 
