@@ -1,7 +1,7 @@
 # Episteme Roadmap
 
 **Status:** Canonical planning document  
-**Version:** 0.5  
+**Version:** 0.6  
 **Last updated:** 2026-09-18
 
 ## Mission
@@ -72,11 +72,16 @@ Target capabilities:
 
 - gap detection with explicit expectation traceability
 - unresolved-question generation
-- contradiction discovery
-- competing-model identification
-- relevance and significance measures
+- explicit contradiction discovery
+- interpretable significance measures
 
-**Exit condition:** Discovery results can be traced to grounded inputs and are distinguishable from the system's own generated material.
+The following remain deliberately deferred from Phase 3 because their epistemic rules are not yet sufficiently defined:
+
+- semantic tension detection;
+- competing-model identification;
+- universal relevance or importance scoring.
+
+**Exit condition:** Discovery results can be traced to grounded inputs, meaningful gaps and explicit contradictions can be surfaced, bounded unresolved questions can be generated, interpretable measures can be recorded, and all generated material remains distinguishable from the system's own grounded evidence.
 
 ## Phase 4 — Hypothesis and Prediction
 
