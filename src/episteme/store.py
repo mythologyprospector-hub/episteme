@@ -263,10 +263,6 @@ class Store:
         """Return whether an ID exists in any persisted epistemic collection."""
         tables = (
             "records",
-            "relationships",
-            "lifecycle_events",
-            "evidence_assessments",
-            "transformations",
             "discovery_findings",
             "hypotheses",
             "models",
