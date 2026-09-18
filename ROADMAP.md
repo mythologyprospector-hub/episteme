@@ -1,7 +1,7 @@
 # Episteme Roadmap
 
 **Status:** Canonical planning document  
-**Version:** 0.2  
+**Version:** 0.3  
 **Last updated:** 2026-09-18
 
 ## Mission
@@ -24,19 +24,24 @@ The roadmap is deliberately staged. Each stage should leave the repository more 
 
 **Exit condition:** The repository has a stable vocabulary and architectural boundary sufficient to begin implementation without guessing what Episteme means by knowledge, evidence, inference, or unknown.
 
+**Status:** Complete.
+
 ## Phase 1 — Minimal Knowledge Substrate
 
 **Goal:** Build the smallest trustworthy representation of grounded knowledge.
 
 Target capabilities:
 
-- source records
-- observations and measurements
-- provenance
-- epistemic status
-- relationships
-- persistence
-- validation
+- [x] source records
+- [x] observations and measurements
+- [x] provenance
+- [x] epistemic boundary enforcement
+- [x] relationships
+- [x] SQLite persistence
+- [x] deterministic serialization
+- [x] validation
+- [ ] externally grounded ingestion workflow
+- [ ] representative end-to-end fixture
 
 **Exit condition:** Episteme can ingest a small body of externally grounded material and represent it without collapsing evidence and interpretation.
 
@@ -160,4 +165,6 @@ If implementation reveals that the roadmap is wrong, revise the roadmap rather t
 
 **Phase 1 — Minimal Knowledge Substrate**
 
-The documentation foundation and executable development baseline are established. Implementation now begins with the smallest trustworthy representation of grounded knowledge.
+The foundational documentation and executable baseline are established. The first grounded record model, provenance boundary, relationship model, deterministic serialization, validation, and SQLite persistence are implemented and verified.
+
+The immediate objective is to prove the substrate against a small externally grounded ingestion path before adding discovery behavior.
