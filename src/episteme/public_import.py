@@ -37,7 +37,7 @@ def import_crossref_works(
     if not isinstance(items, list):
         raise ValueError("Crossref response requires a message.items list")
 
-    count = 0
+    records: list[Record] = []
     for index, item in enumerate(items):
         if not isinstance(item, Mapping):
             raise ValueError(f"Crossref item {index} must be an object")
@@ -57,7 +57,7 @@ def import_crossref_works(
             ),
         )
 
-        record = Record(
+        records.append(Record(
             id=_record_id(doi),
             kind=RecordKind.SOURCE,
             payload={
@@ -68,11 +68,12 @@ def import_crossref_works(
             },
             provenance=provenance,
             created_at=captured_at,
-        )
-        store.put_record(record)
-        count += 1
+        ))
 
-    return count
+    for record in records:
+        store.put_record(record)
+
+    return len(records)
 
 
 def _source_version(item: Mapping[str, Any]) -> str | None:
