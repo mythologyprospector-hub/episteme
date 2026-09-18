@@ -95,7 +95,10 @@ A generated question must preserve:
 - the finding that produced it;
 - the grounded inputs behind that finding;
 - the discovery method;
-- the exact unresolved subject.
+- the exact unresolved subject;
+- the exact expectation when the source finding is an expectation-based gap.
+
+For an expectation-based gap, the unresolved question carries the same structured subject, predicate, and object expectation. This preserves the original analysis request without turning the request into evidence.
 
 Question generation must not silently fill the missing value.
 
