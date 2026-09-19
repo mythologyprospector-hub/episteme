@@ -856,7 +856,8 @@ class Model:
                 "method_version": self.method_version, "rationale": self.rationale,
                 "created_at": self.created_at, "schema_version": self.schema_version}
 
-    @classmethod    def from_dict(cls, data: Mapping[str, Any]) -> "Model":
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> "Model":
         return cls(id=data["id"], description=data["description"],
                    hypothesis_ids=tuple(data.get("hypothesis_ids", ())),
                    input_ids=tuple(data.get("input_ids", ())),
