@@ -1,4 +1,6 @@
 from episteme import (
+    DiscoveryExpectation,
+    DiscoveryExpectationKind,
     Provenance,
     RecordKind,
     Store,
@@ -434,7 +436,14 @@ def test_discovery_gap_requires_explicit_expectation():
     assert finding is not None
     assert finding.kind is DiscoveryFindingKind.GAP
     assert finding.input_ids == (first.id, second.id)
-    assert finding.expectation == (first.id, "related_to", second.id)
+    assert finding.expectation == DiscoveryExpectation(
+        kind=DiscoveryExpectationKind.RELATIONSHIP,
+        data={
+            "subject_id": first.id,
+            "predicate": "related_to",
+            "object_id": second.id,
+        },
+    )
 
 
 def test_discovery_gap_disappears_when_expected_relationship_exists():
@@ -548,7 +557,14 @@ def test_discovery_gap_round_trip_preserves_expectation():
 
     assert restored == finding
     assert restored is not None
-    assert restored.expectation == (first.id, "related_to", second.id)
+    assert restored.expectation == DiscoveryExpectation(
+        kind=DiscoveryExpectationKind.RELATIONSHIP,
+        data={
+            "subject_id": first.id,
+            "predicate": "related_to",
+            "object_id": second.id,
+        },
+    )
 
 
 def test_unresolved_question_round_trip_preserves_expectation():
@@ -619,7 +635,14 @@ def test_iter_discovery_findings_preserves_expectation():
         restored = tuple(store.iter_discovery_findings())
 
     assert restored == (finding,)
-    assert restored[0].expectation == (first.id, "related_to", second.id)
+    assert restored[0].expectation == DiscoveryExpectation(
+        kind=DiscoveryExpectationKind.RELATIONSHIP,
+        data={
+            "subject_id": first.id,
+            "predicate": "related_to",
+            "object_id": second.id,
+        },
+    )
 
 
 
