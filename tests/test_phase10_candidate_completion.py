@@ -19,6 +19,7 @@ from episteme import (
     KnowledgeStateTargetKind,
     detect_positional_gap,
     discover_evaluation_tensions,
+    predict,
 )
 
 CREATED = "2026-09-19T00:00:00Z"
@@ -581,10 +582,8 @@ def test_closed_loop_can_renew_discovery_from_evaluation_tension():
         )
         store.put_hypothesis(candidate)
 
-        prediction = propose_discriminating_prediction(
-            store,
-            candidate_id=candidate.id,
-            competing_candidate_ids=(candidate.id, candidate.id),
+        prediction = predict(
+            source_id=candidate.id,
             consequence="The measured occupant is at position 3.0.",
             conditions="Same bounded test conditions.",
             method="phase10-renewal-fixture",
