@@ -1,4 +1,6 @@
 from episteme import (
+    DiscoveryExpectation,
+    DiscoveryExpectationKind,
     DiscoveryFinding,
     DiscoveryFindingKind,
     DiscoveryMeasure,
