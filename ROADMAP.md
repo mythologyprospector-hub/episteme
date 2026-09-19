@@ -248,7 +248,9 @@ If implementation reveals that the roadmap is wrong, revise the roadmap rather t
 
 ## Current Position
 
-**Phase 10 — Candidate Completion**
+**Phase 10 — Candidate Completion — Complete**
+
+Phase 10 is complete. Candidate completion is downstream of established structural gaps; constraint assessments, competing candidates, discriminating predictions, experiment proposals, grounded results, evaluations, knowledge-state consequences, and renewed evaluation-conflict discovery are all represented without collapsing generated reasoning into evidence. The exit condition is satisfied. The next phase is intentionally not defined until a concrete architectural pressure warrants it.
 
 Phase 1 is complete. The grounded substrate, provenance boundary, relationships, deterministic serialization, validation, SQLite persistence, and externally grounded ingestion fixture are implemented and verified.
 
