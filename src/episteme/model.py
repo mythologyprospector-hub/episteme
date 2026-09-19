@@ -665,6 +665,46 @@ class DiscoveryExpectation:
 
 
 @dataclass(frozen=True, slots=True)
+class StructuralPressureComponent:
+    """One inspectable structural reason supporting a discovered gap."""
+
+    kind: str
+    basis: str
+    input_ids: tuple[str, ...]
+    method: str
+    method_version: str
+
+    def __post_init__(self) -> None:
+        _require_text(self.kind, "structural pressure kind")
+        _require_text(self.basis, "structural pressure basis")
+        if not self.input_ids:
+            raise ValueError("structural pressure component requires at least one input")
+        for input_id in self.input_ids:
+            _require_uuid(input_id, "structural pressure input_id")
+        _require_text(self.method, "structural pressure method")
+        _require_text(self.method_version, "structural pressure method_version")
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "kind": self.kind,
+            "basis": self.basis,
+            "input_ids": list(self.input_ids),
+            "method": self.method,
+            "method_version": self.method_version,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> "StructuralPressureComponent":
+        return cls(
+            kind=data["kind"],
+            basis=data["basis"],
+            input_ids=tuple(data["input_ids"]),
+            method=data["method"],
+            method_version=data["method_version"],
+        )
+
+
+@dataclass(frozen=True, slots=True)
 class DiscoveryFinding:
     """A generated discovery artifact derived from grounded inputs."""
 
@@ -681,6 +721,7 @@ class DiscoveryFinding:
     context_ids: tuple[str, ...] = ()
     related_finding_id: str | None = None
     expectation: DiscoveryExpectation | None = None
+    structural_pressure: tuple[StructuralPressureComponent, ...] = ()
     schema_version: int = SCHEMA_VERSION
 
     def __post_init__(self) -> None:
@@ -706,6 +747,13 @@ class DiscoveryFinding:
             _require_uuid(self.related_finding_id, "related_finding_id")
         if self.expectation is not None and not isinstance(self.expectation, DiscoveryExpectation):
             raise ValueError("expectation must be a DiscoveryExpectation")
+        for component in self.structural_pressure:
+            if not isinstance(component, StructuralPressureComponent):
+                raise ValueError(
+                    "structural_pressure must contain StructuralPressureComponent objects"
+                )
+        if self.structural_pressure and self.kind is not DiscoveryFindingKind.GAP:
+            raise ValueError("only gap findings may carry structural pressure")
         if self.kind is DiscoveryFindingKind.GAP and self.expectation is None:
             raise ValueError("gap finding requires explicit expectation")
         if self.kind not in {DiscoveryFindingKind.GAP, DiscoveryFindingKind.UNRESOLVED_QUESTION} and self.expectation is not None:
@@ -730,6 +778,9 @@ class DiscoveryFinding:
             "created_at": self.created_at,
             "related_finding_id": self.related_finding_id,
             "expectation": self.expectation.to_dict() if self.expectation is not None else None,
+            "structural_pressure": [
+                component.to_dict() for component in self.structural_pressure
+            ],
             "schema_version": self.schema_version,
         }
 
@@ -766,6 +817,10 @@ class DiscoveryFinding:
             created_at=data["created_at"],
             related_finding_id=data.get("related_finding_id"),
             expectation=expectation,
+            structural_pressure=tuple(
+                StructuralPressureComponent.from_dict(item)
+                for item in data.get("structural_pressure", ())
+            ),
             schema_version=data.get("schema_version", SCHEMA_VERSION),
         )
 
