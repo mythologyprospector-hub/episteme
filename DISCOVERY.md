@@ -195,3 +195,28 @@ The trail has a full serialized form and a reproducible lineage form. The full f
 Missing optional references are represented as absent. Missing required lineage fails explicitly.
 
 This is a reconstruction/report boundary, not a new persistence layer or discovery algorithm.
+
+
+## Competing Prediction Discovery — Phase 8
+
+Phase 8 extends discovery without generating or selecting hypotheses. When competing hypotheses have already been represented, Episteme can inspect their explicitly recorded predictions for a reproducible discriminating opportunity.
+
+The method groups predictions by:
+
+- the same comparison hypothesis set;
+- matching prediction conditions;
+- matching prediction assumptions.
+
+A group produces a bounded **tension** finding only when predictions from at least two compared hypotheses specify distinct consequences. The prediction identifiers are generated context identifiers; grounded inputs are recovered from the hypotheses' explicitly recorded grounded inputs. This keeps the predictions inspectable without treating them as evidence.
+
+The finding means:
+
+> “These represented hypotheses make different predictions under the same stated conditions and assumptions.”
+
+It does **not** mean:
+
+> “One hypothesis is better or true.”
+
+The method does not rank hypotheses, calculate universal information gain, infer missing hypotheses, or claim that a proposed experiment will resolve the difference. It only surfaces a structure already present in the represented knowledge state.
+
+Discovery trails may follow prediction context through its existing prediction → hypothesis/model → motivating finding → grounded-input lineage.
