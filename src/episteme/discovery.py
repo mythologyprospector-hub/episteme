@@ -214,3 +214,68 @@ def discover_evaluation_tensions(
             )
         )
     return tuple(findings)
+
+
+def discover_competing_prediction_opportunities(
+    store: Store,
+    created_at: str,
+) -> tuple[DiscoveryFinding, ...]:
+    """Surface explicit competing predictions with different consequences."""
+
+    groups: dict[tuple[tuple[str, ...], str, tuple[str, ...]], list[object]] = {}
+    for prediction in store.iter_predictions():
+        if len(prediction.comparison_hypothesis_ids) < 2:
+            continue
+        comparison_set = tuple(sorted(set(prediction.comparison_hypothesis_ids)))
+        if len(comparison_set) < 2:
+            continue
+        key = (comparison_set, prediction.conditions, prediction.assumptions)
+        groups.setdefault(key, []).append(prediction)
+
+    findings: list[DiscoveryFinding] = []
+    for key in sorted(groups):
+        predictions = sorted(groups[key], key=lambda item: item.id)
+        by_source: dict[str, object] = {}
+        for prediction in predictions:
+            by_source.setdefault(prediction.source_id, prediction)
+        if len(by_source) < 2:
+            continue
+        consequences = {prediction.consequence for prediction in by_source.values()}
+        if len(consequences) < 2:
+            continue
+
+        grounded_ids: set[str] = set()
+        for hypothesis_id in key[0]:
+            hypothesis = store.get_hypothesis(hypothesis_id)
+            if hypothesis is None:
+                continue
+            grounded_ids.update(hypothesis.input_ids)
+        input_ids = tuple(sorted(grounded_ids))
+        if not input_ids:
+            continue
+
+        context_ids = tuple(prediction.id for prediction in by_source.values())
+        findings.append(
+            DiscoveryFinding(
+                id=str(uuid4()),
+                kind=DiscoveryFindingKind.TENSION,
+                title="Competing hypotheses make distinguishable predictions",
+                description=(
+                    "Represented competing hypotheses specify different predicted "
+                    "consequences under matching conditions and assumptions."
+                ),
+                input_ids=input_ids,
+                context_ids=context_ids,
+                method="competing-prediction-discovery",
+                method_version=DISCOVERY_METHOD_VERSION,
+                rationale=(
+                    "The finding is produced only when multiple explicitly compared "
+                    "hypotheses have predictions under the same conditions and "
+                    "assumptions with distinct consequences. It does not rank the "
+                    "hypotheses or assert that any consequence is true."
+                ),
+                measures=_measures(store, input_ids),
+                created_at=created_at,
+            )
+        )
+    return tuple(findings)
