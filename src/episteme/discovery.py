@@ -321,6 +321,99 @@ def detect_structural_payload_sequence_gap(
 
     return None
 
+
+def detect_accounting_gap(
+    store: Store,
+    total_record_id: str,
+    component_record_ids: tuple[str, ...],
+    quantity_key: str,
+    created_at: str,
+) -> DiscoveryFinding | None:
+    """Detect an unresolved term in an explicit total-equals-components balance.
+
+    The accounting rule is supplied by this method: the grounded total must equal
+    the sum of the grounded component quantities. A non-zero residual establishes
+    only an accounting gap in the represented substrate; it does not assert that
+    an external quantity or entity corresponding to the residual exists.
+    """
+
+    _validate_uuid(total_record_id, "total_record_id")
+    if not component_record_ids:
+        raise ValueError("component_record_ids must contain at least one record")
+    if not quantity_key.strip():
+        raise ValueError("quantity_key must be a non-empty string")
+
+    total_record = store.get_record(total_record_id)
+    if total_record is None:
+        raise ValueError(f"accounting references missing total record: {total_record_id}")
+
+    _validate_uuid(total_record_id, "total_record_id")
+    total_value = total_record.payload.get(quantity_key)
+    if isinstance(total_value, bool) or not isinstance(total_value, (int, float)):
+        raise ValueError(
+            f"record {total_record_id} requires numeric payload field: {quantity_key}"
+        )
+
+    component_values: list[tuple[str, float]] = []
+    for record_id in component_record_ids:
+        _validate_uuid(record_id, "component_record_id")
+        record = store.get_record(record_id)
+        if record is None:
+            raise ValueError(f"accounting references missing component record: {record_id}")
+        value = record.payload.get(quantity_key)
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise ValueError(
+                f"record {record_id} requires numeric payload field: {quantity_key}"
+            )
+        component_values.append((record_id, float(value)))
+
+    total = float(total_value)
+    component_sum = sum(value for _, value in component_values)
+    residual = total - component_sum
+
+    if residual == 0.0:
+        return None
+
+    input_ids = (total_record_id, *component_record_ids)
+    return DiscoveryFinding(
+        id=str(uuid4()),
+        kind=DiscoveryFindingKind.GAP,
+        title="Accounting structure contains an unresolved term",
+        description=(
+            f"The grounded total {total!r} differs from the grounded component "
+            f"sum {component_sum!r} by residual {residual!r} for {quantity_key!r}."
+        ),
+        input_ids=input_ids,
+        method="accounting-balance-gap-discovery",
+        method_version=DISCOVERY_METHOD_VERSION,
+        rationale=(
+            "The gap is established by the explicitly declared accounting rule "
+            "that the grounded total equals the sum of the supplied grounded "
+            "components. The residual is a bounded property of the represented "
+            "accounting structure; the method does not assert an external missing "
+            "quantity or propose a candidate occupant."
+        ),
+        measures=(
+            *_measures(store, input_ids),
+            DiscoveryMeasure(
+                name="accounting_residual",
+                value=residual,
+                scale="quantity units from declared payload field",
+                basis="grounded total minus sum of grounded component quantities",
+            ),
+        ),
+        created_at=created_at,
+        expectation=DiscoveryExpectation(
+            kind=DiscoveryExpectationKind.ACCOUNTING,
+            data={
+                "quantity": quantity_key,
+                "residual": residual,
+                "total_record_id": total_record_id,
+                "component_record_ids": list(component_record_ids),
+            },
+        ),
+    )
+
 def question_from_finding(
     finding: DiscoveryFinding,
     created_at: str,
