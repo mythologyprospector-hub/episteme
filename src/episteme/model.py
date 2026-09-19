@@ -397,8 +397,7 @@ class Review:
         _require_text(self.reviewer, "reviewer")
         if not isinstance(self.disposition, ReviewDisposition):
             raise ValueError("disposition must be a ReviewDisposition")
-        _require_text(self.basis, "basis")
-        _require_text(self.rationale, "rationale")
+        _require_text(self.basis, "basis")        _require_text(self.rationale, "rationale")
         if not self.provenance:
             raise ValueError("review requires provenance")
         _require_iso_timestamp(self.reviewed_at, "reviewed_at")
@@ -616,6 +615,54 @@ class DiscoveryMeasure:
         )
 
 
+class DiscoveryExpectationKind(StrEnum):
+    """The structural kind of thing a discovery finding expects to be represented."""
+
+    RELATIONSHIP = "relationship"
+    POSITIONAL = "positional"
+    CONSTRAINT = "constraint"
+    ACCOUNTING = "accounting"
+
+
+@dataclass(frozen=True, slots=True)
+class DiscoveryExpectation:
+    """A typed, inspectable expectation; never a claim that the expected thing exists."""
+
+    kind: DiscoveryExpectationKind
+    data: Mapping[str, Any]
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.kind, DiscoveryExpectationKind):
+            raise ValueError("kind must be a DiscoveryExpectationKind")
+        if not isinstance(self.data, Mapping):
+            raise ValueError("data must be a mapping")
+        canonical_json(dict(self.data))
+
+        if self.kind is DiscoveryExpectationKind.RELATIONSHIP:
+            required = ("subject_id", "predicate", "object_id")
+            if set(self.data) != set(required):
+                raise ValueError("relationship expectation data must contain exactly subject_id, predicate, and object_id")
+            _require_uuid(self.data["subject_id"], "expectation subject_id")
+            _require_text(self.data["predicate"], "expectation predicate")
+            _require_uuid(self.data["object_id"], "expectation object_id")
+        elif self.kind is DiscoveryExpectationKind.POSITIONAL:
+            if "position" not in self.data:
+                raise ValueError("positional expectation requires position")
+            if isinstance(self.data["position"], bool) or not isinstance(self.data["position"], (int, float)):
+                raise ValueError("positional expectation position must be numeric")
+        elif self.kind is DiscoveryExpectationKind.CONSTRAINT:
+            _require_text(self.data.get("constraint"), "expectation constraint")
+        elif self.kind is DiscoveryExpectationKind.ACCOUNTING:
+            _require_text(self.data.get("quantity"), "expectation quantity")
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"kind": self.kind.value, "data": dict(self.data)}
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> "DiscoveryExpectation":
+        return cls(kind=DiscoveryExpectationKind(data["kind"]), data=data["data"])
+
+
 @dataclass(frozen=True, slots=True)
 class DiscoveryFinding:
     """A generated discovery artifact derived from grounded inputs."""
@@ -632,7 +679,7 @@ class DiscoveryFinding:
     created_at: str
     context_ids: tuple[str, ...] = ()
     related_finding_id: str | None = None
-    expectation: tuple[str, str, str] | None = None
+    expectation: DiscoveryExpectation | None = None
     schema_version: int = SCHEMA_VERSION
 
     def __post_init__(self) -> None:
@@ -656,12 +703,8 @@ class DiscoveryFinding:
                 raise ValueError("measures must contain DiscoveryMeasure objects")
         if self.related_finding_id is not None:
             _require_uuid(self.related_finding_id, "related_finding_id")
-        if self.expectation is not None:
-            if len(self.expectation) != 3:
-                raise ValueError("expectation must contain subject_id, predicate, and object_id")
-            _require_uuid(self.expectation[0], "expectation subject_id")
-            _require_text(self.expectation[1], "expectation predicate")
-            _require_uuid(self.expectation[2], "expectation object_id")
+        if self.expectation is not None and not isinstance(self.expectation, DiscoveryExpectation):
+            raise ValueError("expectation must be a DiscoveryExpectation")
         if self.kind is DiscoveryFindingKind.GAP and self.expectation is None:
             raise ValueError("gap finding requires explicit expectation")
         if self.kind not in {DiscoveryFindingKind.GAP, DiscoveryFindingKind.UNRESOLVED_QUESTION} and self.expectation is not None:
@@ -685,12 +728,29 @@ class DiscoveryFinding:
             "measures": [measure.to_dict() for measure in self.measures],
             "created_at": self.created_at,
             "related_finding_id": self.related_finding_id,
-            "expectation": list(self.expectation) if self.expectation is not None else None,
+            "expectation": self.expectation.to_dict() if self.expectation is not None else None,
             "schema_version": self.schema_version,
         }
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> "DiscoveryFinding":
+        expectation_data = data.get("expectation")
+        if expectation_data is None:
+            expectation = None
+        elif isinstance(expectation_data, (list, tuple)):
+            if len(expectation_data) != 3:
+                raise ValueError("legacy expectation must contain subject_id, predicate, and object_id")
+            expectation = DiscoveryExpectation(
+                kind=DiscoveryExpectationKind.RELATIONSHIP,
+                data={
+                    "subject_id": expectation_data[0],
+                    "predicate": expectation_data[1],
+                    "object_id": expectation_data[2],
+                },
+            )
+        else:
+            expectation = DiscoveryExpectation.from_dict(expectation_data)
+
         return cls(
             id=data["id"],
             kind=DiscoveryFindingKind(data["kind"]),
@@ -704,11 +764,9 @@ class DiscoveryFinding:
             measures=tuple(DiscoveryMeasure.from_dict(item) for item in data["measures"]),
             created_at=data["created_at"],
             related_finding_id=data.get("related_finding_id"),
-            expectation=tuple(data["expectation"]) if data.get("expectation") is not None else None,
+            expectation=expectation,
             schema_version=data.get("schema_version", SCHEMA_VERSION),
         )
-
-
 
 @dataclass(frozen=True, slots=True)
 class Hypothesis:
@@ -797,8 +855,7 @@ class Model:
                 "method_version": self.method_version, "rationale": self.rationale,
                 "created_at": self.created_at, "schema_version": self.schema_version}
 
-    @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> "Model":
+    @classmethod    def from_dict(cls, data: Mapping[str, Any]) -> "Model":
         return cls(id=data["id"], description=data["description"],
                    hypothesis_ids=tuple(data.get("hypothesis_ids", ())),
                    input_ids=tuple(data.get("input_ids", ())),
