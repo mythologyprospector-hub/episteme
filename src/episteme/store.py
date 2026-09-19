@@ -31,11 +31,23 @@ from .model import (
 class Store:
     """Repository-owned SQLite store for grounded and derived Episteme state."""
 
-    def __init__(self, path: str | Path = ":memory:") -> None:
-        self._connection = sqlite3.connect(path)
+    def __init__(self, path: str | Path = ":memory:", read_only: bool = False) -> None:
+        if read_only:
+            if str(path) == ":memory:":
+                raise ValueError("read-only Store requires a file-backed SQLite database")
+            resolved = Path(path).resolve()
+            if not resolved.is_file():
+                raise FileNotFoundError(resolved)
+            self._connection = sqlite3.connect(
+                f"file:{resolved.as_posix()}?mode=ro",
+                uri=True,
+            )
+        else:
+            self._connection = sqlite3.connect(path)
         self._connection.row_factory = sqlite3.Row
         self._connection.execute("PRAGMA foreign_keys = ON")
-        self._initialize()
+        if not read_only:
+            self._initialize()
 
     def _initialize(self) -> None:
         self._connection.executescript(
