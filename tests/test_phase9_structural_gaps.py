@@ -8,6 +8,7 @@ from episteme import (
     Record,
     RecordKind,
     Store,
+    detect_accounting_gap,
     detect_structural_sequence_gap,
     detect_structural_payload_sequence_gap,
     make_relationship,
@@ -181,3 +182,54 @@ def test_discovery_expectation_supports_non_relationship_structures():
     assert DiscoveryExpectation.from_dict(positional.to_dict()) == positional
     assert DiscoveryExpectation.from_dict(constraint.to_dict()) == constraint
     assert DiscoveryExpectation.from_dict(accounting.to_dict()) == accounting
+
+
+def test_accounting_gap_exposes_grounded_residual_without_proposing_occupant():
+    total = Record(
+        id="44444444-4444-4444-8444-444444444444",
+        kind=RecordKind.MEASUREMENT,
+        payload={"mass": 10.0},
+        provenance=PROVENANCE,
+        created_at=CREATED,
+    )
+    first = Record(
+        id="55555555-5555-4555-8555-555555555555",
+        kind=RecordKind.MEASUREMENT,
+        payload={"mass": 3.0},
+        provenance=PROVENANCE,
+        created_at=CREATED,
+    )
+    second = Record(
+        id="66666666-6666-4666-8666-666666666666",
+        kind=RecordKind.MEASUREMENT,
+        payload={"mass": 4.0},
+        provenance=PROVENANCE,
+        created_at=CREATED,
+    )
+
+    with Store() as store:
+        for record in (total, first, second):
+            store.put_record(record)
+
+        gap = detect_accounting_gap(
+            store,
+            total_record_id=total.id,
+            component_record_ids=(first.id, second.id),
+            quantity_key="mass",
+            created_at="2026-09-19T00:04:00Z",
+        )
+
+    assert gap is not None
+    assert gap.kind is DiscoveryFindingKind.GAP
+    assert gap.input_ids == (total.id, first.id, second.id)
+    assert gap.expectation == DiscoveryExpectation(
+        kind=DiscoveryExpectationKind.ACCOUNTING,
+        data={
+            "quantity": "mass",
+            "residual": 3.0,
+            "total_record_id": total.id,
+            "component_record_ids": [first.id, second.id],
+        },
+    )
+    assert "accounting rule" in gap.rationale
+    assert "does not assert an external missing" in gap.rationale
