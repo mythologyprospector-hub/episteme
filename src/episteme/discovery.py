@@ -202,6 +202,98 @@ def detect_structural_sequence_gap(
 
     return None
 
+
+def detect_structural_payload_sequence_gap(
+    store: Store,
+    record_ids: tuple[str, ...],
+    position_key: str,
+    predicate: str,
+    created_at: str,
+) -> DiscoveryFinding | None:
+    """Detect a missing adjacent relation from positions represented in records.
+
+    The ordering rule is derived from a declared record payload field. The
+    detector therefore does not receive the expected relationship or its
+    ordered endpoints directly; it derives them from grounded records and
+    then checks the grounded relationship substrate.
+    """
+
+    if len(record_ids) < 2:
+        raise ValueError("record_ids must contain at least two records")
+    if not position_key.strip():
+        raise ValueError("position_key must be a non-empty string")
+    if not predicate.strip():
+        raise ValueError("predicate must be a non-empty string")
+
+    positioned: list[tuple[float, str]] = []
+    seen_positions: set[float] = set()
+    for record_id in record_ids:
+        _validate_uuid(record_id, "record_id")
+        record = store.get_record(record_id)
+        if record is None:
+            raise ValueError(f"sequence references missing record: {record_id}")
+        value = record.payload.get(position_key)
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise ValueError(
+                f"record {record_id} requires numeric payload field: {position_key}"
+            )
+        position = float(value)
+        if position in seen_positions:
+            raise ValueError(f"duplicate structural position: {position}")
+        seen_positions.add(position)
+        positioned.append((position, record_id))
+
+    positioned.sort()
+    ordered_ids = tuple(record_id for _, record_id in positioned)
+    relationships = {
+        (relationship.subject_id, relationship.object_id)
+        for relationship in store.iter_relationships(predicate=predicate)
+    }
+
+    for subject_id, object_id in zip(ordered_ids, ordered_ids[1:]):
+        if (subject_id, object_id) in relationships:
+            continue
+
+        input_ids = tuple(record_ids)
+        return DiscoveryFinding(
+            id=str(uuid4()),
+            kind=DiscoveryFindingKind.GAP,
+            title="Grounded positions contain an unrepresented relation",
+            description=(
+                f"Records ordered by grounded field {position_key!r} require "
+                f"{subject_id} --{predicate}--> {object_id}, but that grounded "
+                "relationship is not represented."
+            ),
+            input_ids=input_ids,
+            method="structural-payload-sequence-gap-discovery",
+            method_version=DISCOVERY_METHOD_VERSION,
+            rationale=(
+                "The structural ordering is derived from a declared field in the "
+                "grounded records. The detector derives the missing adjacency from "
+                "that ordering rather than receiving the expected relationship "
+                "directly, and it does not propose an occupant or infer external reality."
+            ),
+            measures=(
+                *_measures(store, input_ids),
+                DiscoveryMeasure(
+                    name="structural_position_count",
+                    value=float(len(ordered_ids) - 1),
+                    scale="expected adjacent relations",
+                    basis="number of adjacent positions after sorting the declared grounded field",
+                ),
+                DiscoveryMeasure(
+                    name="missing_position_count",
+                    value=1.0,
+                    scale="missing adjacent relations",
+                    basis="first unrepresented adjacency derived from grounded positions",
+                ),
+            ),
+            created_at=created_at,
+            expectation=(subject_id, predicate, object_id),
+        )
+
+    return None
+
 def question_from_finding(
     finding: DiscoveryFinding,
     created_at: str,
