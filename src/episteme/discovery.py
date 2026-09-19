@@ -6,6 +6,7 @@ promotes generated findings into grounded records.
 
 from __future__ import annotations
 
+import math
 from uuid import UUID, uuid4
 
 from .model import (
