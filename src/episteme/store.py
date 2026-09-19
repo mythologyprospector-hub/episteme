@@ -500,7 +500,7 @@ class Store:
                 canonical_json([measure.to_dict() for measure in finding.measures]),
                 finding.created_at,
                 finding.related_finding_id,
-                canonical_json(list(finding.expectation)) if finding.expectation is not None else None,
+                canonical_json(finding.expectation.to_dict()) if finding.expectation is not None else None,
                 finding.schema_version,
             ),
         )
