@@ -9,11 +9,16 @@ from .store import Store
 from .trail import build_discovery_trail
 
 
+class PublicNotFoundError(ValueError):
+    """A requested public resource does not exist."""
+
+
+
 def get_record(store: Store, record_id: str) -> dict[str, Any]:
     """Return one grounded record as a canonical public representation."""
     record = store.get_record(record_id)
     if record is None:
-        raise ValueError(f"record not found: {record_id}")
+        raise PublicNotFoundError(f"record not found: {record_id}")
     return record.to_dict()
 
 
@@ -27,7 +32,7 @@ def get_review(store: Store, review_id: str) -> dict[str, Any]:
     """Return one immutable review as a public representation."""
     review = store.get_review(review_id)
     if review is None:
-        raise ValueError(f"review not found: {review_id}")
+        raise PublicNotFoundError(f"review not found: {review_id}")
     return review.to_dict()
 
 
@@ -88,6 +93,7 @@ def discovery_report(
 
 
 __all__ = [
+    "PublicNotFoundError",
     "get_record",
     "list_records",
     "get_review",
