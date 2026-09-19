@@ -1,13 +1,18 @@
-"""Deterministic Phase 4 proposal construction.
+"""Deterministic Phase 4/10 proposal construction.
 
-These helpers construct generated hypotheses and predictions from explicitly
-supplied content. They do not infer scientific meaning, rank alternatives, or
-promote generated material to evidence.
+These helpers construct generated hypotheses, candidate completions, and
+predictions from explicitly supplied content. They do not infer scientific
+meaning, rank alternatives, or promote generated material to evidence.
 """
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from .model import ExperimentProposal, Hypothesis, Model, Prediction, SCHEMA_VERSION
+
+if TYPE_CHECKING:
+    from .store import Store
 
 
 def propose_hypothesis(
@@ -33,6 +38,41 @@ def propose_hypothesis(
         assumptions=assumptions,
         created_at=created_at,
         schema_version=SCHEMA_VERSION,
+    )
+
+
+def complete_structural_gap(
+    store: "Store",
+    *,
+    gap_id: str,
+    statement: str,
+    method: str,
+    method_version: str,
+    rationale: str,
+    assumptions: tuple[str, ...] = (),
+    created_at: str,
+) -> Hypothesis:
+    """Construct a generated candidate downstream of an established gap.
+
+    The gap must already exist and be a GAP finding. Its grounded inputs are
+    carried forward as candidate context, but neither the gap nor those inputs
+    are modified or promoted by this operation.
+    """
+    gap = store.get_discovery_finding(gap_id)
+    if gap is None:
+        raise ValueError("candidate completion references missing gap: " + gap_id)
+    if gap.kind.value != "gap":
+        raise ValueError("candidate completion requires a gap finding: " + gap_id)
+
+    return propose_hypothesis(
+        statement=statement,
+        finding_ids=(gap.id,),
+        input_ids=gap.input_ids,
+        method=method,
+        method_version=method_version,
+        rationale=rationale,
+        assumptions=assumptions,
+        created_at=created_at,
     )
 
 
@@ -90,7 +130,6 @@ def predict(
     )
 
 
-
 def propose_experiment(
     *,
     prediction_ids: tuple[str, ...],
@@ -110,8 +149,8 @@ def propose_experiment(
         prediction_ids=prediction_ids,
         objective=objective,
         proposed_observation=proposed_observation,
-        discrimination_basis=discrimination_basis,
         conditions=conditions,
+        discrimination_basis=discrimination_basis,
         assumptions=assumptions,
         method=method,
         method_version=method_version,
