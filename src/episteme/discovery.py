@@ -134,6 +134,74 @@ def detect_expected_gap(
     )
 
 
+
+def detect_structural_sequence_gap(
+    store: Store,
+    ordered_ids: tuple[str, ...],
+    predicate: str,
+    created_at: str,
+) -> DiscoveryFinding | None:
+    """Detect the first missing adjacent relationship in an explicit sequence rule.
+
+    The sequence is the structural rule supplied to the method. The method does
+    not infer that the ordering is meaningful outside that represented rule.
+    """
+
+    if len(ordered_ids) < 2:
+        raise ValueError("ordered_ids must contain at least two records")
+    if not predicate.strip():
+        raise ValueError("predicate must be a non-empty string")
+    for record_id in ordered_ids:
+        _validate_uuid(record_id, "ordered_id")
+        if store.get_record(record_id) is None:
+            raise ValueError(f"sequence references missing record: {record_id}")
+
+    for subject_id, object_id in zip(ordered_ids, ordered_ids[1:]):
+        if any(
+            relationship.subject_id == subject_id
+            and relationship.object_id == object_id
+            for relationship in store.iter_relationships(predicate=predicate)
+        ):
+            continue
+
+        input_ids = tuple(ordered_ids)
+        return DiscoveryFinding(
+            id=str(uuid4()),
+            kind=DiscoveryFindingKind.GAP,
+            title="Explicit sequence contains an unrepresented relation",
+            description=(
+                f"The supplied sequence requires {subject_id} --{predicate}--> "
+                f"{object_id}, but that grounded relationship is not represented."
+            ),
+            input_ids=input_ids,
+            method="structural-sequence-gap-discovery",
+            method_version=DISCOVERY_METHOD_VERSION,
+            rationale=(
+                "The gap is established by an explicit ordered structure and its "
+                "declared adjacency rule. The method does not infer that the "
+                "ordering represents external reality or propose an occupant."
+            ),
+            measures=(
+                *_measures(store, input_ids),
+                DiscoveryMeasure(
+                    name="structural_position_count",
+                    value=float(len(ordered_ids) - 1),
+                    scale="expected adjacent relations",
+                    basis="number of adjacent positions required by the supplied sequence",
+                ),
+                DiscoveryMeasure(
+                    name="missing_position_count",
+                    value=1.0,
+                    scale="missing adjacent relations",
+                    basis="first unrepresented adjacency in the supplied sequence",
+                ),
+            ),
+            created_at=created_at,
+            expectation=(subject_id, predicate, object_id),
+        )
+
+    return None
+
 def question_from_finding(
     finding: DiscoveryFinding,
     created_at: str,
