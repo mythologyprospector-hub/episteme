@@ -140,7 +140,7 @@ def build_discovery_trail(
         if node.experiment_proposal_id is not None:
             proposal = store.get_experiment_proposal(node.experiment_proposal_id)
             if proposal is None:
-                raise ValueError(
+                raise DiscoveryNotFoundError(
                     "discovery trail references missing experiment proposal: "
                     + node.experiment_proposal_id
                 )
@@ -183,7 +183,7 @@ def build_discovery_trail(
         if target is not None:
             model_node(target, f"{node.id}.source_id")
             return
-        raise ValueError(f"discovery trail references missing prediction source: {node.source_id}")
+        raise DiscoveryNotFoundError(f"discovery trail references missing prediction source: {node.source_id}")
 
     def proposal_node(node, via: str) -> None:
         if not add("experiment_proposal", node.id, via, node.to_dict()):
@@ -191,7 +191,7 @@ def build_discovery_trail(
         for prediction_id in node.prediction_ids:
             prediction = store.get_prediction(prediction_id)
             if prediction is None:
-                raise ValueError(
+                raise DiscoveryNotFoundError(
                     f"discovery trail references missing proposal prediction: {prediction_id}"
                 )
             prediction_node(prediction, f"{node.id}.prediction_ids")
