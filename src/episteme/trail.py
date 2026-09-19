@@ -115,6 +115,10 @@ def build_discovery_trail(
             if consequence is not None:
                 consequence_node(consequence, f"{node.id}.context_ids")
                 continue
+            prediction = store.get_prediction(context_id)
+            if prediction is not None:
+                prediction_node(prediction, f"{node.id}.context_ids")
+                continue
             raise DiscoveryNotFoundError(f"discovery trail references missing generated context: {context_id}")
         for input_id in node.input_ids:
             grounded(input_id, f"{node.id}.input_ids")
