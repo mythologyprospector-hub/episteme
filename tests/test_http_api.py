@@ -31,6 +31,11 @@ def _record() -> object:
         created_at="2026-01-01T00:00:00+00:00",
     )
 
+def _empty_store(path) -> None:
+    with Store(path):
+        pass
+
+
 
 def test_http_reads_records_without_mutation(tmp_path) -> None:
     store_path = tmp_path / "episteme.sqlite"
@@ -85,7 +90,9 @@ def test_http_lists_records_deterministically(tmp_path) -> None:
 
 
 def test_http_rejects_mutation_methods(tmp_path) -> None:
-    server = create_http_server(tmp_path / "empty.sqlite", port=0)
+    store_path = tmp_path / "empty.sqlite"
+    _empty_store(store_path)
+    server = create_http_server(store_path, port=0)
     thread = Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
@@ -273,6 +280,26 @@ def test_http_renders_discovery_report_as_json_and_html(tmp_path) -> None:
             html = response.read().decode("utf-8")
         assert "Fixture contradiction" in html
         assert "Read-only" in html
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+
+
+def test_http_does_not_create_missing_store(tmp_path) -> None:
+    store_path = tmp_path / "missing.sqlite"
+    server = create_http_server(store_path, port=0)
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        host, port = server.server_address
+        try:
+            urlopen(f"http://{host}:{port}/api/v1")
+        except HTTPError as error:
+            assert error.code == 500
+        else:
+            raise AssertionError("missing store unexpectedly succeeded")
+        assert not store_path.exists()
     finally:
         server.shutdown()
         server.server_close()
