@@ -947,6 +947,57 @@ A complete cycle is traceable when Episteme can follow:
 
 The final step does not require that every result generate a new hypothesis. It requires that the resulting state remain available to the discovery layer without losing provenance or epistemic status.
 
+## Public Evaluation Workflow
+
+The public evaluation workflow makes an existing prediction/result comparison inspectable without creating a second truth mechanism or a public mutation API.
+
+The workflow is:
+
+**public evaluation packet → external execution/review → grounded result or explicit evaluation input → generated evaluation → inspectable lineage**
+
+An evaluation packet is a deterministic, read-oriented representation of the material required to evaluate a prediction. It may include the prediction, comparison conditions, assumptions, experiment proposal where applicable, relevant grounded inputs, provenance, and the exact method/version information needed to understand the requested comparison.
+
+The packet is a presentation of existing Episteme state, not a new epistemic object and not a claim that the included prediction is correct.
+
+The external evaluator may be a human, script, laboratory workflow, or other process. Its execution is outside the authority of the packet. Episteme must not imply that an evaluator actually performed an observation merely because a packet was exported or viewed.
+
+When an observation is actually made, the observation or result enters Episteme through the ordinary grounded-ingestion boundary with its own provenance. When a result is compared with a prediction, the comparison is represented by the existing PredictionEvaluation primitive, preserving result, prediction, conditions, assumptions, outcome, rationale, and method/version.
+
+The initial public workflow is deliberately asymmetric:
+
+- Episteme exposes what should be evaluated and why;
+- an external evaluator performs or reports the work;
+- grounded results retain independent provenance;
+- evaluation remains generated interpretation;
+- the public read surface exposes the complete chain afterward.
+
+The workflow must not accept a public assertion as a grounded result without provenance, turn evaluator identity into scientific authority, collapse evaluation outcomes into a truth score, silently mutate predictions or hypotheses, hide assumptions or method versions, or require a network service or model provider.
+
+This boundary permits transparent public evaluation while preserving the existing read-only HTTP contract and the distinction between observation and interpretation.
+
+### Evaluation Packet Invariants
+
+A packet must make it possible to answer:
+
+- what prediction is being evaluated;
+- what conditions and assumptions apply;
+- what proposed observation or measurement would discriminate the alternatives;
+- which existing grounded material provides context;
+- which method and version define the requested evaluation;
+- what Episteme expects an external evaluator to return.
+
+A packet must not imply that an unperformed experiment has produced a result.
+
+### Evaluation Completion
+
+Completion is represented by existing Episteme objects rather than a new public truth state:
+
+1. external work produces a grounded result with provenance;
+2. the result is linked to the relevant proposal/prediction where appropriate;
+3. a generated PredictionEvaluation compares the result and prediction under explicit conditions and assumptions;
+4. any KnowledgeStateConsequence is recorded separately when a process explicitly derives one;
+5. renewed discovery may inspect the resulting generated state without treating it as evidence.
+
 ## Collaboration and Review Layer
 
 Human review is an explicit layer over represented Episteme material. It is orthogonal to the grounded/generated/unknown epistemic layers: recording a review does not change the epistemic status of its target.
