@@ -31,7 +31,7 @@ from .model import (
     make_record,
     make_relationship,
 )
-from .discovery import detect_expected_gap, discover_evaluation_tensions, discover_explicit_contradictions, question_from_finding
+from .discovery import detect_expected_gap, discover_competing_prediction_opportunities, discover_evaluation_tensions, discover_explicit_contradictions, question_from_finding
 from .store import Store
 from .trail import DiscoveryTrail, TrailEntry, build_discovery_trail
 from .proposals import predict, propose_experiment, propose_hypothesis, represent_model
@@ -75,6 +75,7 @@ __all__ = [
     "make_record",
     "make_relationship",
     "detect_expected_gap",
+    "discover_competing_prediction_opportunities",
     "discover_evaluation_tensions",
     "discover_explicit_contradictions",
     "question_from_finding",
