@@ -7,6 +7,7 @@ from episteme import (
     RecordKind,
     Store,
     detect_structural_sequence_gap,
+    detect_structural_payload_sequence_gap,
     make_relationship,
 )
 
@@ -59,3 +60,44 @@ def test_structural_sequence_gap_requires_explicit_structure():
     assert gap.expectation == (records[1].id, "next", records[2].id)
     assert gap.context_ids == ()
     assert "explicit ordered structure" in gap.rationale
+
+
+
+def test_structural_payload_sequence_gap_derives_expectation_from_grounded_records():
+    records = tuple(
+        Record(
+            id=f"{index:08d}-0000-4000-8000-000000000000",
+            kind=RecordKind.OBSERVATION,
+            payload={"position": index},
+            provenance=PROVENANCE,
+            created_at=CREATED,
+        )
+        for index in range(1, 4)
+    )
+
+    with Store() as store:
+        for record in records:
+            store.put_record(record)
+
+        store.put_relationship(
+            make_relationship(
+                subject_id=records[0].id,
+                predicate="next",
+                object_id=records[1].id,
+                provenance=PROVENANCE,
+                created_at=CREATED,
+            )
+        )
+
+        gap = detect_structural_payload_sequence_gap(
+            store,
+            record_ids=tuple(record.id for record in records),
+            position_key="position",
+            predicate="next",
+            created_at="2026-09-19T00:02:00Z",
+        )
+
+    assert gap is not None
+    assert gap.kind is DiscoveryFindingKind.GAP
+    assert gap.expectation == (records[1].id, "next", records[2].id)
+    assert "grounded field" in gap.rationale
