@@ -149,6 +149,30 @@ Instead, Phase 9 records its components explicitly:
 
 The system must retain the components rather than collapse them into a single universal importance value.
 
+
+## Expectation Representation
+
+Phase 9 generalized discovery expectations so the missing thing established by a structural gap is no longer forced into a relationship-shaped tuple.
+
+A discovery expectation is a generated, typed structure with:
+
+- an explicit expectation kind;
+- structured data appropriate to that kind;
+- deterministic serialization;
+- validation at the model boundary;
+- compatibility with legacy relationship-shaped expectations when reading existing persisted findings.
+
+The initial expectation kinds are:
+
+- **relationship** — an expected subject/predicate/object connection;
+- **positional** — an expected numeric or otherwise explicitly bounded position;
+- **constraint** — an expected structural constraint or bounded state condition;
+- **accounting** — an expected quantity or accounting term required by an explicit balance structure.
+
+This does not mean that every structural gap must use the expectation kind corresponding to its gap category. The gap describes the form of the vacancy; the expectation describes what the structural analysis says is missing. Keeping those concepts separate prevents the data model from collapsing distinct epistemic questions into one shape.
+
+The expectation remains generated analysis metadata. It does not become grounded evidence merely because its inputs are grounded. Candidate completion remains a separate later operation.
+
 ## Candidate Completion — Deferred
 
 A future completion method may examine a structural gap and generate candidate occupants.
