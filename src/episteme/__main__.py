@@ -29,8 +29,8 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--store",
-        default=":memory:",
-        help="SQLite store path (default: :memory:)",
+        required=True,
+        help="Path to an existing SQLite store.",
     )
     parser.add_argument("--serve", action="store_true", help="Serve the read-only HTTP API.")
     parser.add_argument("--host", default="127.0.0.1", help="HTTP bind host (default: 127.0.0.1).")
