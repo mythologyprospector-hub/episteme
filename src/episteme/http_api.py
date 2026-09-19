@@ -66,8 +66,6 @@ def _timestamp(value: str) -> str:
         parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
     except ValueError as exc:
         raise _error(400, f"invalid timestamp: {value}") from exc
-    if parsed.tzinfo is None or parsed.utcoffset() is None:
-        raise _error(400, f"invalid timestamp: {value}")
     return value
 
 
