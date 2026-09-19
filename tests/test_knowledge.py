@@ -687,7 +687,7 @@ def test_question_generation_rejects_contradiction_findings():
 
 
 def test_store_rejects_discovery_finding_as_input():
-    from episteme import DiscoveryFinding, DiscoveryFindingKind, DiscoveryMeasure
+    from episteme import DiscoveryExpectation, DiscoveryExpectationKind, DiscoveryFinding, DiscoveryFindingKind, DiscoveryMeasure
 
     first = make_record(
         RecordKind.OBSERVATION,
@@ -776,7 +776,7 @@ def test_discovery_finding_rejects_unexpected_expectation():
                 ),
             ),
             created_at="2026-09-18T00:00:03Z",
-            expectation=(first, "contradicts", second),
+            expectation=DiscoveryExpectation(DiscoveryExpectationKind.RELATIONSHIP, {"subject_id": first, "predicate": "contradicts", "object_id": second}),
         )
     except ValueError as exc:
         assert "only gap and unresolved-question findings" in str(exc)
@@ -817,7 +817,7 @@ def test_discovery_expectation_flows_from_gap_to_persisted_question():
         assert gap is not None
         assert gap.kind is DiscoveryFindingKind.GAP
         assert gap.input_ids == (first.id, second.id)
-        assert gap.expectation == (first.id, "related_to", second.id)
+        assert gap.expectation == DiscoveryExpectation(DiscoveryExpectationKind.RELATIONSHIP, {"subject_id": first.id, "predicate": "related_to", "object_id": second.id})
 
         store.put_discovery_finding(gap)
 
@@ -839,7 +839,7 @@ def test_discovery_expectation_flows_from_gap_to_persisted_question():
     assert restored is not None
     assert restored.related_finding_id == gap.id
     assert restored.input_ids == (first.id, second.id)
-    assert restored.expectation == (first.id, "related_to", second.id)
+    assert restored.expectation == DiscoveryExpectation(DiscoveryExpectationKind.RELATIONSHIP, {"subject_id": first.id, "predicate": "related_to", "object_id": second.id})
     assert all(item.id != question.id for item in iterated if item.kind is DiscoveryFindingKind.GAP)
 
 
@@ -857,7 +857,7 @@ def _phase4_finding(first, second):
         rationale="The explicit expectation is not present.",
         measures=(DiscoveryMeasure("input_count", 2, "count", "two inputs"),),
         created_at="2026-09-18T00:00:02Z",
-        expectation=(first.id, "related_to", second.id),
+        expectation=DiscoveryExpectation(DiscoveryExpectationKind.RELATIONSHIP, {"subject_id": first.id, "predicate": "related_to", "object_id": second.id}),
     )
 
 
