@@ -150,7 +150,7 @@ def test_http_returns_404_for_missing_record(tmp_path) -> None:
     try:
         host, port = server.server_address
         try:
-            urlopen(f"http://{host}:{port}/api/v1/records/missing")
+            urlopen(f"http://{host}:{port}/api/v1/records/00000000-0000-0000-0000-000000000001")
         except HTTPError as error:
             assert error.code == 404
         else:
@@ -170,7 +170,7 @@ def test_http_rejects_malformed_discovery_request(tmp_path) -> None:
     try:
         host, port = server.server_address
         try:
-            urlopen(f"http://{host}:{port}/api/v1/discoveries/missing/trail")
+            urlopen(f"http://{host}:{port}/api/v1/discoveries/00000000-0000-0000-0000-000000000001/trail")
         except HTTPError as error:
             assert error.code == 400
         else:
