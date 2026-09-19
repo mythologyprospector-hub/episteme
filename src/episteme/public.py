@@ -75,7 +75,7 @@ def discovery_report(
     generated = [
         entry.to_dict()
         for entry in trail.entries
-        if entry.kind != "record"
+        if entry.kind not in {"record", "relationship"}
     ]
     return {
         "report": "episteme-discovery-report-v1",
