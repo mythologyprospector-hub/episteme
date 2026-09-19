@@ -30,7 +30,7 @@ PROVENANCE = (
 def test_existing_primitives_can_discriminate_competing_hypotheses():
     finding = DiscoveryFinding(
         id="11111111-1111-4111-8111-111111111111",
-        kind=DiscoveryFindingKind.GAP,
+        kind=DiscoveryFindingKind.TENSION,
         title="Competing explanations",
         description="One bounded observation admits two explicitly represented explanations.",
         input_ids=("22222222-2222-4222-8222-222222222222",),
