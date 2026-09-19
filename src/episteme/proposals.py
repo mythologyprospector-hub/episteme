@@ -209,6 +209,65 @@ def propose_experiment(
     )
 
 
+def propose_candidate_discrimination_experiment(
+    store: "Store",
+    *,
+    prediction_ids: tuple[str, ...],
+    objective: str,
+    proposed_observation: str,
+    discrimination_basis: str,
+    conditions: str,
+    assumptions: tuple[str, ...] = (),
+    method: str,
+    method_version: str,
+    rationale: str,
+    created_at: str,
+) -> ExperimentProposal:
+    """Construct an experiment proposal from candidate-derived predictions."""
+    ids = tuple(prediction_ids)
+    if len(ids) < 2:
+        raise ValueError(
+            "candidate discrimination experiment requires at least two predictions"
+        )
+
+    for prediction_id in ids:
+        prediction = store.get_prediction(prediction_id)
+        if prediction is None:
+            raise ValueError(
+                "candidate discrimination experiment references missing prediction: "
+                + prediction_id
+            )
+        if len(prediction.comparison_hypothesis_ids) < 2:
+            raise ValueError(
+                "candidate discrimination experiment requires competing candidates: "
+                + prediction_id
+            )
+        if prediction.source_id not in prediction.comparison_hypothesis_ids:
+            raise ValueError(
+                "candidate discrimination experiment prediction must include its source candidate: "
+                + prediction_id
+            )
+        for candidate_id in prediction.comparison_hypothesis_ids:
+            if store.get_hypothesis(candidate_id) is None:
+                raise ValueError(
+                    "candidate discrimination experiment references missing candidate: "
+                    + candidate_id
+                )
+
+    return propose_experiment(
+        prediction_ids=ids,
+        objective=objective,
+        proposed_observation=proposed_observation,
+        discrimination_basis=discrimination_basis,
+        conditions=conditions,
+        assumptions=assumptions,
+        method=method,
+        method_version=method_version,
+        rationale=rationale,
+        created_at=created_at,
+    )
+
+
 def _new_id() -> str:
     from uuid import uuid4
 
