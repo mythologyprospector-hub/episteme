@@ -1,7 +1,7 @@
 # Episteme Roadmap
 
 **Status:** Canonical planning document  
-**Version:** 1.7  
+**Version:** 1.8  
 **Last updated:** 2026-09-19
 
 ## Mission
@@ -85,21 +85,6 @@ The following remain deliberately deferred from Phase 3 because their epistemic 
 
 **Status:** Complete.
 
-### Phase 3 Exit Audit
-
-The implemented Phase 3 behavior satisfies the stated exit condition:
-
-- grounded records and relationships are inspected directly by discovery methods;
-- gap findings preserve the exact expected subject, predicate, and object;
-- explicit `contradicts` relationships are surfaced without inventing semantic contradiction;
-- unresolved questions are generated only from gaps or tensions and preserve their source finding;
-- discovery methods record a method name and version, grounded input identifiers, rationale, and creation time;
-- named measures record their scale and basis, including input count and source diversity;
-- discovery findings are persisted separately from grounded records, and generated findings cannot be supplied as independent evidence inputs.
-
-The audit found no Phase 3 capability that requires new machinery before advancing. Semantic tension detection, competing-model identification, universal importance scoring, and automatic finding-to-hypothesis conversion remain deferred as documented in DISCOVERY.md.
-
-
 ## Phase 4 — Hypothesis and Prediction
 
 **Goal:** Turn discovery into testable alternatives.
@@ -132,20 +117,6 @@ Target capabilities:
 
 **Exit condition:** Episteme can identify why a proposed observation would reduce uncertainty between competing explanations while preserving the distinction between prediction, proposed test, and observed result.
 
-### Phase 5 Exit Audit
-
-The implemented Phase 5 behavior satisfies the stated exit condition:
-
-- experiment proposals preserve the predictions they test, their objective, proposed observation, conditions, assumptions, method/version, rationale, and explicit discrimination basis;
-- the discrimination basis records why competing predictions are expected to produce different observable outcomes without becoming a universal truth or quality score;
-- proposals remain generated planning artifacts and are persisted separately from grounded records;
-- actual results remain grounded records with their own provenance and are not rewritten to fit a proposal;
-- relationships can explicitly connect a grounded result to a generated experiment proposal and prediction without promoting either generated object to evidence;
-- prediction, experiment proposal, and result remain distinct objects throughout the represented chain;
-- the complete lineage is exercised by the Phase 5 result-linkage test.
-
-The audit found no Phase 5 capability that requires new machinery before advancing. Universal statistical semantics, autonomous experiment optimization or laboratory control, instrument/provider protocols, automatic hypothesis selection, and universal uncertainty calculus remain deferred.
-
 ## Phase 6 — Closed Discovery Loop
 
 **Goal:** Connect evidence acquisition, reasoning, experiments, and results without collapsing observation into interpretation.
@@ -162,38 +133,7 @@ Target capabilities:
 
 **Exit condition:** A complete discovery cycle can run from grounded evidence through hypothesis, prediction, experiment, result, result evaluation, explicit knowledge-state consequence, and renewed discovery while preserving the distinction between observation and interpretation.
 
-### Phase 6 Exit Audit
-
-The implemented Phase 6 behavior satisfies the stated exit condition:
-
-- grounded result ingestion remains separate from generated evaluation;
-- prediction evaluations preserve the compared result and prediction identifiers, conditions, assumptions, outcome, rationale, and method/version;
-- failed predictions are represented as `inconsistent` evaluations without mutating predictions;
-- explicit knowledge-state consequences accumulate as generated, append-only artifacts without becoming truth flags;
-- renewed discovery can inspect generated evaluation state while preserving grounded evidence in `input_ids`;
-- reproducible discovery trails reconstruct explicit lineage from renewed findings back through evaluations, results, predictions, proposals, hypotheses/models, motivating findings, and grounded inputs;
-- trail construction is read-only and fails explicitly when required lineage is missing;
-- the trail implementation provides a timestamp-independent canonical lineage representation for reproducibility comparison.
-
-The audit found no Phase 6 capability that requires new machinery before advancing. Domain broadening is therefore the next roadmap phase.
-
-### Phase 6 Architecture Decision
-
-The Phase 6 audit established that the existing result, relationship, lifecycle, evidence-assessment, and transformation primitives do not by themselves represent the semantic comparison between a result and a prediction.
-
-Phase 6 therefore requires a distinct generated **result evaluation** concept rather than overloading evidence assessment or lifecycle events.
-
-The evaluation is contextual and non-binary: **consistent**, **inconsistent**, or **inconclusive** under stated conditions and assumptions. It does not become evidence, does not rewrite the result or prediction, and does not constitute a universal truth or confidence score.
-
-"Knowledge-state update" is defined as an explicit accumulation of evidence, relationships, evaluations, lifecycle events, and generated revisions. It is not a mutable universal truth flag.
-
-The Phase 6 implementation now treats an explicit knowledge-state consequence as a separate generated artifact derived from one or more prediction evaluations. The consequence is contextual and append-only: supports, weakens, contradicts, or leaves_unresolved under stated assumptions. It does not mutate the target or establish a universal truth value.
-
-The implementation must preserve the evaluation identifiers, target identifier, consequence classification, assumptions, rationale, method/version, timestamp, and schema version so the transition can be reconstructed.
-
-The first closed-loop discovery seam is now explicit: discovery findings may preserve generated Phase 6 objects as `context_ids` while keeping grounded/integrity evidence in `input_ids`. This permits renewed discovery to inspect accumulated evaluations and consequences without promoting generated state to evidence. The first renewed-discovery algorithm is now documented as conservative evaluation-conflict detection and is implemented and tested.
-
-
+**Status:** Complete.
 
 ## Phase 7 — Broadening
 
@@ -211,26 +151,9 @@ Target capabilities:
 - [x] preserve closed-loop lineage and reproducibility across domains;
 - [x] demonstrate that no domain-specific workaround silently becomes a universal core rule.
 
-Domains must be selected for architectural pressure rather than spectacle. The first domain should establish a clean extension point; the second should stress that extension point with materially different evidence structure.
-
 **Exit condition:** Two materially different scientific domains can use domain-specific layers while preserving the same core semantics for evidence, inference, unknowns, results, evaluations, and reproducibility.
 
-### Phase 7 Exit Audit
-
-The Phase 7 implementation and cross-domain stress tests satisfy the stated exit condition.
-
-- Astronomy uses the stable `MEASUREMENT` primitive for quantitative domain structure.
-- Biology uses the stable `OBSERVATION` primitive for categorical and structured domain evidence.
-- Domain-specific schemas remain in domain adapters rather than the core model.
-- Both adapters preserve caller-supplied provenance and pass records through ordinary core persistence and validation.
-- Missing, unreported, unresolved, conflicting, and uncertain states remain explicit within their respective domain semantics; Astronomy uncertainty metadata remains domain-owned.
-- Generated findings, hypotheses, predictions, proposals, and evaluations remain distinct from grounded records.
-- A mixed Astronomy/Biology fixture traverses the existing closed discovery loop and is reconstructed by the existing reproducible trail machinery.
-- No new core epistemic primitive, domain-specific core branch, or universal domain rule was required.
-
-The cross-domain stress test is implemented in `tests/test_phase7_cross_domain.py`. The complete local suite reached 74 passing tests after this implementation.
-
-Phase 7 therefore satisfies its exit condition. Further domain-specific expansion is not required before advancing; additional domains remain appropriate as future architecture stress tests rather than prerequisites for Phase 7 completion.
+**Status:** Complete.
 
 ## Phase 8 — Public Scientific Instrument
 
@@ -252,83 +175,7 @@ Initial target capabilities:
 
 The exact public product shape remains intentionally open.
 
-### Phase 8 Public Knowledge Import Audit
-
-The first public knowledge-import capability satisfies its documented initial scope.
-
-- a finite caller-supplied Crossref representation is translated by an explicit source-specific adapter;
-- external work metadata remains a grounded `SOURCE` record rather than being promoted to observation, measurement, or generated interpretation;
-- DOI-derived deterministic UUID identity preserves the core record identity invariant;
-- source location, capture time, source publication-date metadata where available, and adapter/version are preserved as provenance/translation context;
-- the complete input batch is validated before persistence, preventing partial writes from malformed later items;
-- repeated deterministic identities are rejected by ordinary immutable store insertion rather than silently overwritten;
-- deterministic translation, source preservation, malformed DOI rejection, and batch atomicity are tested;
-- no web crawler, ranking system, semantic deduplication mechanism, or new epistemic primitive was introduced.
-
-The initial public knowledge-import capability is therefore complete. Broader external-source support remains open as future work and is not implied by this milestone.
-
-### Phase 8 Collaboration/Review Audit
-
-The initial collaboration/review capability is complete. Reviews are immutable records over existing Episteme objects, preserve reviewer/process provenance and disagreement, validate their target before persistence, and do not mutate or reclassify the reviewed object. The read-only Python API and installed CLI expose review inspection with exact target-kind/identifier scoping. Review records remain outside discovery trails because they are collaboration metadata rather than epistemic lineage nodes.
-
-### Phase 8 Initial Implementation Audit
-
-The first Phase 8 implementation satisfies the initial public-instrument exit condition.
-
-- the read-only Python API exposes grounded record inspection, deterministic listing, trail reconstruction, lineage, and reports;
-- the installed CLI exposes the same inspection surface without mutation commands;
-- discovery reports preserve grounded records separately from generated artifacts;
-- the browser renderer exposes the same report data without creating a second epistemic representation;
-- generated artifacts expose their `via`, method, and rationale in the browser surface so a researcher can inspect why each step exists;
-- full trail and timestamp-independent reproducible lineage remain available;
-- the complete closed discovery cycle is exercised by the public acceptance test;
-- no new persistence model, epistemic primitive, autonomous authority, or external service was required.
-
-This audit closes the initial Phase 8 public-instrument milestone. It does not close Phase 8 as a whole; later public capabilities remain future work and are not prerequisites for the current instrument.
-
-### Phase 8 HTTP/API Audit
-
-The documented external HTTP/API surface is complete for the current public read-oriented instrument.
-
-- the HTTP surface is read-only and exposes the existing public inspection operations;
-- route and query contracts are documented, including required and rejected parameters;
-- record and review inspection preserve the existing target-kind and identifier boundaries;
-- discovery trail, lineage, and report endpoints preserve deterministic reconstruction;
-- HTML report rendering remains a representation of existing report data rather than a second epistemic model;
-- unsupported mutation methods are explicitly rejected;
-- no public write authority or parallel persistence model was introduced.
-
-The HTTP/API capability therefore satisfies its Phase 8 scope. Authentication, public mutation, service deployment, and broader platform concerns remain future decisions rather than prerequisites.
-
-### Phase 8 Transparent Public Evaluation Audit
-
-The transparent public evaluation capability establishes a public, inspectable handoff from generated prediction to independent evaluation without adding a public mutation path or a new epistemic authority.
-
-- evaluation targets remain existing predictions and experiment proposals;
-- conditions, assumptions, provenance, discrimination basis, and method/version remain inspectable;
-- external execution is not inferred from publication or inspection;
-- actual observations remain grounded results with independent provenance;
-- prediction evaluations remain generated contextual comparisons;
-- knowledge-state consequences remain separate generated artifacts;
-- the complete evaluation chain can be reconstructed through the existing public inspection surface;
-- no public account system, evaluator reputation, signature protocol, mutation API, or universal evaluation standard is introduced.
-
-The transparent public evaluation workflow therefore satisfies the remaining Phase 8 public-evaluation capability at the architectural and public-instrument level. Further automation or public write workflows remain future decisions rather than prerequisites.
-
-### Phase 8 HTTP/API Integrity Audit
-
-The HTTP/API integrity audit confirms that the documented read-oriented public surface is enforced by the implementation rather than merely described by documentation.
-
-- read-only HTTP access opens SQLite in strict read-only mode and does not initialize or create the store;
-- read-only CLI access uses the same strict store boundary and requires an existing store path;
-- malformed object identifiers are rejected at the HTTP boundary with 400, while valid but missing resources remain 404;
-- malformed discovery timestamps are rejected with 400 and timestamp validation is independently regression-tested;
-- HTTP error mapping distinguishes public missing-resource conditions from unexpected internal errors, which remain 500;
-- grounded relationships remain classified as grounded in deterministic discovery reports;
-- internal error behavior is regression-tested so implementation failures cannot be disguised as resource absence.
-
-No additional public write path, persistence authority, or epistemic primitive was introduced. The integrity audit therefore closes the currently defined Phase 8 public-instrument surface without implying that Phase 8 itself is finished.
-
+Phase 8's currently defined public-instrument, HTTP/API, transparent-evaluation, and integrity capabilities are satisfied. Authentication, public mutation, service deployment, broader source import, and other platform concerns remain future decisions rather than prerequisites.
 
 ## Phase 9 — Structural Discovery
 
@@ -371,10 +218,13 @@ The implemented Phase 9 behavior satisfies the stated exit condition.
 
 **Goal:** Investigate what could occupy an established structural hole without confusing candidate explanations with observations.
 
-Phase 10 begins only after the hole has been established. Candidate completion must preserve the gap's structural constraints, distinguish candidates from grounded evidence, expose assumptions and violations, and identify observations that could discriminate among candidates.
+The canonical Phase 10 design is defined in CANDIDATE_COMPLETION.md.
 
-Initial design work should establish candidate-completion semantics before implementation. The system must not introduce a universal plausibility, elegance, coherence, or "settlement" score as a substitute for those semantics.
+Phase 10 begins only after the hole has been established. Candidate completion must preserve the gap's structural constraints, distinguish candidates from grounded evidence, expose assumptions and violations, preserve competing candidates, and identify observations that could discriminate among them.
 
+The initial Phase 10 design is complete before implementation begins. The system must not introduce a universal plausibility, elegance, coherence, or "settlement" score as a substitute for explicit candidate fit.
+
+**Exit condition:** Episteme can generate and assess candidate completions downstream of established structural gaps while preserving the gap, grounded evidence, constraints, assumptions, alternatives, discriminating consequences, and reproducibility.
 
 ## Roadmap Rules
 
@@ -398,7 +248,7 @@ If implementation reveals that the roadmap is wrong, revise the roadmap rather t
 
 ## Current Position
 
-**Phase 9 — Structural Discovery**
+**Phase 10 — Candidate Completion**
 
 Phase 1 is complete. The grounded substrate, provenance boundary, relationships, deterministic serialization, validation, SQLite persistence, and externally grounded ingestion fixture are implemented and verified.
 
@@ -410,8 +260,12 @@ Phase 4 is complete. Hypotheses, models, assumptions, competing explanations, an
 
 Phase 5 is complete. Experiment proposals explain why proposed observations could discriminate among competing explanations, actual results remain grounded and independently sourced, and explicit result-to-proposal/prediction relationships preserve the distinction between prediction, proposed test, and observed result.
 
-Phase 6 is complete. Result records can be ingested through the grounded JSONL ingestion boundary; prediction evaluations represent result-to-prediction comparison; failed predictions are represented by `inconsistent` evaluations rather than mutation; explicit knowledge-state consequences are persisted; renewed discovery can surface differing evaluation outcomes while keeping generated context separate from grounded evidence; and reproducible discovery trails can reconstruct a complete cycle as an auditable lineage. The Phase 6 exit condition is satisfied.
+Phase 6 is complete. Result records can be ingested through the grounded JSONL ingestion boundary; prediction evaluations represent result-to-prediction comparison; failed predictions are represented by inconsistent evaluations rather than mutation; explicit knowledge-state consequences are persisted; renewed discovery can surface differing evaluation outcomes while keeping generated context separate from grounded evidence; and reproducible discovery trails can reconstruct a complete cycle as an auditable lineage. The Phase 6 exit condition is satisfied.
 
 Phase 7 is complete. Astronomy and Biology demonstrate materially different evidence shapes above the stable core, while provenance, explicit unknown/conflict/uncertainty states, generated-versus-grounded boundaries, closed-loop lineage, and reproducibility remain intact. The Phase 7 exit condition is satisfied.
 
 Phase 8 has established its researcher-facing public instrument: a read-only Python inspection API, the installed `episteme` command, a documented external HTTP/API surface, deterministic discovery reports, a self-contained browser-readable report renderer, public knowledge import, collaboration/review inspection, and a transparent public evaluation workflow. These expose existing Episteme state rather than creating a parallel public data model. The Phase 8 initial public-instrument exit condition and the currently defined HTTP/API and transparent-evaluation capabilities are satisfied. Authentication, public mutation, broader source import, and other platform concerns remain future work rather than prerequisites. The HTTP/API integrity audit is also complete: the read-only boundary, identifier and timestamp validation, missing-resource classification, internal-error handling, and grounded/generated report separation are regression-tested and CI-verified.
+
+Phase 9 is complete. Structural discovery can establish bounded positional, relational, constraint, and accounting holes from explicit structure and constraints; preserve typed expectations and structural context; record structural pressure as an inspectable ledger rather than a universal score; reproduce findings deterministically; and demonstrate materially different structural forms without a domain-specific core primitive. The Phase 9 exit condition is satisfied.
+
+Phase 10 is now the active design/implementation phase. Its canonical semantics are defined in CANDIDATE_COMPLETION.md. Implementation is gated by those semantics: candidate completion must remain downstream of an established hole, preserve every inherited constraint, expose assumptions and violations, preserve alternatives, and identify discriminating consequences without collapsing fit into a universal score or turning candidates into evidence.
