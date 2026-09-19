@@ -33,7 +33,7 @@ def test_existing_primitives_can_discriminate_competing_hypotheses():
         kind=DiscoveryFindingKind.GAP,
         title="Competing explanations",
         description="One bounded observation admits two explicitly represented explanations.",
-        input_ids=("22222222-2222-4222-8222-222222222222",)
+        input_ids=("22222222-2222-4222-8222-222222222222",),
         method="phase8-competing-fixture",
         method_version="1",
         rationale="The fixture proves competing-hypothesis representation without automatic inference.",
@@ -62,6 +62,7 @@ def test_existing_primitives_can_discriminate_competing_hypotheses():
         hypothesis_a = propose_hypothesis(
             statement="Explanation A predicts outcome A.",
             finding_ids=(finding.id,),
+            input_ids=(result.id,),
             method="phase8-competing-fixture",
             method_version="1",
             rationale="Explicit candidate explanation.",
@@ -70,6 +71,7 @@ def test_existing_primitives_can_discriminate_competing_hypotheses():
         hypothesis_b = propose_hypothesis(
             statement="Explanation B predicts outcome B.",
             finding_ids=(finding.id,),
+            input_ids=(result.id,),
             method="phase8-competing-fixture",
             method_version="1",
             rationale="Explicit competing candidate explanation.",
