@@ -13,6 +13,11 @@ TRAIL_METHOD_VERSION = "1"
 TRAIL_SCHEMA_VERSION = 1
 
 
+class DiscoveryNotFoundError(ValueError):
+    """A referenced discovery resource does not exist."""
+
+
+
 @dataclass(frozen=True, slots=True)
 class TrailEntry:
     """One deterministic object and the explicit reference that reached it."""
@@ -74,7 +79,7 @@ def build_discovery_trail(
 
     finding = store.get_discovery_finding(finding_id)
     if finding is None:
-        raise ValueError(f"discovery trail references missing finding: {finding_id}")
+        raise DiscoveryNotFoundError(f"discovery trail references missing finding: {finding_id}")
 
     entries: list[TrailEntry] = []
     seen: set[tuple[str, str]] = set()
@@ -96,7 +101,7 @@ def build_discovery_trail(
         if relationship is not None:
             add("relationship", relationship.id, via, relationship.to_dict())
             return
-        raise ValueError(f"discovery trail references missing grounded input: {identifier}")
+        raise DiscoveryNotFoundError(f"discovery trail references missing grounded input: {identifier}")
 
     def finding_node(node, via: str) -> None:
         if not add("discovery_finding", node.id, via, node.to_dict()):
@@ -110,13 +115,13 @@ def build_discovery_trail(
             if consequence is not None:
                 consequence_node(consequence, f"{node.id}.context_ids")
                 continue
-            raise ValueError(f"discovery trail references missing generated context: {context_id}")
+            raise DiscoveryNotFoundError(f"discovery trail references missing generated context: {context_id}")
         for input_id in node.input_ids:
             grounded(input_id, f"{node.id}.input_ids")
         if node.related_finding_id is not None:
             parent = store.get_discovery_finding(node.related_finding_id)
             if parent is None:
-                raise ValueError(
+                raise DiscoveryNotFoundError(
                     f"discovery trail references missing related finding: {node.related_finding_id}"
                 )
             finding_node(parent, f"{node.id}.related_finding_id")
@@ -126,11 +131,11 @@ def build_discovery_trail(
             return
         result = store.get_record(node.result_id)
         if result is None or result.kind.value != "result":
-            raise ValueError(f"discovery trail references missing grounded result: {node.result_id}")
+            raise DiscoveryNotFoundError(f"discovery trail references missing grounded result: {node.result_id}")
         add("record", result.id, f"{node.id}.result_id", result.to_dict())
         prediction = store.get_prediction(node.prediction_id)
         if prediction is None:
-            raise ValueError(f"discovery trail references missing prediction: {node.prediction_id}")
+            raise DiscoveryNotFoundError(f"discovery trail references missing prediction: {node.prediction_id}")
         prediction_node(prediction, f"{node.id}.prediction_id")
         if node.experiment_proposal_id is not None:
             proposal = store.get_experiment_proposal(node.experiment_proposal_id)
@@ -147,24 +152,24 @@ def build_discovery_trail(
         for evaluation_id in node.evaluation_ids:
             evaluation = store.get_prediction_evaluation(evaluation_id)
             if evaluation is None:
-                raise ValueError(
+                raise DiscoveryNotFoundError(
                     f"discovery trail references missing prediction evaluation: {evaluation_id}"
                 )
             evaluation_node(evaluation, f"{node.id}.evaluation_ids")
         if node.target_kind.value == "hypothesis":
             target = store.get_hypothesis(node.target_id)
             if target is None:
-                raise ValueError(f"discovery trail references missing hypothesis: {node.target_id}")
+                raise DiscoveryNotFoundError(f"discovery trail references missing hypothesis: {node.target_id}")
             hypothesis_node(target, f"{node.id}.target_id")
         elif node.target_kind.value == "model":
             target = store.get_model(node.target_id)
             if target is None:
-                raise ValueError(f"discovery trail references missing model: {node.target_id}")
+                raise DiscoveryNotFoundError(f"discovery trail references missing model: {node.target_id}")
             model_node(target, f"{node.id}.target_id")
         else:
             target = store.get_prediction(node.target_id)
             if target is None:
-                raise ValueError(f"discovery trail references missing prediction: {node.target_id}")
+                raise DiscoveryNotFoundError(f"discovery trail references missing prediction: {node.target_id}")
             prediction_node(target, f"{node.id}.target_id")
 
     def prediction_node(node, via: str) -> None:
@@ -197,7 +202,7 @@ def build_discovery_trail(
         for finding_id in node.finding_ids:
             parent = store.get_discovery_finding(finding_id)
             if parent is None:
-                raise ValueError(
+                raise DiscoveryNotFoundError(
                     f"discovery trail references missing motivating finding: {finding_id}"
                 )
             finding_node(parent, f"{node.id}.finding_ids")
@@ -210,7 +215,7 @@ def build_discovery_trail(
         for hypothesis_id in node.hypothesis_ids:
             target = store.get_hypothesis(hypothesis_id)
             if target is None:
-                raise ValueError(
+                raise DiscoveryNotFoundError(
                     f"discovery trail references missing model hypothesis: {hypothesis_id}"
                 )
             hypothesis_node(target, f"{node.id}.hypothesis_ids")
