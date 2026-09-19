@@ -35,7 +35,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--serve", action="store_true", help="Serve the read-only HTTP API.")
     parser.add_argument("--host", default="127.0.0.1", help="HTTP bind host (default: 127.0.0.1).")
     parser.add_argument("--port", type=int, default=8000, help="HTTP bind port (default: 8000).")
-    subparsers = parser.add_subparsers(dest="command", required=True)
+    subparsers = parser.add_subparsers(dest="command")
 
     records = subparsers.add_parser("records", help="List grounded records.")
     records.add_argument("--kind", default=None, help="Filter by record kind.")
@@ -74,11 +74,13 @@ def _parser() -> argparse.ArgumentParser:
 
 def main() -> int:
     args = _parser().parse_args()
-    store_path = Path(args.store) if args.store != ":memory:" else args.store
     if args.serve:
+        store_path = Path(args.store) if args.store != ":memory:" else args.store
         serve(store_path, host=args.host, port=args.port)
         return 0
-
+    if args.command is None:
+        raise SystemExit("a command is required unless --serve is used")
+    store_path = Path(args.store) if args.store != ":memory:" else args.store
     with Store(store_path) as store:
         if args.command == "records":
             result = list_records(store, kind=args.kind)
