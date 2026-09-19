@@ -169,6 +169,21 @@ Instead, Phase 9 records its components explicitly:
 
 The system must retain the components rather than collapse them into a single universal importance value.
 
+### Structural Pressure Ledger
+
+The current representation is an ordered, immutable ledger attached to a gap finding. Each component records:
+
+- a structural component kind;
+- a human-readable basis describing the constraint or structural reason;
+- the grounded input identifiers on which that component rests;
+- the method and method version that produced the component.
+
+Components are serialized as part of the finding, so the ledger is reproducible with the finding's other generated metadata. Multiple components may coexist even when they arise from materially different structural analyses.
+
+The ledger does **not** contain a pressure, confidence, importance, coherence, or truth score. Distinct components remain distinct. Their coexistence records convergent structural reasons without asserting that those reasons are statistically independent or that convergence proves an external-world occupant exists.
+
+Independence, when relevant, is therefore a property to be established by the component's provenance and structural basis, not something inferred from simply counting components.
+
 
 ## Expectation Representation
 
