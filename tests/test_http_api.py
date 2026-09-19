@@ -27,7 +27,7 @@ def _record() -> object:
     return make_record(
         kind=RecordKind.OBSERVATION,
         payload={"observation": "test"},
-        provenance=[Provenance(source_id="test", captured_at="2026-01-01T00:00:00+00:00", source_location="fixture")],
+        provenance=[Provenance(source_id="test", captured_at="2026-01-01T00:00:00+00:00", source_location="https://example.invalid/fixture")],
         created_at="2026-01-01T00:00:00+00:00",
     )
 
@@ -63,7 +63,7 @@ def test_http_lists_records_deterministically(tmp_path) -> None:
     second = make_record(
         kind=RecordKind.MEASUREMENT,
         payload={"value": 2, "unit": "m"},
-        provenance=[Provenance(source_id="test", source_location="fixture")],
+        provenance=[Provenance(source_id="test", source_location="https://example.invalid/fixture")],
         created_at="2026-01-02T00:00:00+00:00",
     )
     with Store(store_path) as store:
@@ -201,7 +201,7 @@ def test_http_reads_reviews_and_exact_target_filters(tmp_path) -> None:
         disposition=ReviewDisposition.NOTE,
         basis="fixture basis",
         rationale="fixture rationale",
-        provenance=(Provenance(source_id="test", source_location="fixture"),),
+        provenance=(Provenance(source_id="test", source_location="https://example.invalid/fixture"),),
         reviewed_at="2026-01-03T00:00:00+00:00",
     )
     with Store(store_path) as store:
