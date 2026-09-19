@@ -1,7 +1,7 @@
 # Episteme Architecture
 
 **Status:** Canonical  
-**Version:** 1.2  
+**Version:** 1.3  
 
 ## Architectural Intent
 
@@ -397,7 +397,6 @@ Before adding a component, determine:
 If those questions cannot be answered, the component is probably premature.
 
 ## Implementation Baseline
-
 The initial executable baseline is deliberately small and boring.
 
 - Language: Python.
@@ -797,7 +796,6 @@ The canonical evaluation object preserves:
 - the evaluation method and method version;
 - the creation timestamp;
 - the schema version.
-
 The result and prediction identifiers are the canonical references to their descriptions. Their descriptions do not need to be copied into the evaluation because grounded records are immutable and generated prediction records are preserved as distinct artifacts. This avoids creating a second, potentially divergent textual representation while retaining reproducible access to the compared objects.
 
 The experiment proposal identifier is optional because a result may be compared with a prediction even when no proposal is represented in the store. When present, it identifies the proposal context rather than becoming evidence.
@@ -1037,6 +1035,16 @@ Reviews are stored separately from the objects they examine. Persistence validat
 
 Review records are collaboration metadata, not discovery-trail nodes. They may be inspected alongside their targets, but they do not become evidential inputs merely because a reviewer examined an object.
 
+
+## Phase 9 Structural Discovery
+
+Phase 9 introduces structural-gap discovery as a distinct discovery capability. The architectural boundary is deliberately two-stage: first establish a bounded hole from represented structure and explicit constraints; only later attempt candidate completion.
+
+Structural discovery may use relationships, ordered grounded fields, constraints, and accounting structures. Its findings preserve grounded inputs separately from generated structural expectations and generated context.
+
+Discovery expectations are typed rather than relationship-shaped. The initial kinds are relationship, positional, constraint, and accounting. This allows later constraint and accounting gaps to be represented without pretending that every unknown is a missing graph edge.
+
+The expectation is not evidence and is not a universal fit, coherence, importance, or truth score. Its method and structured data must make the structural rule inspectable and reproducible. Legacy relationship-shaped persisted expectations remain readable during this transition.
 
 ## Related Independent Research
 
