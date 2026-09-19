@@ -1,6 +1,8 @@
 """Phase 7 proof that materially different domain records share downstream core machinery."""
 
 from episteme import (
+    DiscoveryExpectation,
+    DiscoveryExpectationKind,
     DiscoveryFinding,
     DiscoveryFindingKind,
     DiscoveryMeasure,
