@@ -154,7 +154,7 @@ class _EpistemeHTTPServer(ThreadingHTTPServer):
             }, "application/json; charset=utf-8"
 
         parts = [part for part in suffix.split("/") if part]
-        with Store(self.store_path) as store:
+        with Store(self.store_path, read_only=True) as store:
             if parts == ["records"]:
                 _reject_unexpected_query(query, {"kind"})
                 kind = _record_kind(_single_query(query, "kind"))
