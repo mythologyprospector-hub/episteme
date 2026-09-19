@@ -18,6 +18,7 @@ from episteme import (
     KnowledgeStateConsequenceKind,
     KnowledgeStateTargetKind,
     detect_positional_gap,
+    discover_evaluation_tensions,
 )
 
 CREATED = "2026-09-19T00:00:00Z"
@@ -550,3 +551,116 @@ def test_candidate_discrimination_closes_through_result_evaluation_and_consequen
         assert store.get_prediction(prediction_a.id) == prediction_a
         assert store.get_prediction(prediction_b.id) == prediction_b
         assert store.get_experiment_proposal(proposal.id) == proposal
+
+
+def test_closed_loop_can_renew_discovery_from_evaluation_tension():
+    records = _fixture()
+
+    with Store() as store:
+        for record in records:
+            store.put_record(record)
+
+        gap = detect_positional_gap(
+            store,
+            record_ids=tuple(record.id for record in records),
+            position_key="position",
+            step=1.0,
+            created_at="2026-09-19T00:40:00Z",
+        )
+        assert gap is not None
+        store.put_discovery_finding(gap)
+
+        candidate = complete_structural_gap(
+            store,
+            gap_id=gap.id,
+            statement="The missing occupant has position 3.0.",
+            method="phase10-renewal-fixture",
+            method_version="1",
+            rationale="Candidate fills the established gap.",
+            created_at="2026-09-19T00:40:01Z",
+        )
+        store.put_hypothesis(candidate)
+
+        prediction = propose_discriminating_prediction(
+            store,
+            candidate_id=candidate.id,
+            competing_candidate_ids=(candidate.id, candidate.id),
+            consequence="The measured occupant is at position 3.0.",
+            conditions="Same bounded test conditions.",
+            method="phase10-renewal-fixture",
+            method_version="1",
+            rationale="Fixture prediction for renewed discovery.",
+            created_at="2026-09-19T00:40:02Z",
+        )
+        store.put_prediction(prediction)
+
+        result_consistent = Record(
+            id="aaaaaaa1-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+            kind=RecordKind.RESULT,
+            payload={"position": 3.0},
+            provenance=PROVENANCE,
+            created_at="2026-09-19T00:40:03Z",
+        )
+        result_inconsistent = Record(
+            id="aaaaaaa2-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+            kind=RecordKind.RESULT,
+            payload={"position": 5.0},
+            provenance=PROVENANCE,
+            created_at="2026-09-19T00:40:04Z",
+        )
+        store.put_record(result_consistent)
+        store.put_record(result_inconsistent)
+
+        evaluation_consistent = PredictionEvaluation(
+            id="bbbbbbb1-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+            result_id=result_consistent.id,
+            prediction_id=prediction.id,
+            comparison_conditions="Same bounded test conditions.",
+            assumptions=(),
+            outcome=PredictionEvaluationOutcome.CONSISTENT,
+            rationale="One grounded result matches the prediction.",
+            method="phase10-renewal-fixture",
+            method_version="1",
+            created_at="2026-09-19T00:40:05Z",
+        )
+        evaluation_inconsistent = PredictionEvaluation(
+            id="bbbbbbb2-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+            result_id=result_inconsistent.id,
+            prediction_id=prediction.id,
+            comparison_conditions="Same bounded test conditions.",
+            assumptions=(),
+            outcome=PredictionEvaluationOutcome.INCONSISTENT,
+            rationale="A second grounded result differs from the prediction.",
+            method="phase10-renewal-fixture",
+            method_version="1",
+            created_at="2026-09-19T00:40:06Z",
+        )
+        store.put_prediction_evaluation(evaluation_consistent)
+        store.put_prediction_evaluation(evaluation_inconsistent)
+
+        renewed = discover_evaluation_tensions(
+            store,
+            created_at="2026-09-19T00:40:07Z",
+        )
+
+        assert len(renewed) == 1
+        finding = renewed[0]
+        assert finding.kind is DiscoveryFindingKind.TENSION
+        assert finding.input_ids == (result_consistent.id, result_inconsistent.id)
+        assert finding.context_ids == (
+            evaluation_consistent.id,
+            evaluation_inconsistent.id,
+        )
+        assert prediction.id in finding.description
+        store.put_discovery_finding(finding)
+
+        persisted = store.get_discovery_finding(finding.id)
+        assert persisted == finding
+
+        # The renewed finding is generated context around grounded results;
+        # it does not rewrite the original gap, candidate, prediction, or results.
+        assert store.get_discovery_finding(gap.id) == gap
+        assert store.get_hypothesis(candidate.id) == candidate
+        assert store.get_prediction(prediction.id) == prediction
+        assert store.get_record(result_consistent.id) == result_consistent
+        assert store.get_record(result_inconsistent.id) == result_inconsistent
