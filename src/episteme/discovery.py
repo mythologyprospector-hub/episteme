@@ -454,6 +454,82 @@ def detect_constraint_gap(
     return None
 
 
+def detect_positional_gap(
+    store: Store,
+    record_ids: tuple[str, ...],
+    position_key: str,
+    step: float,
+    created_at: str,
+) -> DiscoveryFinding | None:
+    """Find an interior missing position in an explicitly stepped structure."""
+    if len(record_ids) < 2:
+        raise ValueError("positional gap discovery requires at least two records")
+    if not position_key.strip():
+        raise ValueError("position_key must not be empty")
+    if isinstance(step, bool) or not isinstance(step, (int, float)) or not math.isfinite(float(step)) or step <= 0:
+        raise ValueError("step must be a finite positive number")
+
+    records = []
+    for record_id in record_ids:
+        _validate_uuid(record_id, "record_id")
+        record = store.get_record(record_id)
+        if record is None:
+            raise ValueError(f"record not found: {record_id}")
+        value = record.payload.get(position_key)
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(float(value)):
+            raise ValueError(f"record {record_id} requires a finite numeric {position_key}")
+        records.append((float(value), record))
+
+    records.sort(key=lambda item: item[0])
+    positions = [value for value, _ in records]
+    if len(set(positions)) != len(positions):
+        raise ValueError("positional gap discovery requires unique positions")
+
+    for lower, upper in zip(positions, positions[1:]):
+        distance = upper - lower
+        if distance > step:
+            missing = lower + step
+            if missing < upper:
+                input_ids = tuple(record_id for record_id in record_ids)
+                return DiscoveryFinding(
+                    id=str(uuid4()),
+                    kind=DiscoveryFindingKind.GAP,
+                    title="Explicit position contains an unrepresented occupant",
+                    description=(
+                        f"The grounded positions imply an expected position at {missing}, "
+                        f"between represented positions {lower} and {upper}."
+                    ),
+                    input_ids=input_ids,
+                    method="positional-gap-discovery",
+                    method_version=DISCOVERY_METHOD_VERSION,
+                    rationale=(
+                        "The gap is established by grounded numeric positions and an explicit "
+                        "positive step rule; the method does not assert that an external occupant "
+                        "exists or propose a candidate."
+                    ),
+                    measures=_measures(store, input_ids) + (
+                        DiscoveryMeasure(
+                            name="position_gap_count",
+                            value=1.0,
+                            scale="count",
+                            basis="number of bounded interior positions missing under the declared step",
+                        ),
+                    ),
+                    created_at=created_at,
+                    expectation=DiscoveryExpectation(
+                        kind=DiscoveryExpectationKind.POSITIONAL,
+                        data={
+                            "position": missing,
+                            "position_key": position_key,
+                            "step": step,
+                            "lower_position": lower,
+                            "upper_position": upper,
+                        },
+                    ),
+                )
+    return None
+
+
 def detect_accounting_gap(
     store: Store,
     total_record_id: str,
