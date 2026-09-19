@@ -322,6 +322,133 @@ def detect_structural_payload_sequence_gap(
     return None
 
 
+
+def detect_constraint_gap(
+    store: Store,
+    record_ids: tuple[str, ...],
+    value_key: str,
+    lower_bound: float,
+    upper_bound: float,
+    bin_width: float,
+    created_at: str,
+) -> DiscoveryFinding | None:
+    """Detect an unrepresented interior interval under an explicit constraint.
+
+    The caller supplies the bounded state-space constraint and the resolution at
+    which occupancy is inspected. A gap is reported only for an empty interior
+    interval whose immediately neighboring intervals are both represented by
+    grounded observations. The method therefore identifies a bounded vacancy in
+    the represented structure without asserting that an external state occupies it.
+    """
+
+    if len(record_ids) < 3:
+        raise ValueError("record_ids must contain at least three records")
+    if not value_key.strip():
+        raise ValueError("value_key must be a non-empty string")
+    if not math.isfinite(lower_bound) or not math.isfinite(upper_bound):
+        raise ValueError("bounds must be finite")
+    if upper_bound <= lower_bound:
+        raise ValueError("upper_bound must be greater than lower_bound")
+    if not math.isfinite(bin_width) or bin_width <= 0:
+        raise ValueError("bin_width must be a positive finite number")
+
+    values: list[float] = []
+    for record_id in record_ids:
+        _validate_uuid(record_id, "record_id")
+        record = store.get_record(record_id)
+        if record is None:
+            raise ValueError(f"constraint references missing record: {record_id}")
+        value = record.payload.get(value_key)
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise ValueError(
+                f"record {record_id} requires numeric payload field: {value_key}"
+            )
+        numeric = float(value)
+        if not math.isfinite(numeric):
+            raise ValueError(f"record {record_id} requires a finite numeric value")
+        if numeric < lower_bound or numeric > upper_bound:
+            raise ValueError(
+                f"record {record_id} value violates explicit bounds: {value_key}"
+            )
+        values.append(numeric)
+
+    interval_count = int(math.ceil((upper_bound - lower_bound) / bin_width))
+    occupied: set[int] = set()
+    for value in values:
+        index = min(
+            interval_count - 1,
+            int(math.floor((value - lower_bound) / bin_width)),
+        )
+        occupied.add(index)
+
+    for index in range(1, interval_count - 1):
+        if index in occupied or index - 1 not in occupied or index + 1 not in occupied:
+            continue
+
+        interval_start = lower_bound + index * bin_width
+        interval_end = min(upper_bound, interval_start + bin_width)
+        input_ids = tuple(record_ids)
+        return DiscoveryFinding(
+            id=str(uuid4()),
+            kind=DiscoveryFindingKind.GAP,
+            title="Bounded constraint region is unrepresented",
+            description=(
+                f"Grounded {value_key!r} observations satisfy the explicit bounds "
+                f"[{lower_bound!r}, {upper_bound!r}] but no observation occupies the "
+                f"interior interval [{interval_start!r}, {interval_end!r})."
+            ),
+            input_ids=input_ids,
+            method="bounded-constraint-gap-discovery",
+            method_version=DISCOVERY_METHOD_VERSION,
+            rationale=(
+                "The gap is established by an explicit bounded constraint and "
+                "grounded observations on both sides of an empty interior interval. "
+                "The detector identifies only a vacancy in the represented state "
+                "space; it does not assert that an external state exists there or "
+                "propose a candidate occupant."
+            ),
+            measures=(
+                *_measures(store, input_ids),
+                DiscoveryMeasure(
+                    name="constraint_interval_count",
+                    value=float(interval_count),
+                    scale="bounded intervals",
+                    basis="explicit bounds divided at the declared inspection resolution",
+                ),
+                DiscoveryMeasure(
+                    name="constraint_occupied_interval_count",
+                    value=float(len(occupied)),
+                    scale="occupied bounded intervals",
+                    basis="grounded observations mapped to the declared interval structure",
+                ),
+                DiscoveryMeasure(
+                    name="constraint_missing_interval_count",
+                    value=1.0,
+                    scale="interior empty intervals with occupied neighbors",
+                    basis="first bounded interior interval absent between represented intervals",
+                ),
+            ),
+            created_at=created_at,
+            expectation=DiscoveryExpectation(
+                kind=DiscoveryExpectationKind.CONSTRAINT,
+                data={
+                    "constraint": {
+                        "value_key": value_key,
+                        "lower_bound": lower_bound,
+                        "upper_bound": upper_bound,
+                        "bin_width": bin_width,
+                    },
+                    "empty_interval": {
+                        "lower_bound": interval_start,
+                        "upper_bound": interval_end,
+                    },
+                },
+            ),
+        )
+
+    return None
+
+
 def detect_accounting_gap(
     store: Store,
     total_record_id: str,
