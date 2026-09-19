@@ -71,6 +71,26 @@ Represented quantities or relationships require an explicit balance, conservatio
 
 The accounting rule must be externally grounded or explicitly supplied as an analysis rule.
 
+### Constraint Gap Implementation
+
+The first constraint-gap detector uses an explicit bounded numeric state-space rule.
+
+A caller supplies:
+
+- the grounded records to inspect;
+- the numeric payload field;
+- a finite lower and upper bound;
+- an inspection interval width.
+
+The detector verifies that every supplied observation satisfies the explicit bounds, partitions that bounded region at the declared resolution, and reports only an **interior empty interval with grounded observations in both immediately neighboring intervals**.
+
+This deliberately avoids treating boundary sparsity as a hole. It establishes a vacancy between represented regions inside an explicitly constrained state space.
+
+The detector records the complete constraint and empty interval in a typed constraint expectation. It does not infer that an external state occupies the interval and does not propose a candidate value.
+
+This is an analysis rule, not a universal statement that the underlying domain is continuously populated. The interval width is therefore part of the method's reproducible semantics.
+
+
 ## What Does Not Count
 
 The following are not structural gaps by themselves:
