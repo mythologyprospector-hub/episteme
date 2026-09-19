@@ -12,6 +12,7 @@ from episteme import (
     StructuralPressureComponent,
     detect_accounting_gap,
     detect_constraint_gap,
+    detect_positional_gap,
     detect_structural_sequence_gap,
     detect_structural_payload_sequence_gap,
     make_relationship,
@@ -446,3 +447,67 @@ def test_structural_pressure_is_an_inspectable_ledger_not_a_score():
     assert DiscoveryFinding.from_dict(encoded) == finding
     assert "score" not in encoded["structural_pressure"][0]
     assert "score" not in encoded["structural_pressure"][1]
+
+
+def test_positional_gap_is_bounded_by_an_explicit_step():
+    records = tuple(
+        Record(
+            id=f"aaaaaaaa-{index:04d}-4aaa-8aaa-aaaaaaaaaaaa",
+            kind=RecordKind.OBSERVATION,
+            payload={"position": position},
+            provenance=PROVENANCE,
+            created_at=CREATED,
+        )
+        for index, position in enumerate((1.0, 2.0, 4.0), start=1)
+    )
+
+    with Store() as store:
+        for record in records:
+            store.put_record(record)
+        gap = detect_positional_gap(
+            store,
+            record_ids=tuple(record.id for record in records),
+            position_key="position",
+            step=1.0,
+            created_at="2026-09-19T00:10:00Z",
+        )
+
+    assert gap is not None
+    assert gap.kind is DiscoveryFindingKind.GAP
+    assert gap.expectation == DiscoveryExpectation(
+        kind=DiscoveryExpectationKind.POSITIONAL,
+        data={
+            "position": 3.0,
+            "position_key": "position",
+            "step": 1.0,
+            "lower_position": 2.0,
+            "upper_position": 4.0,
+        },
+    )
+    assert "explicit positive step rule" in gap.rationale
+
+
+def test_positional_gap_does_not_treat_boundary_sparsity_as_a_hole():
+    records = tuple(
+        Record(
+            id=f"bbbbbbbb-{index:04d}-4bbb-8bbb-bbbbbbbbbbbb",
+            kind=RecordKind.OBSERVATION,
+            payload={"position": position},
+            provenance=PROVENANCE,
+            created_at=CREATED,
+        )
+        for index, position in enumerate((1.0, 2.0, 3.0), start=1)
+    )
+
+    with Store() as store:
+        for record in records:
+            store.put_record(record)
+        gap = detect_positional_gap(
+            store,
+            record_ids=tuple(record.id for record in records),
+            position_key="position",
+            step=1.0,
+            created_at="2026-09-19T00:11:00Z",
+        )
+
+    assert gap is None
