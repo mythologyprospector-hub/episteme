@@ -397,7 +397,8 @@ class Review:
         _require_text(self.reviewer, "reviewer")
         if not isinstance(self.disposition, ReviewDisposition):
             raise ValueError("disposition must be a ReviewDisposition")
-        _require_text(self.basis, "basis")        _require_text(self.rationale, "rationale")
+        _require_text(self.basis, "basis")
+        _require_text(self.rationale, "rationale")
         if not self.provenance:
             raise ValueError("review requires provenance")
         _require_iso_timestamp(self.reviewed_at, "reviewed_at")
