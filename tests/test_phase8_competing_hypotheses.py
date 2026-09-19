@@ -112,7 +112,7 @@ def test_existing_primitives_can_discriminate_competing_hypotheses():
         assert opportunity.kind is DiscoveryFindingKind.TENSION
         assert opportunity.input_ids == (result.id,)
         assert set(opportunity.context_ids) == {prediction_a.id, prediction_b.id}
-        assert "different predicted consequences" in opportunity.rationale
+        assert "distinct consequences" in opportunity.rationale
         store.put_discovery_finding(opportunity)
 
         proposal = propose_experiment(
