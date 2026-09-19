@@ -70,7 +70,7 @@ def test_astronomy_and_biology_share_the_same_closed_loop_core():
             ),
         ),
         created_at=CREATED,
-        expectation=(astronomy.id, "related_to", biology.id),
+        expectation=DiscoveryExpectation(DiscoveryExpectationKind.RELATIONSHIP, {"subject_id": astronomy.id, "predicate": "related_to", "object_id": biology.id}),
     )
 
     with Store() as store:
