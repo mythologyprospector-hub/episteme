@@ -13,6 +13,7 @@ from episteme import (
     predict,
     propose_experiment,
     propose_hypothesis,
+    discover_competing_prediction_opportunities,
 )
 
 CREATED = "2026-09-19T00:00:00Z"
@@ -32,7 +33,7 @@ def test_existing_primitives_can_discriminate_competing_hypotheses():
         kind=DiscoveryFindingKind.GAP,
         title="Competing explanations",
         description="One bounded observation admits two explicitly represented explanations.",
-        input_ids=(),
+        input_ids=("22222222-2222-4222-8222-222222222222",)
         method="phase8-competing-fixture",
         method_version="1",
         rationale="The fixture proves competing-hypothesis representation without automatic inference.",
@@ -55,8 +56,8 @@ def test_existing_primitives_can_discriminate_competing_hypotheses():
     )
 
     with Store() as store:
-        store.put_discovery_finding(finding)
         store.put_record(result)
+        store.put_discovery_finding(finding)
 
         hypothesis_a = propose_hypothesis(
             statement="Explanation A predicts outcome A.",
@@ -99,6 +100,18 @@ def test_existing_primitives_can_discriminate_competing_hypotheses():
         )
         store.put_prediction(prediction_a)
         store.put_prediction(prediction_b)
+
+        findings = discover_competing_prediction_opportunities(
+            store,
+            created_at="2026-09-19T00:00:04Z",
+        )
+        assert len(findings) == 1
+        opportunity = findings[0]
+        assert opportunity.kind is DiscoveryFindingKind.TENSION
+        assert opportunity.input_ids == (result.id,)
+        assert set(opportunity.context_ids) == {prediction_a.id, prediction_b.id}
+        assert "different predicted consequences" in opportunity.rationale
+        store.put_discovery_finding(opportunity)
 
         proposal = propose_experiment(
             prediction_ids=(prediction_a.id, prediction_b.id),
