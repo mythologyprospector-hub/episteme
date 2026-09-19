@@ -140,6 +140,16 @@ It does not claim that the implementation is complete, that every scientific ass
 
 When canon changes, the change should be visible in version history.
 
+### 17. Holes must be established before answers are proposed
+
+A meaningful unknown may arise from a structural vacancy in represented knowledge, but Episteme must establish the vacancy before proposing what fills it.
+
+Structural-gap detection must preserve the structural context, constraints, grounded inputs, method, and assumptions that establish the gap. A missing database entry, sparse graph, or aesthetically pleasing pattern is not sufficient.
+
+Candidate completion is a separate operation. A candidate explanation must not be smuggled into the definition of the hole itself.
+
+When multiple independent constraints converge on the same vacancy, Episteme may preserve those constraints as structural pressure. Structural pressure remains inspectable components rather than a universal truth, confidence, coherence, or importance score.
+
 ### 13. Discovery outputs are not evidence
 
 Episteme may generate gaps, tensions, questions, hypotheses, and other structures while analyzing knowledge.
