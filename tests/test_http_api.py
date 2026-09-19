@@ -272,9 +272,11 @@ def test_http_renders_discovery_report_as_json_and_html(tmp_path) -> None:
     thread.start()
     try:
         host, port = server.server_address
+        from urllib.parse import quote
+
         base = (
             f"http://{host}:{port}/api/v1/discoveries/"
-            f"{finding.id}/report?created_at={finding.created_at}"
+            f"{finding.id}/report?created_at={quote(finding.created_at)}"
         )
         with urlopen(base) as response:
             body = json.loads(response.read())
