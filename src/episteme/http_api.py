@@ -17,6 +17,7 @@ from .public import (
     get_review,
     list_records,
     list_reviews,
+    PublicNotFoundError,
 )
 from .store import Store
 
@@ -118,7 +119,7 @@ class _Handler(BaseHTTPRequestHandler):
             self.wfile.write(body)
         except EpistemeHTTPError as exc:
             self._send_error(exc.status, exc.message)
-        except (ValueError, KeyError) as exc:
+        except PublicNotFoundError as exc:
             self._send_error(404, str(exc))
         except Exception:
             self._send_error(500, "internal server error")
