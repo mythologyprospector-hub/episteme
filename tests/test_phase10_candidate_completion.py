@@ -10,6 +10,7 @@ from episteme import (
     RecordKind,
     Store,
     complete_structural_gap,
+    propose_discriminating_prediction,
     detect_positional_gap,
 )
 
