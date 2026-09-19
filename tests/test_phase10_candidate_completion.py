@@ -11,6 +11,7 @@ from episteme import (
     Store,
     complete_structural_gap,
     propose_discriminating_prediction,
+    propose_candidate_discrimination_experiment,
     detect_positional_gap,
 )
 
@@ -240,4 +241,162 @@ def test_candidate_discriminating_prediction_rejects_missing_competitor():
                 method_version="1",
                 rationale="Missing competitor must remain explicit.",
                 created_at="2026-09-19T00:11:02Z",
+            )
+
+
+def test_candidate_discrimination_enters_existing_experiment_proposal_without_mutation():
+    records = _fixture()
+
+    with Store() as store:
+        for record in records:
+            store.put_record(record)
+        gap = detect_positional_gap(
+            store,
+            record_ids=tuple(record.id for record in records),
+            position_key="position",
+            step=1.0,
+            created_at="2026-09-19T00:20:00Z",
+        )
+        assert gap is not None
+        store.put_discovery_finding(gap)
+
+        candidate_a = complete_structural_gap(
+            store,
+            gap_id=gap.id,
+            statement="The missing occupant is candidate A.",
+            method="phase10-fixture",
+            method_version="1",
+            rationale="Explicit candidate completion.",
+            created_at="2026-09-19T00:20:01Z",
+        )
+        candidate_b = complete_structural_gap(
+            store,
+            gap_id=gap.id,
+            statement="The missing occupant is candidate B.",
+            method="phase10-fixture",
+            method_version="1",
+            rationale="Explicit competing candidate completion.",
+            created_at="2026-09-19T00:20:02Z",
+        )
+        store.put_hypothesis(candidate_a)
+        store.put_hypothesis(candidate_b)
+
+        prediction_a = propose_discriminating_prediction(
+            store,
+            candidate_id=candidate_a.id,
+            competing_candidate_ids=(candidate_a.id, candidate_b.id),
+            consequence="Outcome A occurs.",
+            conditions="Shared bounded test conditions.",
+            method="phase10-fixture",
+            method_version="1",
+            rationale="Candidate A predicts a distinct outcome.",
+            created_at="2026-09-19T00:20:03Z",
+        )
+        prediction_b = propose_discriminating_prediction(
+            store,
+            candidate_id=candidate_b.id,
+            competing_candidate_ids=(candidate_a.id, candidate_b.id),
+            consequence="Outcome B occurs.",
+            conditions="Shared bounded test conditions.",
+            method="phase10-fixture",
+            method_version="1",
+            rationale="Candidate B predicts a distinct outcome.",
+            created_at="2026-09-19T00:20:04Z",
+        )
+        store.put_prediction(prediction_a)
+        store.put_prediction(prediction_b)
+
+        gap_before = gap.to_dict()
+        candidate_a_before = candidate_a.to_dict()
+        candidate_b_before = candidate_b.to_dict()
+        grounded_before = [store.get_record(record.id) for record in records]
+
+        proposal = propose_candidate_discrimination_experiment(
+            store,
+            prediction_ids=(prediction_a.id, prediction_b.id),
+            objective="Distinguish candidate A from candidate B.",
+            proposed_observation="Observe whether outcome A or outcome B occurs.",
+            discrimination_basis="The candidates predict different outcomes under shared conditions.",
+            conditions="Shared bounded test conditions.",
+            method="phase10-fixture",
+            method_version="1",
+            rationale="The existing experiment proposal primitive can carry the candidate-derived predictions.",
+            created_at="2026-09-19T00:20:05Z",
+        )
+        store.put_experiment_proposal(proposal)
+
+        assert proposal.prediction_ids == (prediction_a.id, prediction_b.id)
+        assert proposal.discrimination_basis == "The candidates predict different outcomes under shared conditions."
+        assert store.get_discovery_finding(gap.id).to_dict() == gap_before
+        assert store.get_hypothesis(candidate_a.id).to_dict() == candidate_a_before
+        assert store.get_hypothesis(candidate_b.id).to_dict() == candidate_b_before
+        assert [store.get_record(record.id) for record in records] == grounded_before
+        assert store.get_experiment_proposal(proposal.id) == proposal
+
+
+def test_candidate_discrimination_experiment_rejects_non_discriminating_prediction():
+    records = _fixture()
+
+    with Store() as store:
+        for record in records:
+            store.put_record(record)
+        gap = detect_positional_gap(
+            store,
+            record_ids=tuple(record.id for record in records),
+            position_key="position",
+            step=1.0,
+            created_at="2026-09-19T00:21:00Z",
+        )
+        assert gap is not None
+        store.put_discovery_finding(gap)
+
+        candidate = complete_structural_gap(
+            store,
+            gap_id=gap.id,
+            statement="The missing occupant is candidate A.",
+            method="phase10-fixture",
+            method_version="1",
+            rationale="Explicit candidate completion.",
+            created_at="2026-09-19T00:21:01Z",
+        )
+        store.put_hypothesis(candidate)
+
+        prediction = propose_discriminating_prediction(
+            store,
+            candidate_id=candidate.id,
+            competing_candidate_ids=(candidate.id,),
+            consequence="Outcome A occurs.",
+            conditions="Shared bounded test conditions.",
+            method="phase10-fixture",
+            method_version="1",
+            rationale="This is not actually a competition.",
+            created_at="2026-09-19T00:21:02Z",
+        ) if False else None
+
+        # Build a valid single-candidate prediction directly to prove the
+        # experiment boundary does not silently accept it.
+        from episteme import predict
+        prediction = predict(
+            source_id=candidate.id,
+            consequence="Outcome A occurs.",
+            conditions="Shared bounded test conditions.",
+            method="phase10-fixture",
+            method_version="1",
+            rationale="Single-candidate prediction.",
+            created_at="2026-09-19T00:21:03Z",
+        )
+        store.put_prediction(prediction)
+
+        with pytest.raises(ValueError, match="requires at least two predictions"):
+            propose_candidate_discrimination_experiment(
+                store,
+                prediction_ids=(prediction.id,),
+                objective="Invalid discrimination.",
+                proposed_observation="Observe the outcome.",
+                discrimination_basis="No competing prediction exists.",
+                conditions="Shared bounded test conditions.",
+                method="phase10-fixture",
+                method_version="1",
+                rationale="Boundary proof.",
+                created_at="2026-09-19T00:21:04Z",
             )
