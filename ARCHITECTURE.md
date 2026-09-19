@@ -1046,6 +1046,8 @@ Discovery expectations are typed rather than relationship-shaped. The initial ki
 
 The expectation is not evidence and is not a universal fit, coherence, importance, or truth score. Its method and structured data must make the structural rule inspectable and reproducible. Legacy relationship-shaped persisted expectations remain readable during this transition.
 
+Structural pressure is represented as an immutable ledger of typed components attached to a gap finding. Each component preserves its structural basis, grounded input identifiers, and method/version. The ledger is deliberately not a scalar score and does not infer statistical independence merely by counting components.
+
 ## Related Independent Research
 
 **Tiger Den** is a separate project by the same author with a closely related epistemic posture. Tiger Den maps existing computational knowledge rather than storing or replacing the implementations themselves. Its canon emphasizes evidence before assertion, provenance, preservation of meaningful distinctions, first-class unknowns, separation of observation from interpretation, and discovery before synthesis.
