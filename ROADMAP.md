@@ -247,7 +247,7 @@ Initial target capabilities:
 - [x] researcher-facing interface beyond the CLI
 - [x] public knowledge imports
 - [x] collaboration and review workflows
-- [ ] documented external HTTP/API surface
+- [x] documented external HTTP/API surface
 - [x] transparent public evaluation workflow
 
 The exact public product shape remains intentionally open.
@@ -284,7 +284,21 @@ The first Phase 8 implementation satisfies the initial public-instrument exit co
 - the complete closed discovery cycle is exercised by the public acceptance test;
 - no new persistence model, epistemic primitive, autonomous authority, or external service was required.
 
-This audit closes the initial Phase 8 public-instrument milestone. It does not close Phase 8 as a whole; the remaining public capabilities stay explicitly open on the roadmap.
+This audit closes the initial Phase 8 public-instrument milestone. It does not close Phase 8 as a whole; later public capabilities remain future work and are not prerequisites for the current instrument.
+
+### Phase 8 HTTP/API Audit
+
+The documented external HTTP/API surface is complete for the current public read-oriented instrument.
+
+- the HTTP surface is read-only and exposes the existing public inspection operations;
+- route and query contracts are documented, including required and rejected parameters;
+- record and review inspection preserve the existing target-kind and identifier boundaries;
+- discovery trail, lineage, and report endpoints preserve deterministic reconstruction;
+- HTML report rendering remains a representation of existing report data rather than a second epistemic model;
+- unsupported mutation methods are explicitly rejected;
+- no public write authority or parallel persistence model was introduced.
+
+The HTTP/API capability therefore satisfies its Phase 8 scope. Authentication, public mutation, service deployment, and broader platform concerns remain future decisions rather than prerequisites.
 
 ### Phase 8 Transparent Public Evaluation Audit
 
@@ -340,4 +354,4 @@ Phase 6 is complete. Result records can be ingested through the grounded JSONL i
 
 Phase 7 is complete. Astronomy and Biology demonstrate materially different evidence shapes above the stable core, while provenance, explicit unknown/conflict/uncertainty states, generated-versus-grounded boundaries, closed-loop lineage, and reproducibility remain intact. The Phase 7 exit condition is satisfied.
 
-Phase 8 has established its first researcher-facing public instrument and its initial public knowledge-import capability: a read-only Python inspection API, the installed `episteme` command, deterministic discovery reports, and a self-contained browser-readable report renderer. These expose existing Episteme state rather than creating a parallel public data model. The Phase 8 initial implementation exit condition is satisfied: a person outside the development workflow can inspect a complete representative discovery cycle and reconstruct why generated steps exist without losing the grounded/generated boundary. A documented external HTTP/API surface and a transparent public evaluation workflow remain open Phase 8 work. Collaboration/review workflows are complete. Broader source import remains future work beyond the initial Crossref capability.
+Phase 8 has established its researcher-facing public instrument: a read-only Python inspection API, the installed `episteme` command, a documented external HTTP/API surface, deterministic discovery reports, a self-contained browser-readable report renderer, public knowledge import, collaboration/review inspection, and a transparent public evaluation workflow. These expose existing Episteme state rather than creating a parallel public data model. The Phase 8 initial public-instrument exit condition and the currently defined HTTP/API and transparent-evaluation capabilities are satisfied. Authentication, public mutation, broader source import, and other platform concerns remain future work rather than prerequisites.
