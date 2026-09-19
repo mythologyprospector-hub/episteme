@@ -360,3 +360,33 @@ def test_http_rejects_invalid_discovery_timestamp(tmp_path) -> None:
         server.shutdown()
         server.server_close()
         thread.join(timeout=2)
+
+
+def test_http_does_not_misclassify_internal_key_error_as_not_found(tmp_path, monkeypatch) -> None:
+    store_path = tmp_path / "empty.sqlite"
+    _empty_store(store_path)
+    import episteme.http_api as http_api
+
+    def broken_get_record(store, record_id):
+        raise KeyError("corrupt persisted state")
+
+    monkeypatch.setattr(http_api, "get_record", broken_get_record)
+    server = create_http_server(store_path, port=0)
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        host, port = server.server_address
+        try:
+            urlopen(
+                f"http://{host}:{port}/api/v1/records/00000000-0000-0000-0000-000000000001"
+            )
+        except HTTPError as error:
+            assert error.code == 500
+            body = json.loads(error.read())
+            assert body["error"]["status"] == 500
+        else:
+            raise AssertionError("internal KeyError unexpectedly returned success")
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
