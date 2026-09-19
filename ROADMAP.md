@@ -338,16 +338,42 @@ The canonical Phase 9 design is defined in STRUCTURAL_GAPS.md.
 
 Target capabilities:
 
-- [ ] bounded positional, relational, constraint, and accounting gaps;
-- [ ] explicit structural context and constraint traceability;
-- [ ] separation of structural rules from grounded evidence and generated gaps;
-- [ ] inspectable structural-pressure components without a universal score;
-- [ ] deterministic structural-gap reproduction;
-- [ ] cross-domain demonstration without introducing a new domain-specific core primitive.
+- [x] bounded positional, relational, constraint, and accounting gaps;
+- [x] explicit structural context and constraint traceability;
+- [x] separation of structural rules from grounded evidence and generated gaps;
+- [x] inspectable structural-pressure components without a universal score;
+- [x] deterministic structural-gap reproduction;
+- [x] cross-domain demonstration without introducing a new domain-specific core primitive.
 
 Candidate completion is deliberately deferred. Phase 9 establishes the hole before attempting to determine what fills it.
 
 **Exit condition:** Episteme can identify and reproduce bounded structural gaps whose existence is established by explicit, traceable structure and constraints, while preserving the distinction between grounded evidence, structural rules, gaps, and candidate completions.
+
+### Phase 9 Exit Audit
+
+The implemented Phase 9 behavior satisfies the stated exit condition.
+
+- positional gaps are bounded by an explicit numeric step and distinguish interior vacancies from boundary sparsity;
+- relational gaps are established from explicit ordered structure and a declared relationship rule;
+- constraint gaps require an explicit bounded region and represented neighbors around an empty interior interval;
+- accounting gaps are established from an explicit total-equals-components rule and a non-zero represented residual;
+- typed expectations preserve the structural form and parameters of each gap without conflating the gap with evidence;
+- structural context remains inspectable through grounded input identifiers, explicit expectation data, method/version, rationale, and, where present, structural-pressure components;
+- grounded evidence, structural rules, generated gaps, and candidate completions remain distinct; candidate completion remains deliberately deferred;
+- structural pressure is represented as an inspectable ledger of distinct components rather than a universal pressure, confidence, coherence, importance, or truth score;
+- repeated execution against the same represented state and method reproduces the same finding content apart from its intentionally fresh artifact identifier;
+- accounting and bounded-constraint structures are demonstrated together as materially different structural forms without introducing a domain-specific core primitive;
+- the Phase 9 structural-gap tests provide executable proof of these boundaries.
+
+**Status:** Complete.
+
+## Phase 10 — Candidate Completion
+
+**Goal:** Investigate what could occupy an established structural hole without confusing candidate explanations with observations.
+
+Phase 10 begins only after the hole has been established. Candidate completion must preserve the gap's structural constraints, distinguish candidates from grounded evidence, expose assumptions and violations, and identify observations that could discriminate among candidates.
+
+Initial design work should establish candidate-completion semantics before implementation. The system must not introduce a universal plausibility, elegance, coherence, or "settlement" score as a substitute for those semantics.
 
 
 ## Roadmap Rules
