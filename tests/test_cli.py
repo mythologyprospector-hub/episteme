@@ -1,6 +1,7 @@
 """Tests for the read-only Episteme CLI review surface."""
 
 import json
+from pathlib import Path
 
 from episteme import Provenance, RecordKind, Store, make_record
 from episteme.model import Review, ReviewDisposition, ReviewTargetKind
@@ -72,4 +73,4 @@ def test_cli_serve_does_not_require_a_subcommand(monkeypatch):
     )
 
     assert main() == 0
-    assert called == {"store_path": "fixture.sqlite", "host": "127.0.0.2", "port": 8123}
+    assert called == {"store_path": Path("fixture.sqlite"), "host": "127.0.0.2", "port": 8123}
