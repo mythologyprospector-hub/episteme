@@ -20,6 +20,7 @@ from .public import (
     PublicNotFoundError,
 )
 from .store import Store
+from .trail import DiscoveryNotFoundError
 
 API_VERSION = "v1"
 API_PREFIX = f"/api/{API_VERSION}"
@@ -119,7 +120,7 @@ class _Handler(BaseHTTPRequestHandler):
             self.wfile.write(body)
         except EpistemeHTTPError as exc:
             self._send_error(exc.status, exc.message)
-        except PublicNotFoundError as exc:
+        except (PublicNotFoundError, DiscoveryNotFoundError) as exc:
             self._send_error(404, str(exc))
         except Exception:
             self._send_error(500, "internal server error")
