@@ -8,7 +8,13 @@ from __future__ import annotations
 
 from uuid import UUID, uuid4
 
-from .model import DiscoveryFinding, DiscoveryFindingKind, DiscoveryMeasure
+from .model import (
+    DiscoveryExpectation,
+    DiscoveryExpectationKind,
+    DiscoveryFinding,
+    DiscoveryFindingKind,
+    DiscoveryMeasure,
+)
 from .store import Store
 
 
@@ -130,7 +136,14 @@ def detect_expected_gap(
         ),
         measures=_measures(store, input_ids),
         created_at=created_at,
-        expectation=(subject_id, predicate, object_id),
+        expectation=DiscoveryExpectation(
+                kind=DiscoveryExpectationKind.RELATIONSHIP,
+                data={
+                    "subject_id": subject_id,
+                    "predicate": predicate,
+                    "object_id": object_id,
+                },
+            ),
     )
 
 
