@@ -257,7 +257,16 @@ The initial API is versioned under `/api/v1` and exposes:
 - `GET /api/v1/discoveries/{finding_id}/report?created_at={timestamp}`
 - `GET /api/v1/discoveries/{finding_id}/report?created_at={timestamp}&format=html`
 
-The exact query parameters and error-body schema are part of the implementation contract and must be documented before the server is implemented.
+The query contract is:
+
+- `GET /api/v1/records?kind={kind}` optionally filters by one valid `RecordKind`; no other query parameter is accepted.
+- `GET /api/v1/reviews?target_kind={kind}&target_id={id}` optionally filters by exact review target kind and/or target identifier; no other query parameter is accepted.
+- Discovery `trail`, `lineage`, and JSON `report` require exactly one `created_at` query parameter.
+- Discovery HTML report accepts exactly `created_at` plus `format=html`.
+- Repeated query parameters, unknown parameters, blank required values, invalid enum values, and unsupported report formats are rejected with `400 Bad Request`.
+- Object-specific routes do not accept query parameters.
+
+The error body is JSON in the form `{"error":{"status":<integer>,"message":"<text>"}}`. Operational failures are returned as `500 Internal Server Error` rather than being presented as scientific absence.
 
 The API is read-only. It provides no HTTP mutation path.
 
