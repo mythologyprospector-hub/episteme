@@ -117,7 +117,9 @@ def test_http_rejects_mutation_methods(tmp_path) -> None:
 
 
 def test_http_returns_404_for_missing_record(tmp_path) -> None:
-    server = create_http_server(tmp_path / "empty.sqlite", port=0)
+    store_path = tmp_path / "empty.sqlite"
+    _empty_store(store_path)
+    server = create_http_server(store_path, port=0)
     thread = Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
@@ -135,7 +137,9 @@ def test_http_returns_404_for_missing_record(tmp_path) -> None:
 
 
 def test_http_rejects_malformed_discovery_request(tmp_path) -> None:
-    server = create_http_server(tmp_path / "empty.sqlite", port=0)
+    store_path = tmp_path / "empty.sqlite"
+    _empty_store(store_path)
+    server = create_http_server(store_path, port=0)
     thread = Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
@@ -176,7 +180,9 @@ def test_http_root_is_read_only_and_rejects_query_parameters(tmp_path) -> None:
 
 
 def test_http_rejects_invalid_record_kind_and_unknown_query(tmp_path) -> None:
-    server = create_http_server(tmp_path / "empty.sqlite", port=0)
+    store_path = tmp_path / "empty.sqlite"
+    _empty_store(store_path)
+    server = create_http_server(store_path, port=0)
     thread = Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
@@ -294,7 +300,7 @@ def test_http_does_not_create_missing_store(tmp_path) -> None:
     try:
         host, port = server.server_address
         try:
-            urlopen(f"http://{host}:{port}/api/v1")
+            urlopen(f"http://{host}:{port}/api/v1/records")
         except HTTPError as error:
             assert error.code == 500
         else:
