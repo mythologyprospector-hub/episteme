@@ -116,7 +116,7 @@ def test_structural_payload_sequence_gap_derives_expectation_from_grounded_recor
             "object_id": records[2].id,
         },
     )
-    assert "grounded field" in gap.rationale
+    assert "grounded records" in gap.rationale
 
 
 
