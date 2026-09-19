@@ -339,6 +339,52 @@ A public-facing operation should make it possible to answer:
 
 Convenience must not erase these distinctions.
 
+## Transparent Public Evaluation Workflow
+
+Phase 8's public evaluation capability is an inspectable workflow for evaluating predictions outside Episteme's own process. It is not a public endpoint for asserting scientific results and it is not an automatic truth adjudicator.
+
+The workflow is:
+
+1. **Expose the evaluation target.** A prediction, its conditions and assumptions, and the relevant experiment proposal can be inspected through the existing public surface.
+2. **Expose the basis.** The researcher can follow the prediction's lineage to the motivating hypothesis, discovery finding, and grounded inputs, including the method and version used to generate each step.
+3. **Perform or independently inspect the test.** The actual observation belongs to the external evaluator or laboratory process. Episteme does not claim an experiment occurred merely because an evaluation target was published.
+4. **Record the grounded result.** A result enters through the ordinary grounded ingestion boundary and retains independent provenance.
+5. **Evaluate the result against the prediction.** The existing PredictionEvaluation representation records consistent, inconsistent, or inconclusive under explicit comparison conditions and assumptions.
+6. **Inspect the consequence.** Where an explicit knowledge-state consequence is derived, it remains a separate generated artifact and does not become a truth flag.
+7. **Repeat discovery.** Renewed discovery may inspect the resulting generated state while keeping grounded evidence separate.
+
+The transparency requirement is that a reader can reconstruct both sides of the boundary: what Episteme proposed and what was actually observed. The public workflow never treats a proposed experiment, an exported evaluation packet, or a generated evaluation as evidence merely because it is publicly visible.
+
+### Public Evaluation Packet
+
+The initial packet is a deterministic presentation of existing state rather than a new persistence model. It should contain, where applicable:
+
+- prediction identifier and representation;
+- source hypothesis/model identifier;
+- distinguishing consequence;
+- comparison conditions;
+- assumptions;
+- experiment proposal identifier and representation;
+- proposed observation or measurement;
+- discrimination basis;
+- relevant grounded input identifiers and representations;
+- provenance;
+- generation method and version;
+- a clear statement that no result is implied by publication of the packet.
+
+An external evaluator may use the packet as a human-readable or machine-readable handoff. The evaluator's work is not authenticated or scientifically certified by Episteme merely because the packet came from Episteme.
+
+### Completion Boundary
+
+A transparent evaluation is complete only when the resulting state is inspectable as:
+
+**prediction → proposed test → independently grounded result → generated evaluation → optional knowledge-state consequence**
+
+Each transition preserves its own epistemic status and provenance. An absent result remains absent; it is not represented as a failed experiment merely because a packet was published.
+
+The initial implementation does not require public accounts, evaluator authentication, public write endpoints, signatures, reputation scores, or a universal evaluation protocol. Those are separate decisions if later evidence shows they are necessary.
+
+
 ## Deferred
 
 Phase 8 does not yet establish:
