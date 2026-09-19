@@ -9,6 +9,7 @@ from episteme import (
     RecordKind,
     Store,
     detect_accounting_gap,
+    detect_constraint_gap,
     detect_structural_sequence_gap,
     detect_structural_payload_sequence_gap,
     make_relationship,
@@ -233,3 +234,81 @@ def test_accounting_gap_exposes_grounded_residual_without_proposing_occupant():
     )
     assert "accounting rule" in gap.rationale
     assert "does not assert an external missing" in gap.rationale
+
+
+
+def test_constraint_gap_requires_bounded_constraint_and_occupied_neighbors():
+    records = tuple(
+        Record(
+            id=f"7777777{index}-7777-4777-8777-777777777777",
+            kind=RecordKind.MEASUREMENT,
+            payload={"temperature": value},
+            provenance=PROVENANCE,
+            created_at=CREATED,
+        )
+        for index, value in enumerate((10.0, 20.0, 40.0, 50.0), start=1)
+    )
+
+    with Store() as store:
+        for record in records:
+            store.put_record(record)
+
+        gap = detect_constraint_gap(
+            store,
+            record_ids=tuple(record.id for record in records),
+            value_key="temperature",
+            lower_bound=0.0,
+            upper_bound=60.0,
+            bin_width=10.0,
+            created_at="2026-09-19T00:05:00Z",
+        )
+
+    assert gap is not None
+    assert gap.kind is DiscoveryFindingKind.GAP
+    assert gap.input_ids == tuple(record.id for record in records)
+    assert gap.expectation == DiscoveryExpectation(
+        kind=DiscoveryExpectationKind.CONSTRAINT,
+        data={
+            "constraint": {
+                "value_key": "temperature",
+                "lower_bound": 0.0,
+                "upper_bound": 60.0,
+                "bin_width": 10.0,
+            },
+            "empty_interval": {
+                "lower_bound": 30.0,
+                "upper_bound": 40.0,
+            },
+        },
+    )
+    assert "explicit bounded constraint" in gap.rationale
+    assert "does not assert that an external state exists" in gap.rationale
+
+
+def test_constraint_gap_does_not_call_boundary_sparsity_a_hole():
+    records = tuple(
+        Record(
+            id=f"8888888{index}-8888-4888-888888888888",
+            kind=RecordKind.MEASUREMENT,
+            payload={"temperature": value},
+            provenance=PROVENANCE,
+            created_at=CREATED,
+        )
+        for index, value in enumerate((10.0, 20.0, 30.0), start=1)
+    )
+
+    with Store() as store:
+        for record in records:
+            store.put_record(record)
+
+        gap = detect_constraint_gap(
+            store,
+            record_ids=tuple(record.id for record in records),
+            value_key="temperature",
+            lower_bound=0.0,
+            upper_bound=40.0,
+            bin_width=10.0,
+            created_at="2026-09-19T00:06:00Z",
+        )
+
+    assert gap is None
