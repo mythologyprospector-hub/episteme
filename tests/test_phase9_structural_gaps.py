@@ -511,3 +511,42 @@ def test_positional_gap_does_not_treat_boundary_sparsity_as_a_hole():
         )
 
     assert gap is None
+
+
+def test_structural_gap_reproduction_is_deterministic_for_same_state_and_method():
+    records = tuple(
+        Record(
+            id=f"cccccccc-{index:04d}-4ccc-8ccc-cccccccccccc",
+            kind=RecordKind.OBSERVATION,
+            payload={"position": position},
+            provenance=PROVENANCE,
+            created_at=CREATED,
+        )
+        for index, position in enumerate((10.0, 20.0, 40.0, 50.0), start=1)
+    )
+
+    with Store() as store:
+        for record in records:
+            store.put_record(record)
+        first = detect_positional_gap(
+            store,
+            record_ids=tuple(record.id for record in records),
+            position_key="position",
+            step=10.0,
+            created_at="2026-09-19T00:12:00Z",
+        )
+        second = detect_positional_gap(
+            store,
+            record_ids=tuple(record.id for record in records),
+            position_key="position",
+            step=10.0,
+            created_at="2026-09-19T00:12:00Z",
+        )
+
+    assert first is not None
+    assert second is not None
+    first_data = first.to_dict()
+    second_data = second.to_dict()
+    first_data["id"] = None
+    second_data["id"] = None
+    assert first_data == second_data
