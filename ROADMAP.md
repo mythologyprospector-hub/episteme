@@ -330,6 +330,26 @@ The HTTP/API integrity audit confirms that the documented read-oriented public s
 No additional public write path, persistence authority, or epistemic primitive was introduced. The integrity audit therefore closes the currently defined Phase 8 public-instrument surface without implying that Phase 8 itself is finished.
 
 
+## Phase 9 — Structural Discovery
+
+**Goal:** Identify meaningful holes in represented knowledge from structure, constraints, and convergent expectations rather than from arbitrary absence.
+
+The canonical Phase 9 design is defined in STRUCTURAL_GAPS.md.
+
+Target capabilities:
+
+- [ ] bounded positional, relational, constraint, and accounting gaps;
+- [ ] explicit structural context and constraint traceability;
+- [ ] separation of structural rules from grounded evidence and generated gaps;
+- [ ] inspectable structural-pressure components without a universal score;
+- [ ] deterministic structural-gap reproduction;
+- [ ] cross-domain demonstration without introducing a new domain-specific core primitive.
+
+Candidate completion is deliberately deferred. Phase 9 establishes the hole before attempting to determine what fills it.
+
+**Exit condition:** Episteme can identify and reproduce bounded structural gaps whose existence is established by explicit, traceable structure and constraints, while preserving the distinction between grounded evidence, structural rules, gaps, and candidate completions.
+
+
 ## Roadmap Rules
 
 ### No roadmap-driven architecture
