@@ -60,6 +60,8 @@ def complete_structural_gap(
     """
     gap = store.get_discovery_finding(gap_id)
     if gap is None:
+        if store.get_record(gap_id) is not None or store.get_relationship(gap_id) is not None:
+            raise ValueError("candidate completion requires a gap finding: " + gap_id)
         raise ValueError("candidate completion references missing gap: " + gap_id)
     if gap.kind.value != "gap":
         raise ValueError("candidate completion requires a gap finding: " + gap_id)
