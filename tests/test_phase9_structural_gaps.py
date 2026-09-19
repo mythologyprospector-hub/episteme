@@ -269,7 +269,8 @@ def test_constraint_gap_requires_bounded_constraint_and_occupied_neighbors():
     assert gap.expectation == DiscoveryExpectation(
         kind=DiscoveryExpectationKind.CONSTRAINT,
         data={
-            "constraint": {
+            "constraint": "temperature is bounded to [0.0, 60.0] with inspection width 10.0",
+            "constraint_parameters": {
                 "value_key": "temperature",
                 "lower_bound": 0.0,
                 "upper_bound": 60.0,
@@ -288,7 +289,7 @@ def test_constraint_gap_requires_bounded_constraint_and_occupied_neighbors():
 def test_constraint_gap_does_not_call_boundary_sparsity_a_hole():
     records = tuple(
         Record(
-            id=f"8888888{index}-8888-4888-888888888888",
+            id=f"8888888{index}-8888-4888-8888-888888888888",
             kind=RecordKind.MEASUREMENT,
             payload={"temperature": value},
             provenance=PROVENANCE,
