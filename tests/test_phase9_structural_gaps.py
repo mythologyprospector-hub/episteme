@@ -313,3 +313,77 @@ def test_constraint_gap_does_not_call_boundary_sparsity_a_hole():
         )
 
     assert gap is None
+
+
+
+def test_structural_gap_methods_remain_domain_agnostic_and_deterministic():
+    """Different structural forms share the same core discovery boundary."""
+    total = Record(
+        id="99999991-9999-4999-8999-999999999999",
+        kind=RecordKind.MEASUREMENT,
+        payload={"mass": 10.0},
+        provenance=PROVENANCE,
+        created_at=CREATED,
+    )
+    component_a = Record(
+        id="99999992-9999-4999-8999-999999999999",
+        kind=RecordKind.MEASUREMENT,
+        payload={"mass": 3.0},
+        provenance=PROVENANCE,
+        created_at=CREATED,
+    )
+    component_b = Record(
+        id="99999993-9999-4999-8999-999999999999",
+        kind=RecordKind.MEASUREMENT,
+        payload={"mass": 4.0},
+        provenance=PROVENANCE,
+        created_at=CREATED,
+    )
+    observations = tuple(
+        Record(
+            id=f"9999999{index}-9999-4999-8999-999999999999",
+            kind=RecordKind.OBSERVATION,
+            payload={"position": position},
+            provenance=PROVENANCE,
+            created_at=CREATED,
+        )
+        for index, position in enumerate((10, 20, 40, 50), start=4)
+    )
+
+    with Store() as store:
+        for record in (total, component_a, component_b, *observations):
+            store.put_record(record)
+        accounting = detect_accounting_gap(
+            store,
+            total_record_id=total.id,
+            component_record_ids=(component_a.id, component_b.id),
+            quantity_key="mass",
+            created_at="2026-09-19T00:07:00Z",
+        )
+        constraint = detect_constraint_gap(
+            store,
+            record_ids=tuple(record.id for record in observations),
+            value_key="position",
+            lower_bound=0.0,
+            upper_bound=60.0,
+            bin_width=10.0,
+            created_at="2026-09-19T00:08:00Z",
+        )
+
+    assert accounting is not None
+    assert constraint is not None
+    assert accounting.kind is DiscoveryFindingKind.GAP
+    assert constraint.kind is DiscoveryFindingKind.GAP
+    assert accounting.input_ids == (total.id, component_a.id, component_b.id)
+    assert constraint.input_ids == tuple(record.id for record in observations)
+    assert accounting.expectation is not None
+    assert constraint.expectation is not None
+    assert accounting.expectation.kind is DiscoveryExpectationKind.ACCOUNTING
+    assert constraint.expectation.kind is DiscoveryExpectationKind.CONSTRAINT
+    assert "does not assert" in accounting.rationale
+    assert "does not assert" in constraint.rationale
+
+    accounting_copy = accounting.to_dict()
+    constraint_copy = constraint.to_dict()
+    assert DiscoveryExpectation.from_dict(accounting_copy["expectation"]) == accounting.expectation
+    assert DiscoveryExpectation.from_dict(constraint_copy["expectation"]) == constraint.expectation
