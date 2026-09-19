@@ -7,6 +7,7 @@ import json
 import sqlite3
 from typing import Iterator
 
+from .candidate_assessment import CandidateConstraintAssessment
 from .model import (
     AssessmentTargetKind,
     DiscoveryFinding,
@@ -145,6 +146,21 @@ class Store:
                 method_version TEXT NOT NULL,
                 rationale TEXT NOT NULL,
                 assumptions TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                schema_version INTEGER NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS candidate_constraint_assessments (
+                id TEXT PRIMARY KEY,
+                candidate_id TEXT NOT NULL,
+                constraint_id TEXT NOT NULL,
+                basis TEXT NOT NULL,
+                status TEXT NOT NULL,
+                input_ids TEXT NOT NULL,
+                assumptions TEXT NOT NULL,
+                explanation TEXT NOT NULL,
+                method TEXT NOT NULL,
+                method_version TEXT NOT NULL,
                 created_at TEXT NOT NULL,
                 schema_version INTEGER NOT NULL
             );
@@ -638,6 +654,117 @@ class Store:
                 "method": row["method"], "method_version": row["method_version"],
                 "rationale": row["rationale"], "assumptions": json.loads(row["assumptions"]),
                 "created_at": row["created_at"], "schema_version": row["schema_version"],
+            })
+
+    def put_candidate_constraint_assessment(
+        self, assessment: CandidateConstraintAssessment
+    ) -> None:
+        if self.get_hypothesis(assessment.candidate_id) is None:
+            raise ValueError(
+                "candidate constraint assessment references missing candidate: "
+                + assessment.candidate_id
+            )
+        missing_inputs = [
+            input_id
+            for input_id in assessment.input_ids
+            if self.get_record(input_id) is None and self.get_relationship(input_id) is None
+        ]
+        if missing_inputs:
+            raise ValueError(
+                "candidate constraint assessment references missing input(s): "
+                + ", ".join(missing_inputs)
+            )
+
+        self._connection.execute(
+            """
+            INSERT INTO candidate_constraint_assessments
+                (id, candidate_id, constraint_id, basis, status, input_ids,
+                 assumptions, explanation, method, method_version, created_at, schema_version)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                assessment.id,
+                assessment.candidate_id,
+                assessment.constraint_id,
+                assessment.basis,
+                assessment.status.value,
+                canonical_json(list(assessment.input_ids)),
+                canonical_json(list(assessment.assumptions)),
+                assessment.explanation,
+                assessment.method,
+                assessment.method_version,
+                assessment.created_at,
+                assessment.schema_version,
+            ),
+        )
+        self._connection.commit()
+
+    def get_candidate_constraint_assessment(
+        self, assessment_id: str
+    ) -> CandidateConstraintAssessment | None:
+        row = self._connection.execute(
+            """
+            SELECT id, candidate_id, constraint_id, basis, status, input_ids,
+                   assumptions, explanation, method, method_version, created_at, schema_version
+            FROM candidate_constraint_assessments
+            WHERE id = ?
+            """,
+            (assessment_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        return CandidateConstraintAssessment.from_dict({
+            "id": row["id"],
+            "candidate_id": row["candidate_id"],
+            "constraint_id": row["constraint_id"],
+            "basis": row["basis"],
+            "status": row["status"],
+            "input_ids": json.loads(row["input_ids"]),
+            "assumptions": json.loads(row["assumptions"]),
+            "explanation": row["explanation"],
+            "method": row["method"],
+            "method_version": row["method_version"],
+            "created_at": row["created_at"],
+            "schema_version": row["schema_version"],
+        })
+
+    def iter_candidate_constraint_assessments(
+        self, candidate_id: str | None = None
+    ) -> Iterator[CandidateConstraintAssessment]:
+        if candidate_id is None:
+            rows = self._connection.execute(
+                """
+                SELECT id, candidate_id, constraint_id, basis, status, input_ids,
+                       assumptions, explanation, method, method_version, created_at, schema_version
+                FROM candidate_constraint_assessments
+                ORDER BY created_at, id
+                """
+            )
+        else:
+            rows = self._connection.execute(
+                """
+                SELECT id, candidate_id, constraint_id, basis, status, input_ids,
+                       assumptions, explanation, method, method_version, created_at, schema_version
+                FROM candidate_constraint_assessments
+                WHERE candidate_id = ?
+                ORDER BY created_at, id
+                """,
+                (candidate_id,),
+            )
+        for row in rows:
+            yield CandidateConstraintAssessment.from_dict({
+                "id": row["id"],
+                "candidate_id": row["candidate_id"],
+                "constraint_id": row["constraint_id"],
+                "basis": row["basis"],
+                "status": row["status"],
+                "input_ids": json.loads(row["input_ids"]),
+                "assumptions": json.loads(row["assumptions"]),
+                "explanation": row["explanation"],
+                "method": row["method"],
+                "method_version": row["method_version"],
+                "created_at": row["created_at"],
+                "schema_version": row["schema_version"],
             })
 
     def put_model(self, model: Model) -> None:
