@@ -116,6 +116,31 @@ def test_http_rejects_mutation_methods(tmp_path) -> None:
         thread.join(timeout=2)
 
 
+def test_http_rejects_malformed_object_identifiers(tmp_path) -> None:
+    store_path = tmp_path / "empty.sqlite"
+    _empty_store(store_path)
+    server = create_http_server(store_path, port=0)
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        host, port = server.server_address
+        for url in (
+            f"http://{host}:{port}/api/v1/records/not-a-uuid",
+            f"http://{host}:{port}/api/v1/reviews/not-a-uuid",
+            f"http://{host}:{port}/api/v1/discoveries/not-a-uuid/trail?created_at=2026-01-01T00:00:00+00:00",
+        ):
+            try:
+                urlopen(url)
+            except HTTPError as error:
+                assert error.code == 400
+            else:
+                raise AssertionError("malformed identifier unexpectedly succeeded")
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+
+
 def test_http_returns_404_for_missing_record(tmp_path) -> None:
     store_path = tmp_path / "empty.sqlite"
     _empty_store(store_path)
