@@ -210,7 +210,14 @@ def detect_structural_sequence_gap(
                 ),
             ),
             created_at=created_at,
-            expectation=(subject_id, predicate, object_id),
+            expectation=DiscoveryExpectation(
+                kind=DiscoveryExpectationKind.RELATIONSHIP,
+                data={
+                    "subject_id": subject_id,
+                    "predicate": predicate,
+                    "object_id": object_id,
+                },
+            ),
         )
 
     return None
