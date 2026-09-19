@@ -6,6 +6,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
+from uuid import UUID
 
 from .model import ReviewTargetKind
 from .public import (
@@ -57,6 +58,14 @@ def _single_query(query: dict[str, list[str]], name: str) -> str | None:
     if len(values) > 1:
         raise _error(400, f"query parameter supplied more than once: {name}")
     return values[0] if values else None
+
+
+def _identifier(value: str, name: str) -> str:
+    try:
+        UUID(value)
+    except ValueError as exc:
+        raise _error(400, f"invalid {name}: {value}") from exc
+    return value
 
 
 def _timestamp(value: str) -> str:
@@ -173,7 +182,7 @@ class _EpistemeHTTPServer(ThreadingHTTPServer):
             if len(parts) == 2 and parts[0] == "records":
                 if query:
                     raise _error(400, "unexpected query parameter")
-                return get_record(store, parts[1]), "application/json; charset=utf-8"
+                return get_record(store, _identifier(parts[1], "record identifier")), "application/json; charset=utf-8"
 
             if parts == ["reviews"]:
                 _reject_unexpected_query(query, {"target_kind", "target_id"})
@@ -188,28 +197,29 @@ class _EpistemeHTTPServer(ThreadingHTTPServer):
             if len(parts) == 2 and parts[0] == "reviews":
                 if query:
                     raise _error(400, "unexpected query parameter")
-                return get_review(store, parts[1]), "application/json; charset=utf-8"
+                return get_review(store, _identifier(parts[1], "review identifier")), "application/json; charset=utf-8"
 
             if len(parts) == 3 and parts[0] == "discoveries" and parts[2] in {
                 "trail",
                 "lineage",
                 "report",
             }:
+                finding_id = _identifier(parts[1], "discovery finding identifier")
                 created_at = _timestamp(_require_query(query, "created_at"))
                 allowed = {"created_at"}
                 if parts[2] == "report" and set(query) == {"created_at", "format"}:
                     format_value = _require_query(query, "format")
                     if format_value != "html":
                         raise _error(400, "unsupported report format")
-                    report = discovery_report(store, parts[1], created_at)
+                    report = discovery_report(store, finding_id, created_at)
                     from .html import render_discovery_report_html
                     return render_discovery_report_html(report).encode("utf-8"), "text/html; charset=utf-8"
                 _reject_unexpected_query(query, allowed)
                 if parts[2] == "trail":
-                    return discovery_trail(store, parts[1], created_at), "application/json; charset=utf-8"
+                    return discovery_trail(store, finding_id, created_at), "application/json; charset=utf-8"
                 if parts[2] == "lineage":
-                    return discovery_lineage(store, parts[1], created_at), "application/json; charset=utf-8"
-                return discovery_report(store, parts[1], created_at), "application/json; charset=utf-8"
+                    return discovery_lineage(store, finding_id, created_at), "application/json; charset=utf-8"
+                return discovery_report(store, finding_id, created_at), "application/json; charset=utf-8"
 
         raise _error(404, "API route not found")
 
