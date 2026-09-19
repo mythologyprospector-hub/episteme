@@ -2,6 +2,7 @@
 
 from episteme import (
     DiscoveryExpectation,
+    DiscoveryFinding,
     DiscoveryExpectationKind,
     DiscoveryFindingKind,
     Provenance,
@@ -416,7 +417,7 @@ def test_structural_pressure_is_an_inspectable_ledger_not_a_score():
     assert StructuralPressureComponent.from_dict(component_a.to_dict()) == component_a
     assert StructuralPressureComponent.from_dict(component_b.to_dict()) == component_b
 
-    finding = __import__("episteme").DiscoveryFinding(
+    finding = DiscoveryFinding(
         id="eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
         kind=DiscoveryFindingKind.GAP,
         title="A structurally pressured gap",
@@ -442,6 +443,6 @@ def test_structural_pressure_is_an_inspectable_ledger_not_a_score():
         component_a.to_dict(),
         component_b.to_dict(),
     ]
-    assert __import__("episteme").DiscoveryFinding.from_dict(encoded) == finding
+    assert DiscoveryFinding.from_dict(encoded) == finding
     assert "score" not in encoded["structural_pressure"][0]
     assert "score" not in encoded["structural_pressure"][1]
