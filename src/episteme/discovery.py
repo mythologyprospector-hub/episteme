@@ -433,7 +433,11 @@ def detect_constraint_gap(
             expectation=DiscoveryExpectation(
                 kind=DiscoveryExpectationKind.CONSTRAINT,
                 data={
-                    "constraint": {
+                    "constraint": (
+                        f"{value_key} is bounded to [{lower_bound}, {upper_bound}] "
+                        f"with inspection width {bin_width}"
+                    ),
+                    "constraint_parameters": {
                         "value_key": value_key,
                         "lower_bound": lower_bound,
                         "upper_bound": upper_bound,
