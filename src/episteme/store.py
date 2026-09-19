@@ -467,6 +467,7 @@ class Store:
             for context_id in finding.context_ids
             if self.get_prediction_evaluation(context_id) is None
             and self.get_knowledge_state_consequence(context_id) is None
+            and self.get_prediction(context_id) is None
         ]
         if missing_context:
             raise ValueError(
