@@ -108,7 +108,14 @@ def test_structural_payload_sequence_gap_derives_expectation_from_grounded_recor
 
     assert gap is not None
     assert gap.kind is DiscoveryFindingKind.GAP
-    assert gap.expectation == (records[1].id, "next", records[2].id)
+    assert gap.expectation == DiscoveryExpectation(
+        kind=DiscoveryExpectationKind.RELATIONSHIP,
+        data={
+            "subject_id": records[1].id,
+            "predicate": "next",
+            "object_id": records[2].id,
+        },
+    )
     assert "grounded field" in gap.rationale
 
 
@@ -147,7 +154,14 @@ def test_structural_payload_sequence_gap_ignores_input_order():
         )
 
     assert gap is not None
-    assert gap.expectation == (records[1].id, "next", records[2].id)
+    assert gap.expectation == DiscoveryExpectation(
+        kind=DiscoveryExpectationKind.RELATIONSHIP,
+        data={
+            "subject_id": records[1].id,
+            "predicate": "next",
+            "object_id": records[2].id,
+        },
+    )
 
 
 def test_discovery_expectation_supports_non_relationship_structures():
