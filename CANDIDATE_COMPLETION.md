@@ -354,6 +354,8 @@ Phase 10 is complete when Episteme can take an established structural gap and pr
 - remain distinct from grounded evidence;
 - are reproducible from their represented inputs and methods.
 
+The implementation and proof boundary for Phase 10 are now complete. The tested path runs from an established structural gap through competing candidates, constraint assessment, discriminating predictions, experiment proposal, grounded result, independent evaluations, and explicit knowledge-state consequences. Renewed discovery can then surface a new tension from differing evaluation outcomes without rewriting the underlying evidence.
+
 The purpose of Phase 10 is not to make Episteme choose an answer.
 
 The purpose is to make possible answers **settle against the structure without hiding the reasons why**.
