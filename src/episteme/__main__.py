@@ -81,7 +81,7 @@ def main() -> int:
     if args.command is None:
         raise SystemExit("a command is required unless --serve is used")
     store_path = Path(args.store) if args.store != ":memory:" else args.store
-    with Store(store_path) as store:
+    with Store(store_path, read_only=True) as store:
         if args.command == "records":
             result = list_records(store, kind=args.kind)
         elif args.command == "reviews":
