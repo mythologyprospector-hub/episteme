@@ -349,7 +349,7 @@ def test_http_rejects_invalid_discovery_timestamp(tmp_path) -> None:
         host, port = server.server_address
         try:
             urlopen(
-                f"http://{host}:{port}/api/v1/discoveries/missing/trail"
+                f"http://{host}:{port}/api/v1/discoveries/00000000-0000-0000-0000-000000000001/trail"
                 "?created_at=not-a-timestamp"
             )
         except HTTPError as error:
