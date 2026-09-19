@@ -248,7 +248,7 @@ Initial target capabilities:
 - [x] public knowledge imports
 - [x] collaboration and review workflows
 - [ ] documented external HTTP/API surface
-- [ ] transparent public evaluation workflow
+- [x] transparent public evaluation workflow
 
 The exact public product shape remains intentionally open.
 
@@ -285,6 +285,22 @@ The first Phase 8 implementation satisfies the initial public-instrument exit co
 - no new persistence model, epistemic primitive, autonomous authority, or external service was required.
 
 This audit closes the initial Phase 8 public-instrument milestone. It does not close Phase 8 as a whole; the remaining public capabilities stay explicitly open on the roadmap.
+
+### Phase 8 Transparent Public Evaluation Audit
+
+The transparent public evaluation capability establishes a public, inspectable handoff from generated prediction to independent evaluation without adding a public mutation path or a new epistemic authority.
+
+- evaluation targets remain existing predictions and experiment proposals;
+- conditions, assumptions, provenance, discrimination basis, and method/version remain inspectable;
+- external execution is not inferred from publication or inspection;
+- actual observations remain grounded results with independent provenance;
+- prediction evaluations remain generated contextual comparisons;
+- knowledge-state consequences remain separate generated artifacts;
+- the complete evaluation chain can be reconstructed through the existing public inspection surface;
+- no public account system, evaluator reputation, signature protocol, mutation API, or universal evaluation standard is introduced.
+
+The transparent public evaluation workflow therefore satisfies the remaining Phase 8 public-evaluation capability at the architectural and public-instrument level. Further automation or public write workflows remain future decisions rather than prerequisites.
+
 
 ## Roadmap Rules
 
