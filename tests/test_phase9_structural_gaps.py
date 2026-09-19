@@ -8,6 +8,7 @@ from episteme import (
     Record,
     RecordKind,
     Store,
+    StructuralPressureComponent,
     detect_accounting_gap,
     detect_constraint_gap,
     detect_structural_sequence_gap,
@@ -387,3 +388,60 @@ def test_structural_gap_methods_remain_domain_agnostic_and_deterministic():
     constraint_copy = constraint.to_dict()
     assert DiscoveryExpectation.from_dict(accounting_copy["expectation"]) == accounting.expectation
     assert DiscoveryExpectation.from_dict(constraint_copy["expectation"]) == constraint.expectation
+
+
+def test_structural_pressure_is_an_inspectable_ledger_not_a_score():
+    component_a = StructuralPressureComponent(
+        kind="accounting-balance",
+        basis="A grounded total exceeds the represented grounded components.",
+        input_ids=(
+            "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+            "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        ),
+        method="accounting-balance-gap-discovery",
+        method_version="1",
+    )
+    component_b = StructuralPressureComponent(
+        kind="bounded-interior-vacancy",
+        basis="A grounded bounded interval is empty between represented neighbors.",
+        input_ids=(
+            "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+            "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+        ),
+        method="bounded-constraint-gap-discovery",
+        method_version="1",
+    )
+
+    assert component_a != component_b
+    assert StructuralPressureComponent.from_dict(component_a.to_dict()) == component_a
+    assert StructuralPressureComponent.from_dict(component_b.to_dict()) == component_b
+
+    finding = __import__("episteme").DiscoveryFinding(
+        id="eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+        kind=DiscoveryFindingKind.GAP,
+        title="A structurally pressured gap",
+        description="Independent structural analyses point to the same represented vacancy.",
+        input_ids=component_a.input_ids + component_b.input_ids,
+        method="structural-pressure-ledger",
+        method_version="1",
+        rationale=(
+            "The ledger preserves distinct structural reasons without collapsing "
+            "them into a universal pressure, confidence, importance, or truth score."
+        ),
+        measures=(),
+        created_at="2026-09-19T00:09:00Z",
+        expectation=DiscoveryExpectation(
+            kind=DiscoveryExpectationKind.ACCOUNTING,
+            data={"quantity": "unaccounted quantity"},
+        ),
+        structural_pressure=(component_a, component_b),
+    )
+
+    encoded = finding.to_dict()
+    assert encoded["structural_pressure"] == [
+        component_a.to_dict(),
+        component_b.to_dict(),
+    ]
+    assert __import__("episteme").DiscoveryFinding.from_dict(encoded) == finding
+    assert "score" not in encoded["structural_pressure"][0]
+    assert "score" not in encoded["structural_pressure"][1]
