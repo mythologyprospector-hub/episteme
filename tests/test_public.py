@@ -1,6 +1,7 @@
 """Tests for the read-only public Episteme instrument."""
 
 from episteme import (
+    Relationship,
     DiscoveryFinding,
     DiscoveryFindingKind,
     DiscoveryMeasure,
@@ -97,6 +98,23 @@ def test_public_api_exposes_trail_and_report_without_reinterpreting_state():
     assert report["generated_artifacts"][0]["id"] == finding.id
     assert report["lineage"] == lineage
 
+
+
+def test_public_report_keeps_grounded_relationships_grounded():
+    subject = make_record(kind=RecordKind.OBSERVATION, payload={"value": "subject"}, provenance=PROVENANCE, created_at=CREATED)
+    object_record = make_record(kind=RecordKind.OBSERVATION, payload={"value": "object"}, provenance=PROVENANCE, created_at=CREATED)
+    relationship = Relationship(id="88888888-8888-4888-8888-888888888881", subject_id=subject.id, predicate="contradicts", object_id=object_record.id, provenance=PROVENANCE, created_at=CREATED)
+    finding = DiscoveryFinding(id="88888888-8888-4888-8888-888888888882", kind=DiscoveryFindingKind.CONTRADICTION, title="Grounded relationship fixture", description="The relationship is grounded input to discovery.", input_ids=(relationship.id, subject.id, object_record.id), method="public-test", method_version="1", rationale="Test fixture only.", measures=(), created_at=CREATED)
+    with Store() as store:
+        store.put_record(subject)
+        store.put_record(object_record)
+        store.put_relationship(relationship)
+        store.put_discovery_finding(finding)
+        report = discovery_report(store, finding.id, CREATED)
+    grounded_kinds = {entry["kind"] for entry in report["grounded_records"]}
+    generated_kinds = {entry["kind"] for entry in report["generated_artifacts"]}
+    assert "relationship" in grounded_kinds
+    assert "relationship" not in generated_kinds
 
 
 def test_cli_records_reads_a_store(tmp_path, capsys):
