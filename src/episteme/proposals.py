@@ -132,6 +132,53 @@ def predict(
     )
 
 
+def propose_discriminating_prediction(
+    store: "Store",
+    *,
+    candidate_id: str,
+    competing_candidate_ids: tuple[str, ...],
+    consequence: str,
+    conditions: str,
+    method: str,
+    method_version: str,
+    rationale: str,
+    assumptions: tuple[str, ...] = (),
+    created_at: str,
+) -> Prediction:
+    """Construct a prediction that explicitly discriminates candidate hypotheses.
+
+    The candidates must already exist. This operation creates only a generated
+    prediction and does not alter the candidates or grounded evidence.
+    """
+    candidate = store.get_hypothesis(candidate_id)
+    if candidate is None:
+        raise ValueError("discriminating prediction references missing candidate: " + candidate_id)
+
+    candidate_ids = tuple(competing_candidate_ids)
+    if len(candidate_ids) < 2:
+        raise ValueError("discriminating prediction requires at least two candidates")
+    if candidate_id not in candidate_ids:
+        raise ValueError("discriminating prediction must include its source candidate")
+
+    for competing_id in candidate_ids:
+        if store.get_hypothesis(competing_id) is None:
+            raise ValueError(
+                "discriminating prediction references missing candidate: " + competing_id
+            )
+
+    return predict(
+        source_id=candidate_id,
+        consequence=consequence,
+        conditions=conditions,
+        assumptions=assumptions,
+        method=method,
+        method_version=method_version,
+        rationale=rationale,
+        comparison_hypothesis_ids=candidate_ids,
+        created_at=created_at,
+    )
+
+
 def propose_experiment(
     *,
     prediction_ids: tuple[str, ...],
