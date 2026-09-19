@@ -1,6 +1,8 @@
 """Phase 9 proof of structural-gap discovery."""
 
 from episteme import (
+    DiscoveryExpectation,
+    DiscoveryExpectationKind,
     DiscoveryFindingKind,
     Provenance,
     Record,
@@ -57,7 +59,14 @@ def test_structural_sequence_gap_requires_explicit_structure():
     assert gap is not None
     assert gap.kind is DiscoveryFindingKind.GAP
     assert gap.input_ids == tuple(record.id for record in records)
-    assert gap.expectation == (records[1].id, "next", records[2].id)
+    assert gap.expectation == DiscoveryExpectation(
+        kind=DiscoveryExpectationKind.RELATIONSHIP,
+        data={
+            "subject_id": records[1].id,
+            "predicate": "next",
+            "object_id": records[2].id,
+        },
+    )
     assert gap.context_ids == ()
     assert "explicit ordered structure" in gap.rationale
 
@@ -139,3 +148,22 @@ def test_structural_payload_sequence_gap_ignores_input_order():
 
     assert gap is not None
     assert gap.expectation == (records[1].id, "next", records[2].id)
+
+
+def test_discovery_expectation_supports_non_relationship_structures():
+    positional = DiscoveryExpectation(
+        kind=DiscoveryExpectationKind.POSITIONAL,
+        data={"position": 4},
+    )
+    constraint = DiscoveryExpectation(
+        kind=DiscoveryExpectationKind.CONSTRAINT,
+        data={"constraint": "mass must be conserved"},
+    )
+    accounting = DiscoveryExpectation(
+        kind=DiscoveryExpectationKind.ACCOUNTING,
+        data={"quantity": "unaccounted mass"},
+    )
+
+    assert DiscoveryExpectation.from_dict(positional.to_dict()) == positional
+    assert DiscoveryExpectation.from_dict(constraint.to_dict()) == constraint
+    assert DiscoveryExpectation.from_dict(accounting.to_dict()) == accounting
