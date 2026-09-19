@@ -59,6 +59,18 @@ def _single_query(query: dict[str, list[str]], name: str) -> str | None:
     return values[0] if values else None
 
 
+def _timestamp(value: str) -> str:
+    from datetime import datetime
+
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise _error(400, f"invalid timestamp: {value}") from exc
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise _error(400, f"invalid timestamp: {value}")
+    return value
+
+
 def _review_kind(value: str | None) -> ReviewTargetKind | None:
     if value is None:
         return None
@@ -185,7 +197,7 @@ class _EpistemeHTTPServer(ThreadingHTTPServer):
                 "lineage",
                 "report",
             }:
-                created_at = _require_query(query, "created_at")
+                created_at = _timestamp(_require_query(query, "created_at"))
                 allowed = {"created_at"}
                 if parts[2] == "report" and set(query) == {"created_at", "format"}:
                     format_value = _require_query(query, "format")
