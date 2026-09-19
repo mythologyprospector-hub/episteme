@@ -70,7 +70,7 @@ def discovery_report(
     grounded = [
         entry.to_dict()
         for entry in trail.entries
-        if entry.kind == "record"
+        if entry.kind in {"record", "relationship"}
     ]
     generated = [
         entry.to_dict()
