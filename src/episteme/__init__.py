@@ -38,7 +38,7 @@ from .model import (
 from .discovery import detect_accounting_gap, detect_constraint_gap, detect_positional_gap, detect_expected_gap, detect_structural_payload_sequence_gap, detect_structural_sequence_gap, discover_competing_prediction_opportunities, discover_evaluation_tensions, discover_explicit_contradictions, question_from_finding
 from .store import Store
 from .trail import DiscoveryTrail, TrailEntry, build_discovery_trail
-from .proposals import complete_structural_gap, predict, propose_discriminating_prediction, propose_experiment, propose_hypothesis, represent_model
+from .proposals import complete_structural_gap, predict, propose_candidate_discrimination_experiment, propose_discriminating_prediction, propose_experiment, propose_hypothesis, represent_model
 from .public import discovery_lineage, discovery_report, discovery_trail, get_record, get_review, list_records, list_reviews
 from .html import render_discovery_report_html
 from .public_import import import_crossref_works
@@ -96,6 +96,7 @@ __all__ = [
     "ingest_jsonl",
     "ingest_jsonl_file",
     "complete_structural_gap",
+    "propose_candidate_discrimination_experiment",
     "propose_discriminating_prediction",
     "propose_hypothesis",
     "represent_model",
