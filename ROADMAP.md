@@ -1,8 +1,8 @@
 # Episteme Roadmap
 
 **Status:** Canonical planning document  
-**Version:** 1.6  
-**Last updated:** 2026-09-18
+**Version:** 1.7  
+**Last updated:** 2026-09-19
 
 ## Mission
 
@@ -315,6 +315,20 @@ The transparent public evaluation capability establishes a public, inspectable h
 
 The transparent public evaluation workflow therefore satisfies the remaining Phase 8 public-evaluation capability at the architectural and public-instrument level. Further automation or public write workflows remain future decisions rather than prerequisites.
 
+### Phase 8 HTTP/API Integrity Audit
+
+The HTTP/API integrity audit confirms that the documented read-oriented public surface is enforced by the implementation rather than merely described by documentation.
+
+- read-only HTTP access opens SQLite in strict read-only mode and does not initialize or create the store;
+- read-only CLI access uses the same strict store boundary and requires an existing store path;
+- malformed object identifiers are rejected at the HTTP boundary with 400, while valid but missing resources remain 404;
+- malformed discovery timestamps are rejected with 400 and timestamp validation is independently regression-tested;
+- HTTP error mapping distinguishes public missing-resource conditions from unexpected internal errors, which remain 500;
+- grounded relationships remain classified as grounded in deterministic discovery reports;
+- internal error behavior is regression-tested so implementation failures cannot be disguised as resource absence.
+
+No additional public write path, persistence authority, or epistemic primitive was introduced. The integrity audit therefore closes the currently defined Phase 8 public-instrument surface without implying that Phase 8 itself is finished.
+
 
 ## Roadmap Rules
 
@@ -354,4 +368,4 @@ Phase 6 is complete. Result records can be ingested through the grounded JSONL i
 
 Phase 7 is complete. Astronomy and Biology demonstrate materially different evidence shapes above the stable core, while provenance, explicit unknown/conflict/uncertainty states, generated-versus-grounded boundaries, closed-loop lineage, and reproducibility remain intact. The Phase 7 exit condition is satisfied.
 
-Phase 8 has established its researcher-facing public instrument: a read-only Python inspection API, the installed `episteme` command, a documented external HTTP/API surface, deterministic discovery reports, a self-contained browser-readable report renderer, public knowledge import, collaboration/review inspection, and a transparent public evaluation workflow. These expose existing Episteme state rather than creating a parallel public data model. The Phase 8 initial public-instrument exit condition and the currently defined HTTP/API and transparent-evaluation capabilities are satisfied. Authentication, public mutation, broader source import, and other platform concerns remain future work rather than prerequisites.
+Phase 8 has established its researcher-facing public instrument: a read-only Python inspection API, the installed `episteme` command, a documented external HTTP/API surface, deterministic discovery reports, a self-contained browser-readable report renderer, public knowledge import, collaboration/review inspection, and a transparent public evaluation workflow. These expose existing Episteme state rather than creating a parallel public data model. The Phase 8 initial public-instrument exit condition and the currently defined HTTP/API and transparent-evaluation capabilities are satisfied. Authentication, public mutation, broader source import, and other platform concerns remain future work rather than prerequisites. The HTTP/API integrity audit is also complete: the read-only boundary, identifier and timestamp validation, missing-resource classification, internal-error handling, and grounded/generated report separation are regression-tested and CI-verified.
