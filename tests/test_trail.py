@@ -48,7 +48,7 @@ def finding(identifier: str, input_id: str) -> DiscoveryFinding:
             ),
         ),
         created_at="2026-09-18T00:00:00Z",
-        expectation=(input_id, "expects", input_id),
+        expectation=DiscoveryExpectation(DiscoveryExpectationKind.RELATIONSHIP, {"subject_id": input_id, "predicate": "expects", "object_id": input_id}),
     )
 
 
