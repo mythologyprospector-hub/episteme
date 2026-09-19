@@ -361,18 +361,6 @@ def test_candidate_discrimination_experiment_rejects_non_discriminating_predicti
         )
         store.put_hypothesis(candidate)
 
-        prediction = propose_discriminating_prediction(
-            store,
-            candidate_id=candidate.id,
-            competing_candidate_ids=(candidate.id,),
-            consequence="Outcome A occurs.",
-            conditions="Shared bounded test conditions.",
-            method="phase10-fixture",
-            method_version="1",
-            rationale="This is not actually a competition.",
-            created_at="2026-09-19T00:21:02Z",
-        ) if False else None
-
         # Build a valid single-candidate prediction directly to prove the
         # experiment boundary does not silently accept it.
         from episteme import predict
