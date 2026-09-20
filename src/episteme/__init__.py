@@ -39,7 +39,7 @@ from .discovery import detect_accounting_gap, detect_constraint_gap, detect_posi
 from .store import Store
 from .trail import DiscoveryTrail, TrailEntry, build_discovery_trail
 from .proposals import complete_structural_gap, predict, propose_candidate_discrimination_experiment, propose_discriminating_prediction, propose_experiment, propose_hypothesis, represent_model
-from .public import discovery_lineage, discovery_report, discovery_trail, get_record, get_review, list_records, list_reviews
+from .public import discovery_lineage, discovery_report, discovery_trail, get_record, get_review, list_records, list_reviews, get_workflow_definition, list_workflow_definitions, get_workflow_execution, list_workflow_executions, workflow_execution_lineage
 from .html import render_discovery_report_html
 from .public_import import import_crossref_works
 from .orchestration import WorkflowDefinition, WorkflowExecution, WorkflowStep, WorkflowStepResult, run_workflow
@@ -105,6 +105,11 @@ __all__ = [
     "propose_experiment",
     "get_record",
     "get_review",
+    "get_workflow_definition",
+    "list_workflow_definitions",
+    "get_workflow_execution",
+    "list_workflow_executions",
+    "workflow_execution_lineage",
     "list_reviews",
     "list_records",
     "discovery_trail",
