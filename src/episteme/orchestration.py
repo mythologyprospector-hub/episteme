@@ -240,7 +240,7 @@ def run_workflow(
                 method=step.method,
                 method_version=step.method_version,
                 status="completed",
-                input_ids=step.input_ids,
+                input_ids=effective_input_ids,
                 output_ids=output_ids,
             )
         )
