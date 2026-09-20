@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+import json
 from typing import Any
 
 from .model import Provenance, Record, RecordKind
@@ -27,12 +28,24 @@ def import_crossref_works(
     The adapter preserves the supplied Crossref work object as payload. It does
     not extract scientific claims or infer epistemic status from the metadata.
     """
-    if capture_id is not None:
-        if store.get_captured_representation(capture_id) is None:
-            raise ValueError(f"Crossref import references missing capture: {capture_id}")
-
     if not isinstance(data, Mapping):
         raise ValueError("Crossref response must be a mapping")
+
+    if capture_id is not None:
+        capture = store.get_captured_representation(capture_id)
+        if capture is None:
+            raise ValueError(f"Crossref import references missing capture: {capture_id}")
+        captured_content = store.read_captured_content(capture_id)
+        try:
+            captured_data = json.loads(captured_content.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise ValueError(
+                f"Crossref capture {capture_id} does not contain valid JSON"
+            ) from exc
+        if captured_data != dict(data):
+            raise ValueError(
+                f"Crossref import data does not match captured representation: {capture_id}"
+            )
 
     message = data.get("message")
     if not isinstance(message, Mapping):
