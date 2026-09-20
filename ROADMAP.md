@@ -579,31 +579,6 @@ Target capabilities:
 **Status:** Complete.
 
 
-## Roadmap Rules/
-
-### No roadmap-driven architecture
-
-A future phase does not justify building infrastructure prematurely.
-
-Build only what the current phase requires or what a clearly demonstrated architectural invariant requires.
-
-### No feature accumulation for its own sake
-
-A feature belongs because it advances the mission or protects an important invariant.
-
-### Every phase has an exit condition
-
-A phase is complete when its stated capability is demonstrated, not merely when files exist.
-
-### Roadmap changes are explicit
-
-If implementation reveals that the roadmap is wrong, revise the roadmap rather than quietly drifting around it.
-
-## Current Position
-
-**Phase 23 — Public Captured Content Inspection — Complete**
-
-
 ## Phase 25 — Capture-to-Execution Lineage
 
 **Goal:** Make persisted acquisition captures directly traceable to the workflow executions that consumed or produced them through the existing read-only public instrument.
@@ -631,3 +606,29 @@ Phase 24 integrates the existing bounded acquisition operation with finite workf
 **Exit condition:** a finite declared workflow can invoke acquisition, preserve the resulting capture identifier in execution lineage, persist the workflow execution, and retain the independent acquisition outcome/content without changing epistemic status.
 
 **Status:** Complete
+
+## Roadmap Rules/
+
+### No roadmap-driven architecture
+
+A future phase does not justify building infrastructure prematurely.
+
+Build only what the current phase requires or what a clearly demonstrated architectural invariant requires.
+
+### No feature accumulation for its own sake
+
+A feature belongs because it advances the mission or protects an important invariant.
+
+### Every phase has an exit condition
+
+A phase is complete when its stated capability is demonstrated, not merely when files exist.
+
+### Roadmap changes are explicit
+
+If implementation reveals that the roadmap is wrong, revise the roadmap rather than quietly drifting around it.
+
+## Current Position
+
+**Phase 23 — Public Captured Content Inspection — Complete**
+
+
