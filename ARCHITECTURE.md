@@ -1173,3 +1173,32 @@ The capture layer does not rank sources, infer scientific meaning, or automatica
 > **A captured representation records what an external acquisition supplied; it does not gain epistemic authority merely because Episteme captured or stored it.**
 
 The canonical Phase 19 design is defined in CAPTURED_REPRESENTATION.md.
+
+
+## Phase 20 — External Acquisition
+
+Phase 20 establishes the provider-neutral retrieval boundary above Phase 19 captured representation.
+
+The architectural path is:
+
+**declared bounded acquisition request → provider capability → acquisition result → Phase 19 captured representation → existing source adapter → grounded SOURCE record**
+
+Acquisition is retrieval, not interpretation. A provider capability performs the external interaction and exposes its result through the common acquisition boundary; provider-specific request construction, limits, identification, and transport behavior do not become stable epistemic primitives.
+
+The first concrete provider proof is Crossref, using the existing Phase 11 crossref-work-metadata adapter downstream. This establishes a vertical path without creating a second ingestion system.
+
+Acquisition is explicitly finite. Phase 20 does not introduce autonomous crawling, unbounded pagination, source ranking, relevance scoring, scheduling, background harvesting, or model-directed browsing.
+
+### Phase 20 Dependency Direction
+
+The dependency direction is:
+
+**provider capability → acquisition contract → Phase 19 capture → existing adapter → grounded ingestion**
+
+The acquisition layer may invoke the capture layer, but capture does not know how an external provider is contacted. Existing grounded adapters remain responsible for interpreting captured representations.
+
+### Phase 20 Boundary Invariant
+
+> **External acquisition records the interaction with an external source; it does not interpret the retrieved material or grant it epistemic authority.**
+
+The canonical Phase 20 design is defined in EXTERNAL_ACQUISITION.md.
