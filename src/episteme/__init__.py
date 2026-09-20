@@ -2,6 +2,7 @@
 
 from .candidate_assessment import CandidateConstraintAssessment, CandidateConstraintStatus
 from .capture import CaptureOutcome, CapturedRepresentation
+from .capture import CaptureOutcome, CapturedRepresentation
 from .ingest import ingest_jsonl, ingest_jsonl_file
 from .model import (
     AssessmentTargetKind,
@@ -50,6 +51,8 @@ __version__ = "0.1.0"
 __all__ = [
     "SCHEMA_VERSION",
     "CandidateConstraintAssessment",
+    "CaptureOutcome",
+    "CapturedRepresentation",
     "CaptureOutcome",
     "CapturedRepresentation",
     "CandidateConstraintStatus",
