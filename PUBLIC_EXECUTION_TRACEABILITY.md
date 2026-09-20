@@ -175,7 +175,16 @@ The transport must preserve the existing rules:
 - object schema versions remain distinct from the HTTP transport version;
 - returned execution metadata does not alter epistemic status.
 
-The exact route and query contract must be documented before implementation.
+ The initial route and query contract is:
+
+- GET /api/v1/workflows
+- GET /api/v1/workflows/{workflow_id}
+- GET /api/v1/executions
+- GET /api/v1/executions?workflow_id={workflow_id}
+- GET /api/v1/executions/{execution_id}
+- GET /api/v1/executions/{execution_id}/lineage
+
+Workflow and execution identifiers use the identifiers already defined by the Phase 13 model; they are not required to be UUIDs. The only supported execution-list query parameter is workflow_id.
 
 ## Relationship to Discovery Reports
 
