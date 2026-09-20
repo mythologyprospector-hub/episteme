@@ -28,6 +28,20 @@ def list_captured_representations(store: Store, source_id: str | None = None) ->
     return [capture.to_dict() for capture in store.iter_captured_representations(source_id=source_id)]
 
 
+def get_captured_content(store: Store, capture_id: str) -> tuple[bytes, str]:
+    """Return the exact persisted captured bytes and their media type."""
+    capture = store.get_captured_representation(capture_id)
+    if capture is None:
+        raise PublicNotFoundError(f"captured representation not found: {capture_id}")
+    if capture.content_reference is None:
+        raise PublicNotFoundError(f"captured representation has no content: {capture_id}")
+    try:
+        content = store.read_captured_content(capture_id)
+    except ValueError as exc:
+        raise PublicNotFoundError(str(exc)) from exc
+    return content, capture.media_type or "application/octet-stream"
+
+
 def get_record(store: Store, record_id: str) -> dict[str, Any]:
     """Return one grounded record as a canonical public representation."""
     record = store.get_record(record_id)
@@ -265,6 +279,7 @@ __all__ = [
     "PublicNotFoundError",
     "get_captured_representation",
     "list_captured_representations",
+    "get_captured_content",
     "get_record",
     "list_records",
     "get_discovery_finding",
