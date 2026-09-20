@@ -117,6 +117,74 @@ def list_workflow_executions_for_artifact(
     ]
 
 
+
+def get_hypothesis(store: Store, hypothesis_id: str) -> dict[str, Any]:
+    hypothesis = store.get_hypothesis(hypothesis_id)
+    if hypothesis is None:
+        raise PublicNotFoundError(f"hypothesis not found: {hypothesis_id}")
+    return hypothesis.to_dict()
+
+
+def list_hypotheses(store: Store) -> list[dict[str, Any]]:
+    return [item.to_dict() for item in store.iter_hypotheses()]
+
+
+def get_model(store: Store, model_id: str) -> dict[str, Any]:
+    model = store.get_model(model_id)
+    if model is None:
+        raise PublicNotFoundError(f"model not found: {model_id}")
+    return model.to_dict()
+
+
+def list_models(store: Store) -> list[dict[str, Any]]:
+    return [item.to_dict() for item in store.iter_models()]
+
+
+def get_prediction(store: Store, prediction_id: str) -> dict[str, Any]:
+    prediction = store.get_prediction(prediction_id)
+    if prediction is None:
+        raise PublicNotFoundError(f"prediction not found: {prediction_id}")
+    return prediction.to_dict()
+
+
+def list_predictions(store: Store) -> list[dict[str, Any]]:
+    return [item.to_dict() for item in store.iter_predictions()]
+
+
+def get_experiment_proposal(store: Store, proposal_id: str) -> dict[str, Any]:
+    proposal = store.get_experiment_proposal(proposal_id)
+    if proposal is None:
+        raise PublicNotFoundError(f"experiment proposal not found: {proposal_id}")
+    return proposal.to_dict()
+
+
+def list_experiment_proposals(store: Store) -> list[dict[str, Any]]:
+    return [item.to_dict() for item in store.iter_experiment_proposals()]
+
+
+def get_prediction_evaluation(store: Store, evaluation_id: str) -> dict[str, Any]:
+    evaluation = store.get_prediction_evaluation(evaluation_id)
+    if evaluation is None:
+        raise PublicNotFoundError(f"prediction evaluation not found: {evaluation_id}")
+    return evaluation.to_dict()
+
+
+def list_prediction_evaluations(store: Store) -> list[dict[str, Any]]:
+    return [item.to_dict() for item in store.iter_prediction_evaluations()]
+
+
+def get_knowledge_state_consequence(store: Store, consequence_id: str) -> dict[str, Any]:
+    consequence = store.get_knowledge_state_consequence(consequence_id)
+    if consequence is None:
+        raise PublicNotFoundError(
+            f"knowledge-state consequence not found: {consequence_id}"
+        )
+    return consequence.to_dict()
+
+
+def list_knowledge_state_consequences(store: Store) -> list[dict[str, Any]]:
+    return [item.to_dict() for item in store.iter_knowledge_state_consequences()]
+
 def discovery_trail(
     store: Store,
     finding_id: str,
@@ -166,6 +234,18 @@ __all__ = [
     "PublicNotFoundError",
     "get_record",
     "list_records",
+    "get_hypothesis",
+    "list_hypotheses",
+    "get_model",
+    "list_models",
+    "get_prediction",
+    "list_predictions",
+    "get_experiment_proposal",
+    "list_experiment_proposals",
+    "get_prediction_evaluation",
+    "list_prediction_evaluations",
+    "get_knowledge_state_consequence",
+    "list_knowledge_state_consequences",
     "get_review",
     "list_reviews",
     "get_relationship",
