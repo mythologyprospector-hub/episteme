@@ -599,6 +599,26 @@ Target capabilities:
 
 **Status:** Complete.
 
+## Phase 25 — Capture-to-Execution Lineage
+
+**Goal:** Make persisted acquisition captures directly traceable to the workflow executions that consumed or produced them through the existing read-only public instrument.
+
+The canonical Phase 25 design is defined in CAPTURE_EXECUTION_LINEAGE.md.
+
+Target capabilities:
+
+- [x] reverse lookup from a persisted capture to workflow executions;
+- [x] matching against existing step inputs and outputs;
+- [x] deterministic execution ordering;
+- [x] explicit missing-capture semantics;
+- [x] read-only Python, CLI, and /api/v1 HTTP inspection;
+- [x] preservation of acquisition, workflow, provenance, and epistemic boundaries;
+- [x] executable tests covering the reverse capture boundary.
+
+**Exit condition:** A researcher can start from an existing captured representation and inspect every persisted workflow execution that consumed or produced it without creating a second lineage or epistemic model.
+
+**Status:** Complete.
+
 ## Phase 24 — Acquisition Execution / Workflow Integration
 
 Phase 24 integrates the existing bounded acquisition operation with finite workflow execution. Workflow lineage may reference persisted captures as operational resources without classifying captures as epistemic artifacts. A completed acquisition operation records its resulting capture, including failed acquisition outcomes, while the existing execution-history boundary records what the declared workflow did. No new workflow engine or acquisition-history model is introduced.
