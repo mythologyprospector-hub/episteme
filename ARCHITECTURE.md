@@ -1217,7 +1217,7 @@ Phase 22 links grounded records produced by an external-source adapter to the ex
 
 **captured representation → existing source adapter → grounded record with capture-linked provenance**
 
-The existing Provenance model is extended with optional capture identity rather than introducing a second provenance graph, relationship type, transformation type, or reverse index. When supplied, the adapter verifies that the capture exists before creating grounded records.
+The existing Provenance model is extended with optional capture identity rather than introducing a second provenance graph, relationship type, transformation type, or reverse index. When supplied, the adapter verifies that the capture exists and that its persisted Crossref representation matches the supplied response before creating grounded records.
 
 The capture remains operational acquisition history. The grounded record remains grounded under the existing provenance rules. Capture linkage answers which representation supplied a record; it does not grant that representation epistemic authority.
 
