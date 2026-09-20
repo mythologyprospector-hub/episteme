@@ -111,3 +111,20 @@ def test_crossref_reimport_cannot_overwrite_immutable_record():
 
     after = store.get_record(before.id)
     assert after == before
+
+
+def test_crossref_import_records_named_adapter_version_and_no_generated_interpretation():
+    store = Store()
+    import_crossref_works(
+        {"message": {"items": [_crossref_item()]}},
+        store,
+        captured_at=CAPTURED_AT,
+    )
+
+    record = next(store.iter_records())
+    assert record.payload["adapter"] == "crossref-work-metadata"
+    assert record.payload["adapter_version"] == "1"
+    assert record.kind is RecordKind.SOURCE
+    assert list(store.iter_hypotheses()) == []
+    assert list(store.iter_predictions()) == []
+    assert list(store.iter_discovery_findings()) == []
