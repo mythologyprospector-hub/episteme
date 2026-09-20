@@ -15,6 +15,8 @@ from .public import (
     discovery_report,
     discovery_trail,
     get_record,
+    get_discovery_finding,
+    list_discovery_findings,
     get_hypothesis,
     list_hypotheses,
     get_model,
@@ -114,6 +116,11 @@ def _parser() -> argparse.ArgumentParser:
                 help="Write the same report as a self-contained HTML document.",
             )
 
+    discovery_findings = subparsers.add_parser("discoveries", help="List generated discovery findings.")
+    discovery_findings.add_argument("--kind", default=None, help="Filter by discovery finding kind.")
+    discovery_finding = subparsers.add_parser("discovery", help="Inspect one generated discovery finding.")
+    discovery_finding.add_argument("finding_id")
+
     hypotheses = subparsers.add_parser("hypotheses", help="List generated hypotheses.")
     hypothesis = subparsers.add_parser("hypothesis", help="Inspect one generated hypothesis.")
     hypothesis.add_argument("artifact_id")
@@ -188,6 +195,10 @@ def main() -> int:
             result = workflow_execution_lineage(store, args.execution_id)
         elif args.command == "artifact-executions":
             result = list_workflow_executions_for_artifact(store, args.artifact_id)
+        elif args.command == "discoveries":
+            result = list_discovery_findings(store, kind=args.kind)
+        elif args.command == "discovery":
+            result = get_discovery_finding(store, args.finding_id)
         elif args.command == "hypotheses":
             result = list_hypotheses(store)
         elif args.command == "hypothesis":
