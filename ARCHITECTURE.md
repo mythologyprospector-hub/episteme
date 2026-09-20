@@ -1241,6 +1241,18 @@ The capture remains operational acquisition history. The grounded record remains
 The first vertical proof is the existing Crossref adapter. The canonical Phase 22 design is defined in CAPTURE_TO_GROUNDED_PROVENANCE.md.
 
 
+## Phase 25 — Capture-to-Execution Lineage
+
+Phase 25 extends the Phase 15 reverse execution inspection to operational captures introduced into workflow lineage by Phase 24.
+
+The dependency is:
+
+**persisted capture → existing workflow execution lineage → read-only public inspection**
+
+Capture-to-execution lookup is derived from existing workflow step input/output identifiers. No reverse-index table or second lineage model is introduced. A capture remains an operational acquisition record and does not become an epistemic artifact because a workflow references it.
+
+The canonical Phase 25 design is defined in CAPTURE_EXECUTION_LINEAGE.md.
+
 ## Phase 24 — Acquisition Execution / Workflow Integration
 
 Phase 24 integrates the existing bounded acquisition operation with the existing finite workflow and execution-history machinery. No new workflow engine or acquisition-history model is introduced.
