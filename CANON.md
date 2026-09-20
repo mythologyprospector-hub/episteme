@@ -179,3 +179,14 @@ A new result must not silently rewrite the knowledge state.
 When evidence changes an existing interpretation, the change must be represented as an explicit, traceable transition or generated assessment. Earlier hypotheses, predictions, and records remain inspectable.
 
 A closed discovery loop therefore means that evidence can change what Episteme considers unresolved, supported, contradicted, superseded, or still uncertain without collapsing those distinctions into a single truth value.
+
+
+### 17. External captures preserve the material actually received
+
+When Episteme acquires material from outside the system, it must preserve the distinction between the external representation received and the grounded record produced by interpreting it.
+
+A capture records what an acquisition supplied, including enough acquisition metadata and content identity to inspect or reproduce the captured representation. Capture history is not itself evidence of the scientific truth of the captured material.
+
+Captured content must remain immutable and independently identifiable. Failed and partial acquisitions must remain distinguishable from complete captures.
+
+The capture boundary must not silently promote acquired material into grounded knowledge. Existing source adapters remain responsible for translating captured representations into grounded records, preserving the existing provenance and grounded-versus-generated boundary.
