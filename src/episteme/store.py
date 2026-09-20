@@ -332,7 +332,7 @@ class Store:
                 "ALTER TABLE captured_representations ADD COLUMN error TEXT"
             )
 
-        discovery_columns = {
+        capture_columns = {\n            row["name"]\n            for row in self._connection.execute("PRAGMA table_info(captured_representations)")\n        }\n        if "error" not in capture_columns:\n            self._connection.execute(\n                "ALTER TABLE captured_representations ADD COLUMN error TEXT"\n            )\n\n        discovery_columns = {
             row["name"]
             for row in self._connection.execute("PRAGMA table_info(discovery_findings)")
         }
@@ -1575,7 +1575,7 @@ class Store:
                 "content_reference": row["content_reference"],
                 "acquisition_method": row["acquisition_method"],
                 "acquisition_method_version": row["acquisition_method_version"],
-                "outcome": row["outcome"], "schema_version": row["schema_version"],
+                "outcome": row["outcome"], "error": row["error"],\n            "schema_version": row["schema_version"],
             })
 
     def read_captured_content(self, capture_id: str) -> bytes:
