@@ -549,9 +549,10 @@ Target capabilities:
 - [x] preservation through provenance serialization and Store persistence;
 - [x] Crossref adapter handoff;
 - [x] backward-compatible provenance without capture linkage;
-- [x] executable tests covering exact lineage and missing-capture rejection.
+- [x] executable tests covering exact lineage and missing-capture rejection;
+- [x] content-bound Crossref handoff that rejects supplied data differing from the persisted capture.
 
-**Exit condition:** A grounded record produced from a persisted capture can explicitly identify that capture through its existing provenance representation, the linkage survives serialization and persistence, missing capture identities are rejected, and existing provenance without capture linkage remains valid.
+**Exit condition:** A grounded record produced from a persisted capture can explicitly identify that capture through its existing provenance representation, the adapter verifies that supplied Crossref data matches the persisted captured representation before producing grounded records, the linkage survives serialization and persistence, missing or mismatched captures are rejected, and existing provenance without capture linkage remains valid.
 
 **Status:** Complete.
 
