@@ -1209,3 +1209,16 @@ The canonical Phase 20 design is defined in EXTERNAL_ACQUISITION.md.
 Phase 21 exposes persisted Phase 19/20 capture state through the existing read-only public instrument. The public layer returns the existing CapturedRepresentation representation and delegates deterministic ordering and source filtering to the existing store. Python, CLI, and versioned HTTP inspection surfaces share the same representation. Inspection does not acquire, interpret, ingest, or promote evidence.
 
 The canonical Phase 21 design is defined in PUBLIC_ACQUISITION_CAPTURE_INSPECTION.md.
+
+
+## Phase 22 — Capture-to-Grounded Provenance Lineage
+
+Phase 22 links grounded records produced by an external-source adapter to the exact persisted capture that supplied their material. The boundary is:
+
+**captured representation → existing source adapter → grounded record with capture-linked provenance**
+
+The existing Provenance model is extended with optional capture identity rather than introducing a second provenance graph, relationship type, transformation type, or reverse index. When supplied, the adapter verifies that the capture exists before creating grounded records.
+
+The capture remains operational acquisition history. The grounded record remains grounded under the existing provenance rules. Capture linkage answers which representation supplied a record; it does not grant that representation epistemic authority.
+
+The first vertical proof is the existing Crossref adapter. The canonical Phase 22 design is defined in CAPTURE_TO_GROUNDED_PROVENANCE.md.
