@@ -273,15 +273,15 @@ The canonical Phase 12 design is defined in DISCOVERY_ORCHESTRATION.md.
 
 Target capabilities:
 
-- [ ] declared finite workflow representation;
-- [ ] composition of existing epistemic primitives;
-- [ ] ordered execution lineage;
-- [ ] grounded/generated boundary preserved across workflow steps;
-- [ ] competing alternatives preserved;
-- [ ] explicit failure states without erasure;
-- [ ] reproducibility relative to declared state, parameters, assumptions, and method versions;
-- [ ] post-execution workflow inspection;
-- [ ] executable end-to-end workflow proof.
+- [x] declared finite workflow representation;
+- [x] composition of existing epistemic primitives;
+- [x] ordered execution lineage;
+- [x] grounded/generated boundary preserved across workflow steps;
+- [x] competing alternatives preserved;
+- [x] explicit failure states without erasure;
+- [x] reproducibility relative to declared state, parameters, assumptions, and method versions;
+- [x] post-execution workflow inspection;
+- [x] executable end-to-end workflow proof.
 
 **Exit condition:** Episteme can execute and inspect a finite declared discovery workflow composed from existing primitives while preserving epistemic boundaries, alternatives, failures, and reproducibility.
 
