@@ -1,7 +1,7 @@
 # Episteme Roadmap
 
 **Status:** Canonical planning document  
-**Version:** 1.9  
+**Version:** 2.0  
 **Last updated:** 2026-09-19
 
 ## Mission
@@ -265,6 +265,28 @@ The implemented Phase 11 behavior satisfies the stated exit condition.
 
 **Status:** Complete.
 
+## Phase 12 — Discovery Orchestration
+
+**Goal:** Make the existing discovery machinery executable as a declared, reproducible, inspectable workflow without introducing a new epistemic authority or second knowledge model.
+
+The canonical Phase 12 design is defined in DISCOVERY_ORCHESTRATION.md.
+
+Target capabilities:
+
+- [ ] declared finite workflow representation;
+- [ ] composition of existing epistemic primitives;
+- [ ] ordered execution lineage;
+- [ ] grounded/generated boundary preserved across workflow steps;
+- [ ] competing alternatives preserved;
+- [ ] explicit failure states without erasure;
+- [ ] reproducibility relative to declared state, parameters, assumptions, and method versions;
+- [ ] post-execution workflow inspection;
+- [ ] executable end-to-end workflow proof.
+
+**Exit condition:** Episteme can execute and inspect a finite declared discovery workflow composed from existing primitives while preserving epistemic boundaries, alternatives, failures, and reproducibility.
+
+**Status:** Active.
+
 ## Roadmap Rules
 
 ### No roadmap-driven architecture
@@ -287,9 +309,11 @@ If implementation reveals that the roadmap is wrong, revise the roadmap rather t
 
 ## Current Position
 
-**Phase 11 — Grounded Evidence Ingestion — Complete**
+**Phase 12 — Discovery Orchestration — Active**
 
-Phase 11 is complete. Heterogeneous finite source representations now enter through the existing grounded boundary without creating a second ingestion model. Source and capture provenance remain inspectable; named adapter/version metadata makes translation reproducible; existing transformation semantics preserve material translation lineage; malformed input is rejected before persistence; immutable records remain immutable across re-import; and source ingestion does not manufacture generated interpretation. The Phase 11 exit condition is satisfied. The next phase is intentionally not defined until a concrete architectural pressure warrants it.
+Phase 11 is complete. Heterogeneous finite source representations enter through the existing grounded boundary without creating a second ingestion model, with provenance, deterministic adapter/version metadata, translation lineage, rejection, and immutability verified.
+
+Phase 12 is active. The next concrete pressure is execution: the discovery machinery can represent the full loop, but its operations remain primarily individual primitives. Phase 12 will compose those existing capabilities into a declared, reproducible, inspectable workflow without creating a second epistemic model.
 
 Phase 1 is complete. The grounded substrate, provenance boundary, relationships, deterministic serialization, validation, SQLite persistence, and externally grounded ingestion fixture are implemented and verified.
 
@@ -312,3 +336,5 @@ Phase 9 is complete. Structural discovery can establish bounded positional, rela
 Phase 10 is complete. Its canonical semantics are defined in CANDIDATE_COMPLETION.md. Candidate completion remains downstream of an established hole, preserves inherited constraints, exposes assumptions and violations, preserves alternatives, and identifies discriminating consequences without collapsing fit into a universal score or turning candidates into evidence.
 
 Phase 11 is complete. Its canonical semantics are defined in GROUNDED_INGESTION.md. The phase strengthened the existing JSONL and Crossref ingestion boundaries without introducing a second ingestion model. The exit condition is satisfied.
+
+Phase 12 is active. Its canonical semantics are defined in DISCOVERY_ORCHESTRATION.md. It addresses the demonstrated execution pressure between the existing discovery primitives: making a declared discovery loop runnable and inspectable without introducing a new epistemic primitive.
