@@ -82,3 +82,32 @@ def test_crossref_import_validates_entire_batch_before_persistence():
         raise AssertionError("invalid batch should be rejected")
 
     assert list(store.iter_records()) == []
+
+
+def test_crossref_reimport_cannot_overwrite_immutable_record():
+    import sqlite3
+
+    store = Store()
+    original = _crossref_item()
+    import_crossref_works(
+        {"message": {"items": [original]}},
+        store,
+        captured_at=CAPTURED_AT,
+    )
+    before = next(store.iter_records())
+
+    changed = dict(original)
+    changed["title"] = ["A changed title"]
+    try:
+        import_crossref_works(
+            {"message": {"items": [changed]}},
+            store,
+            captured_at="2026-09-19T14:00:00+00:00",
+        )
+    except sqlite3.IntegrityError:
+        pass
+    else:
+        raise AssertionError("re-import should not overwrite an immutable record")
+
+    after = store.get_record(before.id)
+    assert after == before
