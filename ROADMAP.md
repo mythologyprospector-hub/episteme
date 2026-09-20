@@ -630,4 +630,4 @@ Phase 24 integrates the existing bounded acquisition operation with finite workf
 
 **Exit condition:** a finite declared workflow can invoke acquisition, preserve the resulting capture identifier in execution lineage, persist the workflow execution, and retain the independent acquisition outcome/content without changing epistemic status.
 
-**Status:** In progress
+**Status:** Complete
