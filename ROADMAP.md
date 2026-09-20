@@ -425,18 +425,38 @@ The canonical Phase 17 design is defined in PUBLIC_EPISTEMIC_ARTIFACT_INSPECTION
 
 Target capabilities:
 
-- [ ] read-only public retrieval and listing of hypotheses;
-- [ ] read-only public retrieval and listing of models;
-- [ ] read-only public retrieval and listing of predictions;
-- [ ] read-only public retrieval and listing of experiment proposals;
-- [ ] read-only public retrieval and listing of prediction evaluations;
-- [ ] read-only public retrieval and listing of knowledge-state consequences;
-- [ ] read-only CLI inspection for each artifact type;
-- [ ] versioned HTTP read routes for each artifact type;
-- [ ] preservation of generated-versus-grounded boundaries;
-- [ ] executable tests covering the public artifact boundary.
+- [x] read-only public retrieval and listing of hypotheses;
+- [x] read-only public retrieval and listing of models;
+- [x] read-only public retrieval and listing of predictions;
+- [x] read-only public retrieval and listing of experiment proposals;
+- [x] read-only public retrieval and listing of prediction evaluations;
+- [x] read-only public retrieval and listing of knowledge-state consequences;
+- [x] read-only CLI inspection for each artifact type;
+- [x] versioned HTTP read routes for each artifact type;
+- [x] preservation of generated-versus-grounded boundaries;
+- [x] executable tests covering the public artifact boundary.
 
 **Exit condition:** A researcher using Episteme's documented public inspection surfaces can directly retrieve and list each existing generated epistemic artifact type, inspect its stored content and lineage fields, and distinguish it from grounded evidence without creating a second artifact model or changing its epistemic status.
+
+**Status:** Complete.
+
+## Phase 18 — Public Discovery Finding Inspection
+
+**Goal:** Expose existing generated discovery findings through the existing read-only public scientific instrument without changing their epistemic status.
+
+The canonical Phase 18 design is defined in PUBLIC_DISCOVERY_FINDING_INSPECTION.md.
+
+Target capabilities:
+
+- [ ] read-only public retrieval of persisted discovery findings;
+- [ ] deterministic listing of discovery findings;
+- [ ] existing discovery-finding kind filter;
+- [ ] read-only CLI inspection;
+- [ ] versioned HTTP read routes;
+- [ ] preservation of generated-versus-grounded boundaries;
+- [ ] executable tests covering the public discovery-finding boundary.
+
+**Exit condition:** A researcher can directly inspect a persisted discovery finding and deterministically list existing findings through Episteme's public Python, CLI, and HTTP surfaces, while the finding remains explicitly generated and retains its existing content and provenance relationships.
 
 **Status:** Active.
 
@@ -477,6 +497,8 @@ Phase 15 is complete. The existing read-only public scientific instrument now su
 Phase 16 is complete. The existing first-class relationship objects are directly inspectable through the read-only Python, CLI, and /api/v1 HTTP surfaces without creating a second graph or changing relationship meaning.
 
 Phase 17 is complete. The existing generated hypotheses, models, predictions, experiment proposals, prediction evaluations, and knowledge-state consequences are directly inspectable through the read-only Python, CLI, and /api/v1 HTTP surfaces. Their stored representations and lineage fields remain authoritative, while public visibility does not promote generated artifacts to grounded evidence. The Phase 17 exit condition is satisfied.
+
+Phase 18 is active. The existing persisted discovery findings are being exposed directly through the same read-only public instrument. This closes the remaining direct-inspection gap between discovery trails/downstream artifacts and the discovery finding itself without introducing new discovery semantics or changing generated status.
 
 Phase 1 is complete. The grounded substrate, provenance boundary, relationships, deterministic serialization, validation, SQLite persistence, and externally grounded ingestion fixture are implemented and verified.
 
