@@ -236,19 +236,34 @@ The canonical Phase 11 design is defined in GROUNDED_INGESTION.md.
 
 Target capabilities:
 
-- [ ] accept at least two materially different finite external source representations;
-- [ ] preserve source identity, source state, and capture provenance;
-- [ ] preserve source-provided content without silently changing its epistemic meaning;
-- [ ] translate deterministically under a named adapter and version;
-- [ ] use existing transformation semantics when translation lineage is materially important;
-- [ ] explicitly reject malformed or unsupported material;
-- [ ] preserve immutable records across re-import;
-- [ ] keep generated interpretation outside the grounded evidence boundary;
-- [ ] provide executable tests for heterogeneous ingestion and provenance/translation lineage.
+- [x] accept at least two materially different finite external source representations;
+- [x] preserve source identity, source state, and capture provenance;
+- [x] preserve source-provided content without silently changing its epistemic meaning;
+- [x] translate deterministically under a named adapter and version;
+- [x] use existing transformation semantics when translation lineage is materially important;
+- [x] explicitly reject malformed or unsupported material;
+- [x] preserve immutable records across re-import;
+- [x] keep generated interpretation outside the grounded evidence boundary;
+- [x] provide executable tests for heterogeneous ingestion and provenance/translation lineage.
 
 **Exit condition:** Episteme can ingest heterogeneous finite source representations while preserving source provenance, translation lineage, deterministic behavior, immutable records, and the distinction between externally grounded material and generated interpretation.
 
-**Status:** Active.
+**Status:** Complete.
+
+### Phase 11 Exit Audit
+
+The implemented Phase 11 behavior satisfies the stated exit condition.
+
+- canonical JSONL and nested Crossref work-metadata representations provide materially different finite source forms;
+- source identity, source location, source version/state, capture timestamps, and source-provided content are preserved where represented;
+- the Crossref adapter is explicitly named and versioned, with deterministic record identity and payload behavior;
+- existing Transformation semantics preserve material translation lineage without introducing a second ingestion model;
+- malformed source material is rejected before persistence, including whole-batch validation boundaries;
+- immutable records cannot be overwritten by re-import;
+- source metadata remains a grounded SOURCE record and does not manufacture hypotheses, predictions, or discovery findings;
+- executable tests cover heterogeneous ingestion, provenance, deterministic adapter behavior, rejection, immutability, and translation lineage.
+
+**Status:** Complete.
 
 ## Roadmap Rules
 
@@ -272,9 +287,9 @@ If implementation reveals that the roadmap is wrong, revise the roadmap rather t
 
 ## Current Position
 
-**Phase 10 — Candidate Completion — Complete**
+**Phase 11 — Grounded Evidence Ingestion — Complete**
 
-Phase 10 is complete. Candidate completion is downstream of established structural gaps; constraint assessments, competing candidates, discriminating predictions, experiment proposals, grounded results, evaluations, knowledge-state consequences, and renewed evaluation-conflict discovery are all represented without collapsing generated reasoning into evidence. The exit condition is satisfied. The next phase is intentionally not defined until a concrete architectural pressure warrants it.
+Phase 11 is complete. Heterogeneous finite source representations now enter through the existing grounded boundary without creating a second ingestion model. Source and capture provenance remain inspectable; named adapter/version metadata makes translation reproducible; existing transformation semantics preserve material translation lineage; malformed input is rejected before persistence; immutable records remain immutable across re-import; and source ingestion does not manufacture generated interpretation. The Phase 11 exit condition is satisfied. The next phase is intentionally not defined until a concrete architectural pressure warrants it.
 
 Phase 1 is complete. The grounded substrate, provenance boundary, relationships, deterministic serialization, validation, SQLite persistence, and externally grounded ingestion fixture are implemented and verified.
 
@@ -296,4 +311,4 @@ Phase 9 is complete. Structural discovery can establish bounded positional, rela
 
 Phase 10 is complete. Its canonical semantics are defined in CANDIDATE_COMPLETION.md. Candidate completion remains downstream of an established hole, preserves inherited constraints, exposes assumptions and violations, preserves alternatives, and identifies discriminating consequences without collapsing fit into a universal score or turning candidates into evidence.
 
-Phase 11 is active. Its canonical semantics are defined in GROUNDED_INGESTION.md. Implementation begins from the existing JSONL and Crossref ingestion boundaries rather than introducing a second ingestion model.
+Phase 11 is complete. Its canonical semantics are defined in GROUNDED_INGESTION.md. The phase strengthened the existing JSONL and Crossref ingestion boundaries without introducing a second ingestion model. The exit condition is satisfied.
