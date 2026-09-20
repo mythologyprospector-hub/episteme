@@ -147,3 +147,13 @@ def test_corrupted_capture_content_is_rejected_on_read(tmp_path):
     with Store(db, read_only=True, capture_root=root) as store:
         with pytest.raises(ValueError, match="digest mismatch"):
             store.read_captured_content(capture.id)
+
+
+def test_capture_storage_does_not_create_grounded_source_record(tmp_path):
+    db = tmp_path / "phase19.sqlite"
+    root = tmp_path / "captures"
+    capture = _capture()
+
+    with Store(db, capture_root=root) as store:
+        store.put_captured_representation(capture, CONTENT)
+        assert store.iter_records() == []
