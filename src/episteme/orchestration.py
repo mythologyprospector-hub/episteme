@@ -194,7 +194,8 @@ def run_workflow(
                 step_id=step.id,
                 method=step.method,
                 method_version=step.method_version,
-                status="failed",                input_ids=step.input_ids,
+                status="failed",
+                input_ids=step.input_ids,
                 output_ids=(),
                 error=f"no executor declared for workflow step: {step.name}",
             )
@@ -213,6 +214,8 @@ def run_workflow(
         except Exception as exc:
             result = WorkflowStepResult(
                 step_id=step.id,
+                method=step.method,
+                method_version=step.method_version,
                 status="failed",
                 input_ids=step.input_ids,
                 output_ids=(),
@@ -233,7 +236,8 @@ def run_workflow(
                 step_id=step.id,
                 method=step.method,
                 method_version=step.method_version,
-                status="completed",                input_ids=step.input_ids,
+                status="completed",
+                input_ids=step.input_ids,
                 output_ids=output_ids,
             )
         )
