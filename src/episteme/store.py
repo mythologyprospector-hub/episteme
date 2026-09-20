@@ -8,6 +8,7 @@ import sqlite3
 from typing import Iterator
 
 from .candidate_assessment import CandidateConstraintAssessment
+from .capture import CapturedRepresentation
 from .model import (
     AssessmentTargetKind,
     DiscoveryFinding,
@@ -32,7 +33,12 @@ from .model import (
 class Store:
     """Repository-owned SQLite store for grounded and derived Episteme state."""
 
-    def __init__(self, path: str | Path = ":memory:", read_only: bool = False) -> None:
+    def __init__(
+        self,
+        path: str | Path = ":memory:",
+        read_only: bool = False,
+        capture_root: str | Path | None = None,
+    ) -> None:
         if read_only:
             if str(path) == ":memory:":
                 raise ValueError("read-only Store requires a file-backed SQLite database")
@@ -45,6 +51,7 @@ class Store:
             )
         else:
             self._connection = sqlite3.connect(path)
+        self._capture_root = Path(capture_root).resolve() if capture_root is not None else None
         self._connection.row_factory = sqlite3.Row
         self._connection.execute("PRAGMA foreign_keys = ON")
         if not read_only:
@@ -263,6 +270,28 @@ class Store:
 
             CREATE INDEX IF NOT EXISTS idx_workflow_executions_workflow
                 ON workflow_executions(workflow_id);
+
+            CREATE TABLE IF NOT EXISTS captured_representations (
+                id TEXT PRIMARY KEY,
+                source_id TEXT NOT NULL,
+                requested_resource TEXT NOT NULL,
+                request_parameters TEXT NOT NULL,
+                captured_at TEXT NOT NULL,
+                response_status INTEGER,
+                media_type TEXT,
+                source_version TEXT,
+                content_digest TEXT,
+                content_reference TEXT,
+                acquisition_method TEXT NOT NULL,
+                acquisition_method_version TEXT NOT NULL,
+                outcome TEXT NOT NULL,
+                schema_version INTEGER NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_captured_representations_source
+                ON captured_representations(source_id);
+            CREATE INDEX IF NOT EXISTS idx_captured_representations_digest
+                ON captured_representations(content_digest);
             """
         )
         relationship_columns = self._connection.execute(
@@ -1444,6 +1473,116 @@ class Store:
                 "schema_version": row["schema_version"],
             }
         )
+
+    def put_captured_representation(
+        self, capture: CapturedRepresentation, content: bytes | None = None
+    ) -> None:
+        """Persist capture metadata and, when supplied, its immutable content."""
+        if capture.content_reference is not None and self._capture_root is None:
+            raise ValueError("capture_root is required for captures with content")
+        if capture.content_digest is not None and content is None:
+            raise ValueError("captured content is required when content_digest is present")
+        if capture.content_digest is None and content is not None:
+            raise ValueError("captured content requires a content_digest")
+        if self.get_captured_representation(capture.id) is not None:
+            raise ValueError("captured representation already exists: " + capture.id)
+
+        if content is not None:
+            import hashlib
+            if hashlib.sha256(content).hexdigest() != capture.content_digest:
+                raise ValueError("captured content does not match content_digest")
+            assert self._capture_root is not None
+            target = self._capture_root / capture.content_reference
+            target.parent.mkdir(parents=True, exist_ok=True)
+            if target.exists():
+                if target.read_bytes() != content:
+                    raise ValueError("existing captured content does not match digest")
+            else:
+                temporary = target.with_name(target.name + ".tmp")
+                temporary.write_bytes(content)
+                temporary.replace(target)
+
+        self._connection.execute(
+            """
+            INSERT INTO captured_representations
+                (id, source_id, requested_resource, request_parameters, captured_at,
+                 response_status, media_type, source_version, content_digest,
+                 content_reference, acquisition_method, acquisition_method_version,
+                 outcome, schema_version)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                capture.id, capture.source_id, capture.requested_resource,
+                canonical_json(dict(capture.request_parameters)), capture.captured_at,
+                capture.response_status, capture.media_type, capture.source_version,
+                capture.content_digest, capture.content_reference,
+                capture.acquisition_method, capture.acquisition_method_version,
+                capture.outcome.value, capture.schema_version,
+            ),
+        )
+        self._connection.commit()
+
+    def get_captured_representation(self, capture_id: str) -> CapturedRepresentation | None:
+        row = self._connection.execute(
+            "SELECT * FROM captured_representations WHERE id = ?", (capture_id,)
+        ).fetchone()
+        if row is None:
+            return None
+        return CapturedRepresentation.from_dict({
+            "id": row["id"], "source_id": row["source_id"],
+            "requested_resource": row["requested_resource"],
+            "request_parameters": json.loads(row["request_parameters"]),
+            "captured_at": row["captured_at"], "response_status": row["response_status"],
+            "media_type": row["media_type"], "source_version": row["source_version"],
+            "content_digest": row["content_digest"],
+            "content_reference": row["content_reference"],
+            "acquisition_method": row["acquisition_method"],
+            "acquisition_method_version": row["acquisition_method_version"],
+            "outcome": row["outcome"], "schema_version": row["schema_version"],
+        })
+
+    def iter_captured_representations(
+        self, source_id: str | None = None
+    ) -> Iterator[CapturedRepresentation]:
+        if source_id is None:
+            rows = self._connection.execute(
+                "SELECT * FROM captured_representations ORDER BY captured_at, id"
+            )
+        else:
+            rows = self._connection.execute(
+                "SELECT * FROM captured_representations WHERE source_id = ? ORDER BY captured_at, id",
+                (source_id,),
+            )
+        for row in rows:
+            yield CapturedRepresentation.from_dict({
+                "id": row["id"], "source_id": row["source_id"],
+                "requested_resource": row["requested_resource"],
+                "request_parameters": json.loads(row["request_parameters"]),
+                "captured_at": row["captured_at"], "response_status": row["response_status"],
+                "media_type": row["media_type"], "source_version": row["source_version"],
+                "content_digest": row["content_digest"],
+                "content_reference": row["content_reference"],
+                "acquisition_method": row["acquisition_method"],
+                "acquisition_method_version": row["acquisition_method_version"],
+                "outcome": row["outcome"], "schema_version": row["schema_version"],
+            })
+
+    def read_captured_content(self, capture_id: str) -> bytes:
+        capture = self.get_captured_representation(capture_id)
+        if capture is None:
+            raise ValueError("captured representation not found: " + capture_id)
+        if capture.content_reference is None or capture.content_digest is None:
+            raise ValueError("captured representation has no content: " + capture_id)
+        if self._capture_root is None:
+            raise ValueError("capture_root is required to read captured content")
+        path = (self._capture_root / capture.content_reference).resolve()
+        if self._capture_root not in path.parents:
+            raise ValueError("captured content reference escapes capture_root")
+        content = path.read_bytes()
+        import hashlib
+        if hashlib.sha256(content).hexdigest() != capture.content_digest:
+            raise ValueError("captured content digest mismatch: " + capture_id)
+        return content
 
     def put_workflow_definition(self, workflow: "WorkflowDefinition") -> None:
         from .orchestration import WorkflowDefinition
