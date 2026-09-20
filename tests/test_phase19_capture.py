@@ -74,6 +74,7 @@ def test_failed_capture_has_no_content(tmp_path):
         acquisition_method="http",
         acquisition_method_version="1",
         outcome=CaptureOutcome.FAILED,
+        error="HTTP 404: not found",
     )
 
     with Store(db) as store:
