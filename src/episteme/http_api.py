@@ -200,6 +200,19 @@ class _EpistemeHTTPServer(ThreadingHTTPServer):
         path = parsed.path
         query = parse_qs(parsed.query, keep_blank_values=True)
 
+        if path == "/":
+            _reject_unexpected_query(query, set())
+            with Store(
+                self.store_path,
+                read_only=True,
+                capture_root=self.capture_root,
+            ) as store:
+                from .html import render_observatory_html
+
+                return render_observatory_html(
+                    list_discovery_findings(store)
+                ).encode("utf-8"), "text/html; charset=utf-8"
+
         if not path.startswith(API_PREFIX):
             raise _error(404, "API route not found")
 
@@ -297,7 +310,7 @@ class _EpistemeHTTPServer(ThreadingHTTPServer):
             if len(parts) == 2 and parts[0] == "prediction-evaluations":
                 if query:
                     raise _error(400, "unexpected query parameter")
-                return get_prediction_evaluation(store, _identifier(parts[1], "prediction evaluation identifier")), "application/json; charset=utf-8"
+                return get_prediction_evaluations(store), "application/json; charset=utf-8"
             if parts == ["knowledge-state-consequences"]:
                 _reject_unexpected_query(query, set())
                 return list_knowledge_state_consequences(store), "application/json; charset=utf-8"
