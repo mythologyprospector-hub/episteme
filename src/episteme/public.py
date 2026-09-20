@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from .model import ReviewTargetKind
+from .orchestration import WorkflowDefinition, WorkflowExecution
 from .store import Store
 from .trail import build_discovery_trail
 
@@ -46,6 +47,45 @@ def list_reviews(
         review.to_dict()
         for review in store.iter_reviews(target_kind=target_kind, target_id=target_id)
     ]
+
+def get_workflow_definition(store: Store, workflow_id: str) -> dict[str, Any]:
+    """Return one persisted workflow definition as a public representation."""
+    workflow = store.get_workflow_definition(workflow_id)
+    if workflow is None:
+        raise PublicNotFoundError(f"workflow definition not found: {workflow_id}")
+    return workflow.to_dict()
+
+
+def list_workflow_definitions(store: Store) -> list[dict[str, Any]]:
+    """Return persisted workflow definitions in deterministic order."""
+    return [workflow.to_dict() for workflow in store.iter_workflow_definitions()]
+
+
+def get_workflow_execution(store: Store, execution_id: str) -> dict[str, Any]:
+    """Return one persisted workflow execution as a public representation."""
+    execution = store.get_workflow_execution(execution_id)
+    if execution is None:
+        raise PublicNotFoundError(f"workflow execution not found: {execution_id}")
+    return execution.to_dict()
+
+
+def list_workflow_executions(
+    store: Store, workflow_id: str | None = None
+) -> list[dict[str, Any]]:
+    """Return persisted workflow executions in deterministic order."""
+    return [
+        execution.to_dict()
+        for execution in store.iter_workflow_executions(workflow_id=workflow_id)
+    ]
+
+
+def workflow_execution_lineage(store: Store, execution_id: str) -> dict[str, Any]:
+    """Return timestamp-independent lineage for one persisted execution."""
+    execution = store.get_workflow_execution(execution_id)
+    if execution is None:
+        raise PublicNotFoundError(f"workflow execution not found: {execution_id}")
+    return execution.lineage_dict()
+
 
 def discovery_trail(
     store: Store,
