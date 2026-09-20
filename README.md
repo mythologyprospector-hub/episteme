@@ -78,13 +78,13 @@ The first documents to read are:
 
 ## Project Status
 
-**Current phase:** Phase 13 — Execution History
+**Current phase:** Phase 14 — Public Execution Traceability
 
 Phase 1 grounded substrate, Phase 2 knowledge integrity, and Phase 3 discovery are complete and verified. Phase 4 hypothesis and prediction, Phase 5 experiment design, and Phase 6 closed-loop discovery are also complete and verified.
 
 Phase 7 is complete and verified. The first two domain demonstrations are Astronomy and Biology, showing that materially different evidence shapes can use domain-specific layers while preserving Episteme's stable epistemic primitives, provenance, generated-versus-grounded boundaries, closed-loop lineage, and reproducibility.
 
-Phase 8 established the public scientific instrument and is complete. Phase 9 established structural-gap discovery and is complete. Phase 10 established candidate completion downstream of those gaps and is complete. Phase 11 established the grounded evidence ingestion boundary and is complete. Phase 12 is complete. Phase 13 established durable execution history and is complete. The canonical Phase 13 design is documented in [EXECUTION_HISTORY.md](EXECUTION_HISTORY.md).
+Phase 8 established the public scientific instrument and is complete. Phase 9 established structural-gap discovery and is complete. Phase 10 established candidate completion downstream of those gaps and is complete. Phase 11 established the grounded evidence ingestion boundary and is complete. Phase 12 is complete. Phase 13 established durable execution history and is complete. Phase 14 is active and extends the existing read-only public instrument to expose that durable execution history. The canonical Phase 13 design is documented in [EXECUTION_HISTORY.md](EXECUTION_HISTORY.md), and the Phase 14 design is documented in [PUBLIC_EXECUTION_TRACEABILITY.md](PUBLIC_EXECUTION_TRACEABILITY.md).
 
 ## Project Boundary
 
