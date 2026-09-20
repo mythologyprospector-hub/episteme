@@ -13,6 +13,8 @@ from .public import (
     discovery_lineage,
     discovery_report,
     discovery_trail,
+    get_captured_representation,
+    list_captured_representations,
     get_record,
     get_discovery_finding,
     list_discovery_findings,
@@ -204,6 +206,13 @@ class _EpistemeHTTPServer(ThreadingHTTPServer):
 
         parts = [part for part in suffix.split("/") if part]
         with Store(self.store_path, read_only=True) as store:
+            if parts == ["captures"]:
+                _reject_unexpected_query(query, {"source_id"})
+                return list_captured_representations(store, source_id=_single_query(query, "source_id")), "application/json; charset=utf-8"
+            if len(parts) == 2 and parts[0] == "captures":
+                if query: raise _error(400, "unexpected query parameter")
+                return get_captured_representation(store, _nonempty_identifier(parts[1], "captured representation identifier")), "application/json; charset=utf-8"
+
             if parts == ["records"]:
                 _reject_unexpected_query(query, {"kind"})
                 kind = _record_kind(_single_query(query, "kind"))
