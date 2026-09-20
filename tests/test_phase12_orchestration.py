@@ -277,7 +277,7 @@ def test_workflow_reproduction_excludes_fresh_execution_identity_and_timestamps(
         method_version="1",
         input_ids=("grounded-input",),
         steps=(
-            WorkflowStep("step-one", "first", "fixture", "1"),
+            WorkflowStep("step-one", "first", "fixture", "1", ("grounded-input",)),
             WorkflowStep("step-two", "second", "fixture", "1"),
         ),
     )
