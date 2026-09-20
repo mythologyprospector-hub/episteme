@@ -1575,7 +1575,8 @@ class Store:
                 "content_reference": row["content_reference"],
                 "acquisition_method": row["acquisition_method"],
                 "acquisition_method_version": row["acquisition_method_version"],
-                "outcome": row["outcome"], "error": row["error"],\n            "schema_version": row["schema_version"],
+                "outcome": row["outcome"], "error": row["error"],
+                "schema_version": row["schema_version"],
             })
 
     def read_captured_content(self, capture_id: str) -> bytes:
