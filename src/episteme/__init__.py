@@ -41,7 +41,7 @@ from .discovery import detect_accounting_gap, detect_constraint_gap, detect_posi
 from .store import Store
 from .trail import DiscoveryTrail, TrailEntry, build_discovery_trail
 from .proposals import complete_structural_gap, predict, propose_candidate_discrimination_experiment, propose_discriminating_prediction, propose_experiment, propose_hypothesis, represent_model
-from .public import (discovery_lineage, discovery_report, discovery_trail, get_record, get_discovery_finding, list_discovery_findings, list_records, get_hypothesis, list_hypotheses, get_model, list_models, get_prediction, list_predictions, get_experiment_proposal, list_experiment_proposals, get_prediction_evaluation, list_prediction_evaluations, get_knowledge_state_consequence, list_knowledge_state_consequences, get_review, list_reviews, get_relationship, list_relationships, get_workflow_definition, list_workflow_definitions, get_workflow_execution, list_workflow_executions, workflow_execution_lineage, list_workflow_executions_for_artifact)
+from .public import (discovery_lineage, discovery_report, discovery_trail, get_captured_representation, list_captured_representations, get_record, get_discovery_finding, list_discovery_findings, list_records, get_hypothesis, list_hypotheses, get_model, list_models, get_prediction, list_predictions, get_experiment_proposal, list_experiment_proposals, get_prediction_evaluation, list_prediction_evaluations, get_knowledge_state_consequence, list_knowledge_state_consequences, get_review, list_reviews, get_relationship, list_relationships, get_workflow_definition, list_workflow_definitions, get_workflow_execution, list_workflow_executions, workflow_execution_lineage, list_workflow_executions_for_artifact)
 from .html import render_discovery_report_html
 from .public_import import import_crossref_works
 from .orchestration import WorkflowDefinition, WorkflowExecution, WorkflowStep, WorkflowStepResult, run_workflow
@@ -110,6 +110,8 @@ __all__ = [
     "represent_model",
     "predict",
     "propose_experiment",
+    "get_captured_representation",
+    "list_captured_representations",
     "get_record",
     "get_discovery_finding",
     "list_discovery_findings",
