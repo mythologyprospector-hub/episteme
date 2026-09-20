@@ -285,7 +285,7 @@ Target capabilities:
 
 **Exit condition:** Episteme can execute and inspect a finite declared discovery workflow composed from existing primitives while preserving epistemic boundaries, alternatives, failures, and reproducibility.
 
-**Status:** Active.
+**Status:** Complete.
 
 ## Roadmap Rules
 
@@ -309,11 +309,11 @@ If implementation reveals that the roadmap is wrong, revise the roadmap rather t
 
 ## Current Position
 
-**Phase 12 — Discovery Orchestration — Active**
+**Phase 12 — Discovery Orchestration — Complete**
 
 Phase 11 is complete. Heterogeneous finite source representations enter through the existing grounded boundary without creating a second ingestion model, with provenance, deterministic adapter/version metadata, translation lineage, rejection, and immutability verified.
 
-Phase 12 is active. The next concrete pressure is execution: the discovery machinery can represent the full loop, but its operations remain primarily individual primitives. Phase 12 will compose those existing capabilities into a declared, reproducible, inspectable workflow without creating a second epistemic model.
+Phase 12 is complete. The discovery machinery now composes its existing capabilities into a declared, reproducible, inspectable workflow without creating a second epistemic model. Execution lineage records effective inputs, outputs, method versions, downstream dependencies, failures, and reproducibility semantics.
 
 Phase 1 is complete. The grounded substrate, provenance boundary, relationships, deterministic serialization, validation, SQLite persistence, and externally grounded ingestion fixture are implemented and verified.
 
@@ -337,4 +337,4 @@ Phase 10 is complete. Its canonical semantics are defined in CANDIDATE_COMPLETIO
 
 Phase 11 is complete. Its canonical semantics are defined in GROUNDED_INGESTION.md. The phase strengthened the existing JSONL and Crossref ingestion boundaries without introducing a second ingestion model. The exit condition is satisfied.
 
-Phase 12 is active. Its canonical semantics are defined in DISCOVERY_ORCHESTRATION.md. It addresses the demonstrated execution pressure between the existing discovery primitives: making a declared discovery loop runnable and inspectable without introducing a new epistemic primitive.
+Phase 12 is complete. Its canonical semantics are defined in DISCOVERY_ORCHESTRATION.md. The declared workflow boundary makes the existing discovery loop runnable and inspectable without introducing a new epistemic primitive.
