@@ -114,6 +114,44 @@ def _parser() -> argparse.ArgumentParser:
                 help="Write the same report as a self-contained HTML document.",
             )
 
+    hypotheses = subparsers.add_parser("hypotheses", help="List generated hypotheses.")
+    hypothesis = subparsers.add_parser("hypothesis", help="Inspect one generated hypothesis.")
+    hypothesis.add_argument("artifact_id")
+
+    models = subparsers.add_parser("models", help="List generated models.")
+    model = subparsers.add_parser("model", help="Inspect one generated model.")
+    model.add_argument("artifact_id")
+
+    predictions = subparsers.add_parser("predictions", help="List generated predictions.")
+    prediction = subparsers.add_parser("prediction", help="Inspect one generated prediction.")
+    prediction.add_argument("artifact_id")
+
+    experiment_proposals = subparsers.add_parser(
+        "experiment-proposals", help="List generated experiment proposals."
+    )
+    experiment_proposal = subparsers.add_parser(
+        "experiment-proposal", help="Inspect one generated experiment proposal."
+    )
+    experiment_proposal.add_argument("artifact_id")
+
+    prediction_evaluations = subparsers.add_parser(
+        "prediction-evaluations", help="List generated prediction evaluations."
+    )
+    prediction_evaluation = subparsers.add_parser(
+        "prediction-evaluation", help="Inspect one generated prediction evaluation."
+    )
+    prediction_evaluation.add_argument("artifact_id")
+
+    knowledge_state_consequences = subparsers.add_parser(
+        "knowledge-state-consequences",
+        help="List generated knowledge-state consequences.",
+    )
+    knowledge_state_consequence = subparsers.add_parser(
+        "knowledge-state-consequence",
+        help="Inspect one generated knowledge-state consequence.",
+    )
+    knowledge_state_consequence.add_argument("artifact_id")
+
     return parser
 
 
