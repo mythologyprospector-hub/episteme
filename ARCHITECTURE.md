@@ -1113,3 +1113,63 @@ Public inspection must not:
 A discovery finding remains generated material regardless of whether it is inspected directly, listed, or referenced by another public surface.
 
 The canonical Phase 18 public contract is defined in `PUBLIC_DISCOVERY_FINDING_INSPECTION.md`.
+
+
+## Phase 19 — External Acquisition / Captured Representation
+
+Phase 19 establishes a durable boundary between material received from the external world and the grounded Episteme record produced by interpreting that material.
+
+The boundary is:
+
+**external source → acquisition attempt → captured representation → existing source adapter → grounded SOURCE record**
+
+A captured representation is operational history of what an external acquisition supplied. It is not itself an epistemic claim.
+
+### Captured Representation Storage
+
+Capture metadata is persisted in the repository-owned SQLite store.
+
+The actual captured representation is stored outside SQLite in a filesystem-backed content store. Content is addressed by its SHA-256 digest using the form sha256/<digest>.
+
+This separation keeps large or independently shareable external material out of the structured epistemic database while retaining a durable catalog entry describing its origin and acquisition.
+
+Capture identity and content identity are distinct. Multiple acquisition events may refer to identical content.
+
+### Capture Semantics
+
+A capture preserves:
+
+- source/provider identity;
+- requested resource and request parameters;
+- capture timestamp;
+- response status and media type when available;
+- source-provided version when available;
+- content digest and content reference when content was received;
+- acquisition method and method version;
+- complete, partial, or failed outcome.
+
+Capture persistence is append-only. Captured content is immutable and verified against its digest when read.
+
+Failed captures may be preserved as acquisition history without content. Partial captures remain explicitly partial.
+
+### Separation from Existing Histories
+
+Phase 19 does not replace or extend ordinary artifact provenance or workflow execution history.
+
+- **Acquisition history** records what the external world supplied.
+- **Artifact provenance** records where a grounded Episteme record came from.
+- **Execution history** records what a declared Episteme procedure did.
+
+A workflow may later invoke acquisition, but workflow execution does not subsume acquisition history.
+
+### Dependency Direction
+
+External acquisition belongs outside the stable epistemic primitives. Provider-specific clients and retrieval policies remain adapters or capabilities above the capture boundary.
+
+The capture layer does not rank sources, infer scientific meaning, or automatically create grounded records. Existing source adapters remain responsible for translating captured representations into grounded records.
+
+### Phase 19 Boundary Invariant
+
+> **A captured representation records what an external acquisition supplied; it does not gain epistemic authority merely because Episteme captured or stored it.**
+
+The canonical Phase 19 design is defined in CAPTURED_REPRESENTATION.md.
