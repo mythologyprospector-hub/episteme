@@ -14,6 +14,8 @@ from .public import (
     discovery_report,
     discovery_trail,
     get_record,
+    get_discovery_finding,
+    list_discovery_findings,
     get_hypothesis,
     list_hypotheses,
     get_model,
@@ -211,6 +213,19 @@ class _EpistemeHTTPServer(ThreadingHTTPServer):
                 if query:
                     raise _error(400, "unexpected query parameter")
                 return get_record(store, _identifier(parts[1], "record identifier")), "application/json; charset=utf-8"
+
+            if parts == ["discoveries"]:
+                _reject_unexpected_query(query, {"kind"})
+                kind = _single_query(query, "kind")
+                return list_discovery_findings(
+                    store, kind=kind
+                ), "application/json; charset=utf-8"
+            if len(parts) == 2 and parts[0] == "discoveries":
+                if query:
+                    raise _error(400, "unexpected query parameter")
+                return get_discovery_finding(
+                    store, _identifier(parts[1], "discovery finding identifier")
+                ), "application/json; charset=utf-8"
 
             if parts == ["hypotheses"]:
                 _reject_unexpected_query(query, set())
