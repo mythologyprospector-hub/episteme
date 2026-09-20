@@ -1,6 +1,6 @@
 # Public Acquisition / Capture Inspection
 
-**Status:** Canonical Phase 21 design
+**Status:** Canonical Phase 21 design — content inspection was intentionally deferred to Phase 23
 **Version:** 1.0
 **Last updated:** 2026-09-20
 
@@ -30,7 +30,7 @@ A captured representation records what Episteme received from an external provid
 Listing uses the existing store ordering: captured_at, id. Failed and partial captures remain inspectable. Inspection does not retry, repair, infer, or suppress.
 
 ## Out of Scope
-New providers, autonomous retrieval, mutation endpoints, interpretation, automatic ingestion, evidence promotion, provenance redesign, workflow integration, ranking, reverse indexes, and content download routes.
+New providers, autonomous retrieval, mutation endpoints, interpretation, automatic ingestion, evidence promotion, provenance redesign, workflow integration, ranking, reverse indexes, and exact captured-content inspection.
 
 ## Exit Condition
 A researcher can directly retrieve a persisted captured representation and deterministically list captures through Episteme's public Python, CLI, and HTTP surfaces, including source filtering, while preserving the existing capture representation and epistemic boundary.
