@@ -75,6 +75,12 @@ def _identifier(value: str, name: str) -> str:
     return value
 
 
+def _nonempty_identifier(value: str, name: str) -> str:
+    if not value:
+        raise _error(400, f"invalid {name}: {value}")
+    return value
+
+
 def _timestamp(value: str) -> str:
     from datetime import datetime
 
@@ -199,14 +205,14 @@ class _EpistemeHTTPServer(ThreadingHTTPServer):
                 if query:
                     raise _error(400, "unexpected query parameter")
                 return get_workflow_definition(
-                    store, _identifier(parts[1], "workflow identifier")
+                    store, _nonempty_identifier(parts[1], "workflow identifier")
                 ), "application/json; charset=utf-8"
 
             if parts == ["executions"]:
                 _reject_unexpected_query(query, {"workflow_id"})
                 workflow_id = _single_query(query, "workflow_id")
                 if workflow_id is not None:
-                    workflow_id = _identifier(workflow_id, "workflow identifier")
+                    workflow_id = _nonempty_identifier(workflow_id, "workflow identifier")
                 return list_workflow_executions(
                     store, workflow_id=workflow_id
                 ), "application/json; charset=utf-8"
@@ -214,7 +220,7 @@ class _EpistemeHTTPServer(ThreadingHTTPServer):
             if len(parts) == 3 and parts[0] == "executions" and parts[2] == "lineage":
                 if query:
                     raise _error(400, "unexpected query parameter")
-                execution_id = _identifier(parts[1], "workflow execution identifier")
+                execution_id = _nonempty_identifier(parts[1], "workflow execution identifier")
                 return workflow_execution_lineage(store, execution_id), "application/json; charset=utf-8"
 
             if len(parts) == 2 and parts[0] == "executions":
