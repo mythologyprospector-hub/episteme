@@ -479,7 +479,7 @@ Target capabilities:
 
 **Exit condition:** A captured external representation can be persisted with inspectable acquisition metadata, stored independently from SQLite as immutable content, recovered after process boundaries, verified by content digest, and represented as complete, partial, or failed without changing the epistemic status of downstream artifacts.
 
-**Status:** Active.
+**Status:** Complete.
 
 ## Roadmap Rules/
 
@@ -521,7 +521,7 @@ Phase 17 is complete. The existing generated hypotheses, models, predictions, ex
 
 Phase 18 is complete. The existing persisted discovery findings are directly inspectable through the same read-only public instrument. This closes the direct-inspection gap between discovery trails/downstream artifacts and the discovery finding itself without introducing new discovery semantics or changing generated status. The Phase 18 exit condition is satisfied.
 
-Phase 19 is active. External acquisition now has a durable captured-representation boundary: SQLite stores capture metadata while immutable captured content is stored separately in a filesystem-backed, SHA-256 content-addressed store. Capture identity remains append-only; complete, partial, and failed outcomes remain distinct; and capture storage does not itself create grounded evidence.
+Phase 19 is complete. External acquisition now has a durable captured-representation boundary: SQLite stores capture metadata while immutable captured content is stored separately in a filesystem-backed, SHA-256 content-addressed store. Capture identity remains append-only; complete, partial, and failed outcomes remain distinct; captured content is verified by digest, and capture storage does not itself create grounded evidence. The Phase 19 exit condition is satisfied.
 
 Phase 1 is complete. The grounded substrate, provenance boundary, relationships, deterministic serialization, validation, SQLite persistence, and externally grounded ingestion fixture are implemented and verified.
 
