@@ -32,7 +32,8 @@ class CapturedRepresentation:
     acquisition_method: str
     acquisition_method_version: str
     outcome: CaptureOutcome
-    schema_version: int = 1
+    error: str | None = None
+    schema_version: int = 2
 
     def __post_init__(self) -> None:
         if not self.id:
@@ -52,6 +53,10 @@ class CapturedRepresentation:
         if self.outcome is CaptureOutcome.FAILED:
             if self.content_digest is not None or self.content_reference is not None:
                 raise ValueError("failed capture cannot reference captured content")
+            if not self.error:
+                raise ValueError("failed capture requires an error description")
+        elif self.error is not None:
+            raise ValueError("successful or partial capture cannot carry an error")
         elif (self.content_digest is None) != (self.content_reference is None):
             raise ValueError("content_digest and content_reference must be supplied together")
         if self.content_digest is not None:
@@ -78,6 +83,7 @@ class CapturedRepresentation:
             "acquisition_method": self.acquisition_method,
             "acquisition_method_version": self.acquisition_method_version,
             "outcome": self.outcome.value,
+            "error": self.error,
             "schema_version": self.schema_version,
         }
 
@@ -97,5 +103,6 @@ class CapturedRepresentation:
             acquisition_method=str(data["acquisition_method"]),
             acquisition_method_version=str(data["acquisition_method_version"]),
             outcome=CaptureOutcome(data["outcome"]),
+            error=data.get("error"),
             schema_version=int(data.get("schema_version", 1)),
         )
