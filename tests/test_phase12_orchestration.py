@@ -252,6 +252,8 @@ def test_declared_workflow_runs_existing_discovery_loop_and_preserves_lineage():
             (step.method, step.method_version) for step in workflow.steps
         ]
         assert execution.step_results[0].input_ids == workflow.input_ids
+        for previous, current in zip(execution.step_results, execution.step_results[1:]):
+            assert current.input_ids == previous.output_ids
         assert execution.step_results[-1].output_ids == (state["renewed"].id,)
         assert state["renewed"].kind is DiscoveryFindingKind.TENSION
         assert all(
