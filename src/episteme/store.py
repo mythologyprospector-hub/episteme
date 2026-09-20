@@ -248,6 +248,21 @@ class Store:
                 provenance TEXT NOT NULL,
                 schema_version INTEGER NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS workflow_definitions (
+                id TEXT PRIMARY KEY,
+                definition TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS workflow_executions (
+                id TEXT PRIMARY KEY,
+                workflow_id TEXT NOT NULL,
+                execution TEXT NOT NULL,
+                FOREIGN KEY(workflow_id) REFERENCES workflow_definitions(id)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_workflow_executions_workflow
+                ON workflow_executions(workflow_id);
             """
         )
         relationship_columns = self._connection.execute(
@@ -1429,6 +1444,111 @@ class Store:
                 "schema_version": row["schema_version"],
             }
         )
+
+    def put_workflow_definition(self, workflow: "WorkflowDefinition") -> None:
+        from .orchestration import WorkflowDefinition
+
+        if not isinstance(workflow, WorkflowDefinition):
+            raise TypeError("expected WorkflowDefinition")
+        self._connection.execute(
+            "INSERT INTO workflow_definitions (id, definition) VALUES (?, ?)",
+            (workflow.id, canonical_json(workflow.to_dict())),
+        )
+        self._connection.commit()
+
+    def get_workflow_definition(self, workflow_id: str) -> "WorkflowDefinition | None":
+        from .orchestration import WorkflowDefinition
+
+        row = self._connection.execute(
+            "SELECT definition FROM workflow_definitions WHERE id = ?",
+            (workflow_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        return WorkflowDefinition.from_dict(json.loads(row["definition"]))
+
+    def iter_workflow_definitions(self) -> Iterator["WorkflowDefinition"]:
+        from .orchestration import WorkflowDefinition
+
+        rows = self._connection.execute(
+            "SELECT definition FROM workflow_definitions ORDER BY id"
+        )
+        for row in rows:
+            yield WorkflowDefinition.from_dict(json.loads(row["definition"]))
+
+    def _workflow_artifact_exists(self, artifact_id: str) -> bool:
+        tables = (
+            "records", "relationships", "discovery_findings", "hypotheses",
+            "models", "predictions", "experiment_proposals",
+            "prediction_evaluations", "knowledge_state_consequences",
+            "candidate_constraint_assessments", "evidence_assessments",
+            "reviews", "transformations",
+        )
+        return any(
+            self._connection.execute(
+                f"SELECT 1 FROM {table} WHERE id = ? LIMIT 1", (artifact_id,)
+            ).fetchone()
+            is not None
+            for table in tables
+        )
+
+    def put_workflow_execution(self, execution: "WorkflowExecution") -> None:
+        from .orchestration import WorkflowExecution
+
+        if not isinstance(execution, WorkflowExecution):
+            raise TypeError("expected WorkflowExecution")
+        if self.get_workflow_definition(execution.workflow_id) is None:
+            raise ValueError(
+                "workflow execution references missing workflow definition: "
+                + execution.workflow_id
+            )
+        artifact_ids = [
+            artifact_id
+            for result in execution.step_results
+            for artifact_id in (*result.input_ids, *result.output_ids)
+        ]
+        missing = [
+            artifact_id for artifact_id in artifact_ids
+            if not self._workflow_artifact_exists(artifact_id)
+        ]
+        if missing:
+            raise ValueError(
+                "workflow execution references missing artifact(s): "
+                + ", ".join(dict.fromkeys(missing))
+            )
+        self._connection.execute(
+            "INSERT INTO workflow_executions (id, workflow_id, execution) VALUES (?, ?, ?)",
+            (execution.id, execution.workflow_id, canonical_json(execution.to_dict())),
+        )
+        self._connection.commit()
+
+    def get_workflow_execution(self, execution_id: str) -> "WorkflowExecution | None":
+        from .orchestration import WorkflowExecution
+
+        row = self._connection.execute(
+            "SELECT execution FROM workflow_executions WHERE id = ?",
+            (execution_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        return WorkflowExecution.from_dict(json.loads(row["execution"]))
+
+    def iter_workflow_executions(
+        self, workflow_id: str | None = None
+    ) -> Iterator["WorkflowExecution"]:
+        from .orchestration import WorkflowExecution
+
+        if workflow_id is None:
+            rows = self._connection.execute(
+                "SELECT execution FROM workflow_executions ORDER BY id"
+            )
+        else:
+            rows = self._connection.execute(
+                "SELECT execution FROM workflow_executions WHERE workflow_id = ? ORDER BY id",
+                (workflow_id,),
+            )
+        for row in rows:
+            yield WorkflowExecution.from_dict(json.loads(row["execution"]))
 
     def close(self) -> None:
         self._connection.close()
