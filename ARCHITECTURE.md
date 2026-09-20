@@ -1077,3 +1077,7 @@ The relationship is conceptual, not architectural:
 - Cross-project observations may become useful research material only when their provenance and epistemic status are explicit.
 
 The existence of this related project is recorded here so future builders do not independently rediscover the relationship and accidentally create an architectural dependency.
+
+## Phase 16 — Public Relationship Inspection
+
+Public relationship inspection extends the read-only public instrument to expose the existing first-class subject–predicate–object relationships and their provenance. It reads the existing relationship persistence boundary; it does not create a second graph, infer new edges, score relationships, or add public mutation. The public boundary is persisted relationship → Python inspection API → CLI/HTTP. Relationship visibility does not upgrade the epistemic status of the represented relationship.
