@@ -53,7 +53,8 @@ def test_declared_workflow_runs_existing_discovery_loop_and_preserves_lineage():
 
         state = {}
 
-        def gap_step(step):
+        def gap_step(step, input_ids):
+            assert input_ids == tuple(record.id for record in records)
             gap = detect_positional_gap(
                 store,
                 record_ids=tuple(record.id for record in records),
@@ -66,7 +67,8 @@ def test_declared_workflow_runs_existing_discovery_loop_and_preserves_lineage():
             state["gap"] = gap
             return (gap.id,)
 
-        def candidates_step(step):
+        def candidates_step(step, input_ids):
+            assert input_ids == (state["gap"].id,)
             gap = state["gap"]
             candidates = []
             for statement in ("position 3.0", "a different position"):
@@ -84,7 +86,8 @@ def test_declared_workflow_runs_existing_discovery_loop_and_preserves_lineage():
             state["candidates"] = tuple(candidates)
             return tuple(candidate.id for candidate in candidates)
 
-        def predictions_step(step):
+        def predictions_step(step, input_ids):
+            assert input_ids == tuple(item.id for item in state["candidates"] )
             candidates = state["candidates"]
             predictions = []
             consequences = (
@@ -108,7 +111,8 @@ def test_declared_workflow_runs_existing_discovery_loop_and_preserves_lineage():
             state["predictions"] = tuple(predictions)
             return tuple(prediction.id for prediction in predictions)
 
-        def experiment_step(step):
+        def experiment_step(step, input_ids):
+            assert input_ids == tuple(item.id for item in state["predictions"] )
             predictions = state["predictions"]
             proposal = propose_candidate_discrimination_experiment(
                 store,
@@ -126,7 +130,8 @@ def test_declared_workflow_runs_existing_discovery_loop_and_preserves_lineage():
             state["proposal"] = proposal
             return (proposal.id,)
 
-        def result_step(step):
+        def result_step(step, input_ids):
+            assert input_ids == (state["proposal"].id,)
             result = Record(
                 id="55555555-5555-4555-8555-555555555555",
                 kind=RecordKind.RESULT,
@@ -138,7 +143,8 @@ def test_declared_workflow_runs_existing_discovery_loop_and_preserves_lineage():
             state["result"] = result
             return (result.id,)
 
-        def evaluation_step(step):
+        def evaluation_step(step, input_ids):
+            assert input_ids == (state["result"].id,)
             predictions = state["predictions"]
             proposal = state["proposal"]
             result = state["result"]
@@ -179,7 +185,8 @@ def test_declared_workflow_runs_existing_discovery_loop_and_preserves_lineage():
             state["evaluations"] = tuple(evaluations)
             return tuple(evaluation.id for evaluation in evaluations)
 
-        def consequence_step(step):
+        def consequence_step(step, input_ids):
+            assert input_ids == tuple(item.id for item in state["evaluations"] )
             candidates = state["candidates"]
             evaluations = state["evaluations"]
             consequences = []
@@ -205,7 +212,8 @@ def test_declared_workflow_runs_existing_discovery_loop_and_preserves_lineage():
             state["consequences"] = tuple(consequences)
             return tuple(item.id for item in consequences)
 
-        def renewal_step(step):
+        def renewal_step(step, input_ids):
+            assert input_ids == tuple(item.id for item in state["consequences"] )
             findings = discover_evaluation_tensions(store, created_at=CREATED)
             assert len(findings) == 1
             finding = findings[0]
@@ -282,10 +290,12 @@ def test_workflow_reproduction_excludes_fresh_execution_identity_and_timestamps(
         ),
     )
 
-    def first(step):
+    def first(step, input_ids):
+        assert input_ids == ("grounded-input",)
         return ("generated-one",)
 
-    def second(step):
+    def second(step, input_ids):
+        assert input_ids == ("generated-one",)
         return ("generated-two",)
 
     executors = {"first": first, "second": second}
@@ -323,6 +333,43 @@ def test_workflow_reproduction_excludes_fresh_execution_identity_and_timestamps(
     }
 
 
+def test_executor_exception_receives_and_preserves_effective_input_lineage():
+    workflow = WorkflowDefinition(
+        id="phase12-exception",
+        name="Exception fixture",
+        method="phase12-exception-workflow",
+        method_version="1",
+        input_ids=("grounded-input",),
+        steps=(
+            WorkflowStep("step-one", "first", "fixture", "1", ("grounded-input",)),
+            WorkflowStep("step-two", "boom", "fixture", "2"),
+        ),
+    )
+
+    def first(step, input_ids):
+        assert input_ids == ("grounded-input",)
+        return ("generated-one",)
+
+    def boom(step, input_ids):
+        assert input_ids == ("generated-one",)
+        raise RuntimeError("fixture failure")
+
+    execution = run_workflow(
+        workflow,
+        {"first": first, "boom": boom},
+        started_at=CREATED,
+    )
+
+    assert execution.status == "failed"
+    assert execution.step_results[0].output_ids == ("generated-one",)
+    assert execution.step_results[1].status == "failed"
+    assert execution.step_results[1].input_ids == ("generated-one",)
+    assert execution.step_results[1].output_ids == ()
+    assert execution.step_results[1].method == "fixture"
+    assert execution.step_results[1].method_version == "2"
+    assert "RuntimeError: fixture failure" in execution.step_results[1].error
+
+
 def test_workflow_failure_is_inspectable_and_stops_without_erasing_prior_steps():
     workflow = WorkflowDefinition(
         id="phase12-failure",
@@ -338,7 +385,8 @@ def test_workflow_failure_is_inspectable_and_stops_without_erasing_prior_steps()
 
     calls = []
 
-    def first(step):
+    def first(step, input_ids):
+        assert input_ids == ("grounded-input",)
         calls.append(step.name)
         return ("generated-one",)
 
