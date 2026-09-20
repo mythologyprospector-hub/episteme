@@ -163,7 +163,7 @@ footer{margin-top:3rem;color:var(--dim);font-size:.8rem;border-top:1px solid var
         '<h1>Discovery report</h1>',
         '<p class="subtitle">An inspectable view of what Episteme recorded, what it generated, and how those pieces are connected.</p>',
         f'<div class="finding"><span>Finding</span> · <code>{html.escape(finding_id)}</code></div>',
-        '<p class="notice"><strong>Read-only.</strong> Grounded records are evidence Episteme received or recorded; generated artifacts are Episteme-produced reasoning or planning material. The presentation does not adjudicate truth.</p>',
+        '<p class="notice"><strong>Read-only.</strong> Grounded records are evidence Episteme received or recorded; generated artifacts are Episteme-produced reasoning or planning material. This report does not adjudicate truth.</p>',
         f'<div class="summary"><div class="card"><strong>{len(grounded)}</strong><span>grounded records</span></div><div class="card"><strong>{len(generated)}</strong><span>generated artifacts</span></div><div class="card"><strong>{len(trail.get("entries", []))}</strong><span>trail entries</span></div></div>',
         "</header>",
         "<section><h2>Grounded records</h2>",
