@@ -397,6 +397,49 @@ The implemented Phase 15 behavior satisfies the stated exit condition.
 
 **Status:** Complete.
 
+
+## Phase 16 — Public Relationship Inspection
+
+**Goal:** Expose the existing first-class subject–predicate–object relationships through the read-only public scientific instrument without changing their epistemic meaning.
+
+The canonical Phase 16 design is defined in PUBLIC_RELATIONSHIP_INSPECTION.md.
+
+Target capabilities:
+
+- [x] read-only public retrieval of persisted relationships;
+- [x] deterministic relationship listing with the existing predicate filter;
+- [x] read-only CLI relationship inspection;
+- [x] versioned HTTP relationship inspection;
+- [x] preservation of relationship provenance and grounded/generated boundaries;
+- [x] executable tests covering the public relationship boundary.
+
+**Exit condition:** A researcher can directly inspect persisted first-class relationships and their provenance through the existing read-only public instrument without creating a second graph or changing relationship meaning.
+
+**Status:** Complete.
+
+## Phase 17 — Public Epistemic Artifact Inspection
+
+**Goal:** Expose existing generated epistemic artifacts through the existing read-only public scientific instrument without changing their epistemic status.
+
+The canonical Phase 17 design is defined in PUBLIC_EPISTEMIC_ARTIFACT_INSPECTION.md.
+
+Target capabilities:
+
+- [ ] read-only public retrieval and listing of hypotheses;
+- [ ] read-only public retrieval and listing of models;
+- [ ] read-only public retrieval and listing of predictions;
+- [ ] read-only public retrieval and listing of experiment proposals;
+- [ ] read-only public retrieval and listing of prediction evaluations;
+- [ ] read-only public retrieval and listing of knowledge-state consequences;
+- [ ] read-only CLI inspection for each artifact type;
+- [ ] versioned HTTP read routes for each artifact type;
+- [ ] preservation of generated-versus-grounded boundaries;
+- [ ] executable tests covering the public artifact boundary.
+
+**Exit condition:** A researcher using Episteme's documented public inspection surfaces can directly retrieve and list each existing generated epistemic artifact type, inspect its stored content and lineage fields, and distinguish it from grounded evidence without creating a second artifact model or changing its epistemic status.
+
+**Status:** Active.
+
 ## Roadmap Rules/
 
 ### No roadmap-driven architecture
@@ -419,7 +462,7 @@ If implementation reveals that the roadmap is wrong, revise the roadmap rather t
 
 ## Current Position
 
-**Phase 16 — Public Relationship Inspection — Active**
+**Phase 17 — Public Epistemic Artifact Inspection — Active**
 
 Phase 11 is complete. Heterogeneous finite source representations enter through the existing grounded boundary without creating a second ingestion model, with provenance, deterministic adapter/version metadata, translation lineage, rejection, and immutability verified.
 
