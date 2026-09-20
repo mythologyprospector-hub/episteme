@@ -298,4 +298,9 @@ def test_workflow_failure_is_inspectable_and_stops_without_erasing_prior_steps()
     assert calls == ["first"]
     assert execution.step_results[0].output_ids == ("generated-one",)
     assert execution.step_results[1].status == "failed"
+    assert execution.step_results[1].input_ids == ("generated-one",)
+    assert execution.step_results[1].output_ids == ()
     assert "no executor declared" in execution.step_results[1].error
+    assert execution.step_results[1].method == "fixture"
+    assert execution.step_results[1].method_version == "1"
+    assert execution.step_results[0].status == "completed"
