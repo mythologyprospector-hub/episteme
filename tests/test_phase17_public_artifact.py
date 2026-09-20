@@ -16,6 +16,10 @@ from episteme import (
     PredictionEvaluation,
     PredictionEvaluationOutcome,
     Store,
+    Record,
+    RecordKind,
+    DiscoveryFinding,
+    DiscoveryFindingKind,
     get_experiment_proposal,
     get_hypothesis,
     get_knowledge_state_consequence,
@@ -40,17 +44,19 @@ EID = "44444444-4444-4444-8444-444444444444"
 PEID = "55555555-5555-4555-8555-555555555555"
 KID = "66666666-6666-4666-8666-666666666666"
 RID = "77777777-7777-4777-8777-777777777777"
+OID = "88888888-8888-4888-8888-888888888888"
 
 def _seed(path):
-    h = Hypothesis(HID, "A generated explanation.", (RID,), (), "fixture", "1", "test", (), CREATED)
+    h = Hypothesis(HID, "A generated explanation.", (RID,), (OID,), "fixture", "1", "test", (), CREATED)
     m = Model(MID, "A generated model.", (HID,), (), (), "fixture", "1", "test", CREATED)
     p = Prediction(PID, HID, "An expected consequence.", "Under fixture conditions.", (), "fixture", "1", "test", (), CREATED)
     ep = ExperimentProposal(EID, (PID,), "Test the prediction.", "Observe the consequence.", "The observation distinguishes the prediction.", "Fixture conditions.", (), "fixture", "1", "test", CREATED)
     pe = PredictionEvaluation(PEID, RID, PID, EID, "Fixture conditions.", (), PredictionEvaluationOutcome.CONSISTENT, "The result is consistent.", "fixture", "1", CREATED)
     k = KnowledgeStateConsequence(KID, (PEID,), KnowledgeStateTargetKind.HYPOTHESIS, HID, KnowledgeStateConsequenceKind.SUPPORTS, (), "The evaluation supports the hypothesis.", "fixture", "1", CREATED)
     with Store(path) as store:
-        from episteme import DiscoveryFinding, DiscoveryFindingKind
-        finding = DiscoveryFinding(id=RID, kind=DiscoveryFindingKind.GAP, description="fixture gap", input_ids=(), context_ids=(), expectation=None, measures=(), created_at=CREATED)
+        observation = Record(OID, RecordKind.OBSERVATION, {"value": "fixture"}, PROV, CREATED)
+        finding = DiscoveryFinding(RID, DiscoveryFindingKind.TENSION, "Fixture tension", "fixture tension", (OID,), "fixture", "1", "test", (), CREATED)
+        store.put_record(observation)
         store.put_discovery_finding(finding)
         store.put_hypothesis(h)
         store.put_model(m)
