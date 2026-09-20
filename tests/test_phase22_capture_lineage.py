@@ -18,8 +18,7 @@ CREATED = "2026-09-20T00:00:00Z"
 CAPTURE_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
 
 
-def _capture(store: Store) -> None:
-    payload = json.dumps({"message": {"items": []}}, separators=(",", ":")).encode()
+def _capture(store: Store, payload: bytes) -> None:
     import hashlib
 
     digest = hashlib.sha256(payload).hexdigest()
@@ -45,7 +44,6 @@ def _capture(store: Store) -> None:
 
 def test_crossref_import_can_preserve_exact_capture_identity(tmp_path):
     with Store(tmp_path / "episteme.sqlite", capture_root=tmp_path / "captures") as store:
-        _capture(store)
         data = {
             "message": {
                 "items": [
@@ -57,6 +55,8 @@ def test_crossref_import_can_preserve_exact_capture_identity(tmp_path):
                 ]
             }
         }
+        payload = json.dumps(data, separators=(",", ":")).encode()
+        _capture(store, payload)
 
         assert import_crossref_works(
             data,
@@ -69,6 +69,10 @@ def test_crossref_import_can_preserve_exact_capture_identity(tmp_path):
         assert record.provenance[0].capture_id == CAPTURE_ID
         recovered = Provenance.from_dict(record.provenance[0].to_dict())
         assert recovered == record.provenance[0]
+
+    with Store(tmp_path / "episteme.sqlite", capture_root=tmp_path / "captures") as store:
+        recovered_record = next(store.iter_records(kind=RecordKind.SOURCE.value))
+        assert recovered_record.provenance[0].capture_id == CAPTURE_ID
 
 
 def test_crossref_import_rejects_missing_capture_lineage(tmp_path):
