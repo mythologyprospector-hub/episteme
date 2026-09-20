@@ -118,6 +118,24 @@ def list_workflow_executions_for_artifact(
 
 
 
+def get_discovery_finding(store: Store, finding_id: str) -> dict[str, Any]:
+    """Return one generated discovery finding as a public representation."""
+    finding = store.get_discovery_finding(finding_id)
+    if finding is None:
+        raise PublicNotFoundError(f"discovery finding not found: {finding_id}")
+    return finding.to_dict()
+
+
+def list_discovery_findings(
+    store: Store, kind: str | None = None
+) -> list[dict[str, Any]]:
+    """Return generated discovery findings in deterministic order."""
+    return [
+        finding.to_dict()
+        for finding in store.iter_discovery_findings(kind=kind)
+    ]
+
+
 def get_hypothesis(store: Store, hypothesis_id: str) -> dict[str, Any]:
     hypothesis = store.get_hypothesis(hypothesis_id)
     if hypothesis is None:
@@ -234,6 +252,8 @@ __all__ = [
     "PublicNotFoundError",
     "get_record",
     "list_records",
+    "get_discovery_finding",
+    "list_discovery_findings",
     "get_hypothesis",
     "list_hypotheses",
     "get_model",
