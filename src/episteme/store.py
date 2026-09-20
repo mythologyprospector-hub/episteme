@@ -1633,7 +1633,7 @@ class Store:
             "models", "predictions", "experiment_proposals",
             "prediction_evaluations", "knowledge_state_consequences",
             "candidate_constraint_assessments", "evidence_assessments",
-            "reviews", "transformations",
+            "reviews", "transformations", "captured_representations",
         )
         return any(
             self._connection.execute(
@@ -1644,7 +1644,7 @@ class Store:
         )
 
     def workflow_artifact_exists(self, artifact_id: str) -> bool:
-        """Return whether an identifier resolves to a persisted workflow artifact."""
+        """Return whether an identifier resolves to a persisted workflow resource."""
         return self._workflow_artifact_exists(artifact_id)
 
     def put_workflow_execution(self, execution: "WorkflowExecution") -> None:
