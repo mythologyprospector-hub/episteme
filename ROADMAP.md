@@ -1,7 +1,7 @@
 # Episteme Roadmap
 
 **Status:** Canonical planning document  
-**Version:** 1.8  
+**Version:** 1.9  
 **Last updated:** 2026-09-19
 
 ## Mission
@@ -226,6 +226,30 @@ The initial Phase 10 design is complete before implementation begins. The system
 
 **Exit condition:** Episteme can generate and assess candidate completions downstream of established structural gaps while preserving the gap, grounded evidence, constraints, assumptions, alternatives, discriminating consequences, and reproducibility.
 
+**Status:** Complete.
+
+## Phase 11 — Grounded Evidence Ingestion
+
+**Goal:** Strengthen the boundary through which heterogeneous, finite external scientific material enters Episteme without weakening provenance or the grounded/generated distinction.
+
+The canonical Phase 11 design is defined in GROUNDED_INGESTION.md.
+
+Target capabilities:
+
+- [ ] accept at least two materially different finite external source representations;
+- [ ] preserve source identity, source state, and capture provenance;
+- [ ] preserve source-provided content without silently changing its epistemic meaning;
+- [ ] translate deterministically under a named adapter and version;
+- [ ] use existing transformation semantics when translation lineage is materially important;
+- [ ] explicitly reject malformed or unsupported material;
+- [ ] preserve immutable records across re-import;
+- [ ] keep generated interpretation outside the grounded evidence boundary;
+- [ ] provide executable tests for heterogeneous ingestion and provenance/translation lineage.
+
+**Exit condition:** Episteme can ingest heterogeneous finite source representations while preserving source provenance, translation lineage, deterministic behavior, immutable records, and the distinction between externally grounded material and generated interpretation.
+
+**Status:** Active.
+
 ## Roadmap Rules
 
 ### No roadmap-driven architecture
@@ -270,4 +294,6 @@ Phase 8 has established its researcher-facing public instrument: a read-only Pyt
 
 Phase 9 is complete. Structural discovery can establish bounded positional, relational, constraint, and accounting holes from explicit structure and constraints; preserve typed expectations and structural context; record structural pressure as an inspectable ledger rather than a universal score; reproduce findings deterministically; and demonstrate materially different structural forms without a domain-specific core primitive. The Phase 9 exit condition is satisfied.
 
-Phase 10 is now the active design/implementation phase. Its canonical semantics are defined in CANDIDATE_COMPLETION.md. Implementation is gated by those semantics: candidate completion must remain downstream of an established hole, preserve every inherited constraint, expose assumptions and violations, preserve alternatives, and identify discriminating consequences without collapsing fit into a universal score or turning candidates into evidence.
+Phase 10 is complete. Its canonical semantics are defined in CANDIDATE_COMPLETION.md. Candidate completion remains downstream of an established hole, preserves inherited constraints, exposes assumptions and violations, preserves alternatives, and identifies discriminating consequences without collapsing fit into a universal score or turning candidates into evidence.
+
+Phase 11 is active. Its canonical semantics are defined in GROUNDED_INGESTION.md. Implementation begins from the existing JSONL and Crossref ingestion boundaries rather than introducing a second ingestion model.
