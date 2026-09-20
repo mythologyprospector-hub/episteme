@@ -18,6 +18,11 @@ from .public import (
     get_review,
     list_records,
     list_reviews,
+    get_workflow_definition,
+    list_workflow_definitions,
+    get_workflow_execution,
+    list_workflow_executions,
+    workflow_execution_lineage,
 )
 from .store import Store
 
@@ -46,6 +51,20 @@ def _parser() -> argparse.ArgumentParser:
     reviews = subparsers.add_parser("reviews", help="List reviews.")
     reviews.add_argument("--target-kind", default=None, choices=[kind.value for kind in ReviewTargetKind])
     reviews.add_argument("--target-id", default=None)
+
+    workflow_list = subparsers.add_parser("workflows", help="List persisted workflow definitions.")
+
+    workflow = subparsers.add_parser("workflow", help="Inspect one persisted workflow definition.")
+    workflow.add_argument("workflow_id")
+
+    execution_list = subparsers.add_parser("executions", help="List persisted workflow executions.")
+    execution_list.add_argument("--workflow-id", default=None)
+
+    execution = subparsers.add_parser("execution", help="Inspect one persisted workflow execution.")
+    execution.add_argument("execution_id")
+
+    execution_lineage = subparsers.add_parser("execution-lineage", help="Inspect timestamp-independent execution lineage.")
+    execution_lineage.add_argument("execution_id")
 
     review = subparsers.add_parser("review", help="Inspect one review.")
     review.add_argument("review_id")
@@ -89,6 +108,16 @@ def main() -> int:
             result = list_reviews(store, target_kind=target_kind, target_id=args.target_id)
         elif args.command == "review":
             result = get_review(store, args.review_id)
+        elif args.command == "workflows":
+            result = list_workflow_definitions(store)
+        elif args.command == "workflow":
+            result = get_workflow_definition(store, args.workflow_id)
+        elif args.command == "executions":
+            result = list_workflow_executions(store, workflow_id=args.workflow_id)
+        elif args.command == "execution":
+            result = get_workflow_execution(store, args.execution_id)
+        elif args.command == "execution-lineage":
+            result = workflow_execution_lineage(store, args.execution_id)
         elif args.command == "record":
             result = get_record(store, args.record_id)
         elif args.command == "trail":
