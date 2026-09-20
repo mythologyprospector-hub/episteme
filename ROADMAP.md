@@ -481,6 +481,42 @@ Target capabilities:
 
 **Status:** Complete.
 
+## Phase 20 — External Acquisition
+
+**Goal:** Perform bounded external retrieval through an explicit provider boundary and hand the exact received representation into the existing Phase 19 capture boundary without changing epistemic status.
+
+The canonical Phase 20 design is defined in EXTERNAL_ACQUISITION.md.
+
+Target capabilities:
+
+- [x] provider-neutral acquisition request and response contract;
+- [x] explicit complete, partial, and failed acquisition outcomes;
+- [x] durable handoff into Phase 19 captured representation;
+- [x] bounded Crossref acquisition provider;
+- [x] exact response preservation and content-digest verification;
+- [x] explicit failure descriptions;
+- [x] preservation of distinct acquisition events for identical content;
+- [x] executable tests covering success, failure, partial, provider-boundary, adapter handoff, and repeat-acquisition behavior.
+
+**Exit condition:** A bounded external request can be performed through an explicit provider capability, with the request and outcome inspectably represented, the exact received representation handed to Phase 19 immutable capture, and the captured representation optionally passed through the existing Crossref adapter into grounded ingestion without acquisition itself changing epistemic status.
+
+### Phase 20 Exit Audit
+
+The implemented Phase 20 behavior satisfies the stated exit condition.
+
+- bounded provider requests produce persisted captured representations;
+- request/resource and acquisition method metadata survive persistence;
+- successful response content is preserved exactly and verified by the Phase 19 digest boundary;
+- failed acquisition remains distinguishable from successful capture and preserves an explicit failure description;
+- partial acquisition preserves received content while remaining explicitly partial;
+- provider-specific Crossref behavior remains outside the stable capture and epistemic primitives;
+- acquisition does not itself create grounded records;
+- captured Crossref responses flow through the existing adapter and grounded ingestion boundary;
+- repeated acquisition events remain distinct even when captured content is identical;
+- executable Phase 20 tests provide proof of these boundaries.
+
+**Status:** Complete.
+
 ## Roadmap Rules/
 
 ### No roadmap-driven architecture
@@ -503,7 +539,7 @@ If implementation reveals that the roadmap is wrong, revise the roadmap rather t
 
 ## Current Position
 
-**Phase 19 — External Acquisition / Captured Representation — Active**
+**Phase 20 — External Acquisition — Complete**
 
 Phase 11 is complete. Heterogeneous finite source representations enter through the existing grounded boundary without creating a second ingestion model, with provenance, deterministic adapter/version metadata, translation lineage, rejection, and immutability verified.
 
