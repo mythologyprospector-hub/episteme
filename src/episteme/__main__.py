@@ -14,6 +14,8 @@ from .public import (
     discovery_lineage,
     discovery_report,
     discovery_trail,
+    get_captured_representation,
+    list_captured_representations,
     get_record,
     get_discovery_finding,
     list_discovery_findings,
@@ -58,6 +60,11 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--host", default="127.0.0.1", help="HTTP bind host (default: 127.0.0.1).")
     parser.add_argument("--port", type=int, default=8000, help="HTTP bind port (default: 8000).")
     subparsers = parser.add_subparsers(dest="command")
+
+    captures = subparsers.add_parser("captures", help="List captured external representations.")
+    captures.add_argument("--source-id", default=None)
+    capture = subparsers.add_parser("capture", help="Inspect one captured external representation.")
+    capture.add_argument("capture_id")
 
     records = subparsers.add_parser("records", help="List grounded records.")
     records.add_argument("--kind", default=None, help="Filter by record kind.")
@@ -172,7 +179,11 @@ def main() -> int:
         raise SystemExit("a command is required unless --serve is used")
     store_path = Path(args.store) if args.store != ":memory:" else args.store
     with Store(store_path, read_only=True) as store:
-        if args.command == "records":
+        if args.command == "captures":
+            result = list_captured_representations(store, source_id=args.source_id)
+        elif args.command == "capture":
+            result = get_captured_representation(store, args.capture_id)
+        elif args.command == "records":
             result = list_records(store, kind=args.kind)
         elif args.command == "reviews":
             target_kind = ReviewTargetKind(args.target_kind) if args.target_kind else None
