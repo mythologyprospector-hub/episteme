@@ -78,13 +78,13 @@ The first documents to read are:
 
 ## Project Status
 
-**Current phase:** Phase 8 — Public Scientific Instrument
+**Current phase:** Phase 11 — Grounded Evidence Ingestion
 
 Phase 1 grounded substrate, Phase 2 knowledge integrity, and Phase 3 discovery are complete and verified. Phase 4 hypothesis and prediction, Phase 5 experiment design, and Phase 6 closed-loop discovery are also complete and verified.
 
 Phase 7 is complete and verified. The first two domain demonstrations are Astronomy and Biology, showing that materially different evidence shapes can use domain-specific layers while preserving Episteme's stable epistemic primitives, provenance, generated-versus-grounded boundaries, closed-loop lineage, and reproducibility.
 
-Current work is Phase 8: defining the public scientific instrument. The canonical Phase 8 design is documented in [PUBLIC_INSTRUMENT.md](PUBLIC_INSTRUMENT.md). The first public surface is deliberately read-oriented: inspectable knowledge, provenance, generated reasoning, reproducible lineage, and transparent discovery reports before broader platform machinery.
+Phase 8 established the public scientific instrument and is complete. Phase 9 established structural-gap discovery and is complete. Phase 10 established candidate completion downstream of those gaps and is complete. Current work is Phase 11: strengthening the grounded evidence ingestion boundary. The canonical Phase 11 design is documented in [GROUNDED_INGESTION.md](GROUNDED_INGESTION.md).
 
 ## Project Boundary
 
