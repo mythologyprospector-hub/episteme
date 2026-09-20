@@ -34,7 +34,7 @@ def _workflow() -> WorkflowDefinition:
         input_ids=(INPUT_ID,),
         steps=(
             WorkflowStep(
-                "step-one", "first", "phase13-first", "1", ("phase13-input",)
+                "step-one", "first", "phase13-first", "1", (INPUT_ID,)
             ),
             WorkflowStep("step-two", "second", "phase13-second", "2"),
         ),
@@ -45,7 +45,7 @@ def _workflow() -> WorkflowDefinition:
 def _records() -> tuple[Record, Record]:
     return (
         Record(
-            id="phase13-input",
+            id=INPUT_ID,
             kind=RecordKind.OBSERVATION,
             payload={"value": 1},
             provenance=PROVENANCE,
@@ -86,12 +86,12 @@ def test_workflow_execution_survives_process_boundary_with_lineage_intact(tmp_pa
         store.put_workflow_definition(workflow)
 
         def first(step, input_ids):
-            assert input_ids == ("phase13-input",)
-            return ("phase13-output",)
+            assert input_ids == (INPUT_ID,)
+            return (OUTPUT_ID,)
 
         def second(step, input_ids):
-            assert input_ids == ("phase13-output",)
-            return ("phase13-input",)
+            assert input_ids == (OUTPUT_ID,)
+            return (INPUT_ID,)
 
         execution = run_workflow(
             workflow,
@@ -107,7 +107,7 @@ def test_workflow_execution_survives_process_boundary_with_lineage_intact(tmp_pa
     assert recovered.lineage_dict() == execution.lineage_dict()
     assert recovered.step_results[0].method_version == "1"
     assert recovered.step_results[1].method_version == "2"
-    assert recovered.step_results[1].input_ids == ("phase13-output",)
+    assert recovered.step_results[1].input_ids == (OUTPUT_ID,)
 
 
 def test_failed_execution_is_persisted_without_erasing_prior_steps(tmp_path):
@@ -117,9 +117,9 @@ def test_failed_execution_is_persisted_without_erasing_prior_steps(tmp_path):
         name="Durable failure fixture",
         method="phase13-failure-workflow",
         method_version="1",
-        input_ids=("phase13-input",),
+        input_ids=(INPUT_ID,),
         steps=(
-            WorkflowStep("step-one", "first", "phase13-first", "1", ("phase13-input",)),
+            WorkflowStep("step-one", "first", "phase13-first", "1", (INPUT_ID,)),
             WorkflowStep("step-two", "missing", "phase13-missing", "7"),
         ),
     )
@@ -131,7 +131,7 @@ def test_failed_execution_is_persisted_without_erasing_prior_steps(tmp_path):
         store.put_workflow_definition(workflow)
 
         def first(step, input_ids):
-            return ("phase13-output",)
+            return (OUTPUT_ID,)
 
         execution = run_workflow(
             workflow, {"first": first}, started_at=CREATED
@@ -143,9 +143,9 @@ def test_failed_execution_is_persisted_without_erasing_prior_steps(tmp_path):
 
     assert recovered.status == "failed"
     assert recovered.step_results[0].status == "completed"
-    assert recovered.step_results[0].output_ids == ("phase13-output",)
+    assert recovered.step_results[0].output_ids == (OUTPUT_ID,)
     assert recovered.step_results[1].status == "failed"
-    assert recovered.step_results[1].input_ids == ("phase13-output",)
+    assert recovered.step_results[1].input_ids == (OUTPUT_ID,)
     assert recovered.step_results[1].method_version == "7"
     assert "no executor declared" in recovered.step_results[1].error
 
@@ -161,8 +161,8 @@ def test_workflow_history_is_immutable(tmp_path):
         store.put_workflow_definition(workflow)
         execution = run_workflow(
             workflow,
-            {"first": lambda step, ids: ("phase13-output",),
-             "second": lambda step, ids: ("phase13-input",)},
+            {"first": lambda step, ids: (OUTPUT_ID,),
+             "second": lambda step, ids: (INPUT_ID,)},
             started_at=CREATED,
         )
         store.put_workflow_execution(execution)
@@ -204,8 +204,8 @@ def test_execution_history_does_not_change_grounded_or_generated_artifacts(tmp_p
                     method="phase13-first",
                     method_version="1",
                     status="completed",
-                    input_ids=("phase13-input",),
-                    output_ids=("phase13-output",),
+                    input_ids=(INPUT_ID,),
+                    output_ids=(OUTPUT_ID,),
                 ),
             ),
             started_at=CREATED,
@@ -213,6 +213,6 @@ def test_execution_history_does_not_change_grounded_or_generated_artifacts(tmp_p
         )
         store.put_workflow_execution(execution)
 
-        assert store.get_record("phase13-input").kind is RecordKind.OBSERVATION
-        assert store.get_record("phase13-output").kind is RecordKind.RESULT
+        assert store.get_record(INPUT_ID).kind is RecordKind.OBSERVATION
+        assert store.get_record(OUTPUT_ID).kind is RecordKind.RESULT
         assert store.get_workflow_execution(execution.id) == execution
