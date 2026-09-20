@@ -324,6 +324,27 @@ The implemented Phase 13 behavior satisfies the stated exit condition.
 
 **Status:** Complete.
 
+## Phase 14 — Public Execution Traceability
+
+**Goal:** Expose the durable execution history established by Phase 13 through Episteme's existing public scientific instrument without turning execution metadata into epistemic authority.
+
+The canonical Phase 14 design is defined in PUBLIC_EXECUTION_TRACEABILITY.md.
+
+Target capabilities:
+
+- [ ] read-only public retrieval of persisted workflow definitions;
+- [ ] read-only public retrieval of persisted workflow executions;
+- [ ] deterministic listing of persisted workflow definitions and executions where justified;
+- [ ] timestamp-independent execution lineage inspection;
+- [ ] read-only CLI execution-history inspection;
+- [ ] versioned HTTP read routes using the existing public representation;
+- [ ] preservation of workflow-definition, workflow-execution, and epistemic-artifact distinctions;
+- [ ] executable tests covering the public execution boundary.
+
+**Exit condition:** A researcher using Episteme's documented public inspection surfaces can inspect a persisted workflow definition and execution, reconstruct its ordered computational history and success/failure boundary, compare timestamp-independent lineage, and inspect the relationship to existing Episteme artifacts without execution metadata acquiring epistemic authority.
+
+**Status:** Active.
+
 ## Roadmap Rules/
 
 ### No roadmap-driven architecture
@@ -353,6 +374,8 @@ Phase 11 is complete. Heterogeneous finite source representations enter through 
 Phase 12 is complete. The discovery machinery now composes its existing capabilities into a declared, reproducible, inspectable workflow without creating a second epistemic model. Execution lineage records effective inputs, outputs, method versions, downstream dependencies, failures, and reproducibility semantics.
 
 Phase 13 is complete. Durable workflow definitions and execution occurrences now persist independently of process lifetime. Step-level effective inputs, outputs, method versions, failures, immutable historical identity, and timestamp-independent lineage survive recovery, while persisted execution metadata remains separate from epistemic meaning and artifact provenance.
+
+Phase 14 is active. The demonstrated next boundary is public inspection of that durable execution history through the existing read-only scientific instrument. Phase 14 is limited to public retrieval and inspection; it does not introduce public mutation, scheduling, distributed execution, truth adjudication, or a second persistence model.
 
 Phase 1 is complete. The grounded substrate, provenance boundary, relationships, deterministic serialization, validation, SQLite persistence, and externally grounded ingestion fixture are implemented and verified.
 
