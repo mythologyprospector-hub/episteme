@@ -2071,3 +2071,46 @@ def test_phase11_accepts_two_distinct_finite_source_representations(tmp_path):
         "finite:jsonl",
         "crossref:10.1234/phase11.1",
     }
+
+
+def test_phase11_preserves_source_and_capture_state_across_ingestion(tmp_path):
+    from episteme import ingest_jsonl_file
+    from episteme.public_import import import_crossref_works
+
+    jsonl = tmp_path / "provenance.jsonl"
+    jsonl.write_text(
+        '{"id":"cdcdcdcd-cdcd-4dcd-8dcd-cdcdcdcdcdcd","kind":"source","payload":{"external_format":"finite-jsonl","content":{"raw":"unchanged"}},"provenance":[{"source_id":"finite:jsonl:1","source_location":"urn:finite:jsonl:1","source_version":"revision-7","captured_at":"2026-09-18T10:00:00Z","note":"caller supplied finite source"}],"created_at":"2026-09-18T10:00:00Z","schema_version":1}\n',
+        encoding="utf-8",
+    )
+    crossref_item = {
+        "DOI": "10.1234/phase11.provenance",
+        "title": ["Source state test"],
+        "issued": {"date-parts": [[2025, 2, 3]]},
+        "abstract": "Source-provided content remains source material.",
+    }
+
+    with Store() as store:
+        ingest_jsonl_file(jsonl, store)
+        import_crossref_works(
+            {"message": {"items": [crossref_item]}},
+            store,
+            captured_at="2026-09-18T11:00:00Z",
+            source_location="https://api.crossref.org/works/10.1234/phase11.provenance",
+        )
+        records = list(store.iter_records())
+
+    json_record = next(r for r in records if r.payload["external_format"] == "finite-jsonl")
+    crossref_record = next(r for r in records if r.payload["external_format"] == "crossref-work")
+
+    assert json_record.payload["content"] == {"raw": "unchanged"}
+    assert json_record.provenance[0].source_id == "finite:jsonl:1"
+    assert json_record.provenance[0].source_location == "urn:finite:jsonl:1"
+    assert json_record.provenance[0].source_version == "revision-7"
+    assert json_record.provenance[0].captured_at == "2026-09-18T10:00:00Z"
+    assert json_record.provenance[0].note == "caller supplied finite source"
+
+    assert crossref_record.payload["work"] == crossref_item
+    assert crossref_record.provenance[0].source_id == "crossref:10.1234/phase11.provenance"
+    assert crossref_record.provenance[0].source_location == "https://api.crossref.org/works/10.1234/phase11.provenance"
+    assert crossref_record.provenance[0].source_version == "[2025, 2, 3]"
+    assert crossref_record.provenance[0].captured_at == "2026-09-18T11:00:00Z"
