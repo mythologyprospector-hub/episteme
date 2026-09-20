@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import sys
 
 from .http_api import serve
 
@@ -16,6 +17,7 @@ from .public import (
     discovery_trail,
     get_captured_representation,
     list_captured_representations,
+    get_captured_content,
     get_record,
     get_discovery_finding,
     list_discovery_findings,
@@ -56,6 +58,11 @@ def _parser() -> argparse.ArgumentParser:
         required=True,
         help="Path to an existing SQLite store.",
     )
+    parser.add_argument(
+        "--capture-root",
+        default=None,
+        help="Path to the immutable captured-content root.",
+    )
     parser.add_argument("--serve", action="store_true", help="Serve the read-only HTTP API.")
     parser.add_argument("--host", default="127.0.0.1", help="HTTP bind host (default: 127.0.0.1).")
     parser.add_argument("--port", type=int, default=8000, help="HTTP bind port (default: 8000).")
@@ -65,6 +72,12 @@ def _parser() -> argparse.ArgumentParser:
     captures.add_argument("--source-id", default=None)
     capture = subparsers.add_parser("capture", help="Inspect one captured external representation.")
     capture.add_argument("capture_id")
+    capture_content = subparsers.add_parser(
+        "capture-content",
+        help="Write one exact captured representation to stdout or a file.",
+    )
+    capture_content.add_argument("capture_id")
+    capture_content.add_argument("--output", metavar="PATH")
 
     records = subparsers.add_parser("records", help="List grounded records.")
     records.add_argument("--kind", default=None, help="Filter by record kind.")
@@ -173,12 +186,28 @@ def main() -> int:
     args = _parser().parse_args()
     if args.serve:
         store_path = Path(args.store) if args.store != ":memory:" else args.store
-        serve(store_path, host=args.host, port=args.port)
+        serve(
+            store_path,
+            host=args.host,
+            port=args.port,
+            capture_root=args.capture_root,
+        )
         return 0
     if args.command is None:
         raise SystemExit("a command is required unless --serve is used")
     store_path = Path(args.store) if args.store != ":memory:" else args.store
-    with Store(store_path, read_only=True) as store:
+    with Store(
+        store_path,
+        read_only=True,
+        capture_root=args.capture_root,
+    ) as store:
+        if args.command == "capture-content":
+            content, _media_type = get_captured_content(store, args.capture_id)
+            if args.output:
+                Path(args.output).write_bytes(content)
+                return 0
+            sys.stdout.buffer.write(content)
+            return 0
         if args.command == "captures":
             result = list_captured_representations(store, source_id=args.source_id)
         elif args.command == "capture":
