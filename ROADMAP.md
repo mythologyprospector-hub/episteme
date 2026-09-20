@@ -517,6 +517,25 @@ The implemented Phase 20 behavior satisfies the stated exit condition.
 
 **Status:** Complete.
 
+## Phase 21 — Public Acquisition / Capture Inspection
+
+**Goal:** Expose persisted external acquisition and captured-representation state through the existing read-only public scientific instrument without changing its epistemic status.
+
+The canonical Phase 21 design is defined in PUBLIC_ACQUISITION_CAPTURE_INSPECTION.md.
+
+Target capabilities:
+- [x] read-only public retrieval of persisted captured representations;
+- [x] deterministic listing of captured representations;
+- [x] source-identifier filtering;
+- [x] read-only CLI inspection;
+- [x] versioned HTTP read routes;
+- [x] preservation of existing capture representation and epistemic boundaries;
+- [x] executable tests covering the public acquisition/capture boundary.
+
+**Exit condition:** A researcher can directly retrieve a persisted captured representation and deterministically list captures through Episteme's public Python, CLI, and HTTP surfaces, including source filtering, while preserving the existing capture representation and epistemic boundary.
+
+**Status:** Complete.
+
 ## Roadmap Rules/
 
 ### No roadmap-driven architecture
@@ -539,46 +558,4 @@ If implementation reveals that the roadmap is wrong, revise the roadmap rather t
 
 ## Current Position
 
-**Phase 20 — External Acquisition — Complete**
-
-Phase 11 is complete. Heterogeneous finite source representations enter through the existing grounded boundary without creating a second ingestion model, with provenance, deterministic adapter/version metadata, translation lineage, rejection, and immutability verified.
-
-Phase 12 is complete. The discovery machinery now composes its existing capabilities into a declared, reproducible, inspectable workflow without creating a second epistemic model. Execution lineage records effective inputs, outputs, method versions, downstream dependencies, failures, and reproducibility semantics.
-
-Phase 13 is complete. Durable workflow definitions and execution occurrences now persist independently of process lifetime. Step-level effective inputs, outputs, method versions, failures, immutable historical identity, and timestamp-independent lineage survive recovery, while persisted execution metadata remains separate from epistemic meaning and artifact provenance.
-
-Phase 14 is complete. The existing read-only public scientific instrument now exposes persisted workflow definitions, workflow executions, and timestamp-independent execution lineage through the Python API, CLI, and /api/v1 HTTP routes. The public surface preserves workflow-definition, workflow-execution, and epistemic-artifact distinctions, retains failed execution history, and does not introduce public mutation, scheduling, distributed execution, truth adjudication, or a second persistence model. The Phase 14 exit condition is satisfied.
-
-Phase 15 is complete. The existing read-only public scientific instrument now supports reverse lookup from an existing artifact to every persisted workflow execution that consumed or produced it, using the existing step input/output history without introducing a second provenance or execution model. The Python API, CLI, and /api/v1 HTTP route preserve deterministic ordering, missing-artifact semantics, artifact provenance, and execution meaning. The Phase 15 exit condition is satisfied.
-
-Phase 16 is complete. The existing first-class relationship objects are directly inspectable through the read-only Python, CLI, and /api/v1 HTTP surfaces without creating a second graph or changing relationship meaning.
-
-Phase 17 is complete. The existing generated hypotheses, models, predictions, experiment proposals, prediction evaluations, and knowledge-state consequences are directly inspectable through the read-only Python, CLI, and /api/v1 HTTP surfaces. Their stored representations and lineage fields remain authoritative, while public visibility does not promote generated artifacts to grounded evidence. The Phase 17 exit condition is satisfied.
-
-Phase 18 is complete. The existing persisted discovery findings are directly inspectable through the same read-only public instrument. This closes the direct-inspection gap between discovery trails/downstream artifacts and the discovery finding itself without introducing new discovery semantics or changing generated status. The Phase 18 exit condition is satisfied.
-
-Phase 19 is complete. External acquisition now has a durable captured-representation boundary: SQLite stores capture metadata while immutable captured content is stored separately in a filesystem-backed, SHA-256 content-addressed store. Capture identity remains append-only; complete, partial, and failed outcomes remain distinct; captured content is verified by digest, and capture storage does not itself create grounded evidence. The Phase 19 exit condition is satisfied.
-
-Phase 1 is complete. The grounded substrate, provenance boundary, relationships, deterministic serialization, validation, SQLite persistence, and externally grounded ingestion fixture are implemented and verified.
-
-Phase 2 is complete. The substrate now has explicit provenance validation, contradiction representation, contextual evidence assessment, immutable records, append-only lifecycle history, explicit state transitions, and reproducible transformations.
-
-Phase 3 is complete. Discovery findings can be traced to grounded inputs, expectation-based gaps preserve their exact basis, explicit contradictions are surfaced without semantic invention, bounded questions can be generated from supported findings, interpretable measures are recorded, and generated findings remain outside the grounded evidence boundary.
-
-Phase 4 is complete. Hypotheses, models, assumptions, competing explanations, and distinguishing predictions are represented and verified.
-
-Phase 5 is complete. Experiment proposals explain why proposed observations could discriminate among competing explanations, actual results remain grounded and independently sourced, and explicit result-to-proposal/prediction relationships preserve the distinction between prediction, proposed test, and observed result.
-
-Phase 6 is complete. Result records can be ingested through the grounded JSONL ingestion boundary; prediction evaluations represent result-to-prediction comparison; failed predictions are represented by inconsistent evaluations rather than mutation; explicit knowledge-state consequences are persisted; renewed discovery can surface differing evaluation outcomes while keeping generated context separate from grounded evidence; and reproducible discovery trails can reconstruct a complete cycle as an auditable lineage. The Phase 6 exit condition is satisfied.
-
-Phase 7 is complete. Astronomy and Biology demonstrate materially different evidence shapes above the stable core, while provenance, explicit unknown/conflict/uncertainty states, generated-versus-grounded boundaries, closed-loop lineage, and reproducibility remain intact. The Phase 7 exit condition is satisfied.
-
-Phase 8 has established its researcher-facing public instrument: a read-only Python inspection API, the installed `episteme` command, a documented external HTTP/API surface, deterministic discovery reports, a self-contained browser-readable report renderer, public knowledge import, collaboration/review inspection, and a transparent public evaluation workflow. These expose existing Episteme state rather than creating a parallel public data model. The Phase 8 initial public-instrument exit condition and the currently defined HTTP/API and transparent-evaluation capabilities are satisfied. Authentication, public mutation, broader source import, and other platform concerns remain future work rather than prerequisites. The HTTP/API integrity audit is also complete: the read-only boundary, identifier and timestamp validation, missing-resource classification, internal-error handling, and grounded/generated report separation are regression-tested and CI-verified.
-
-Phase 9 is complete. Structural discovery can establish bounded positional, relational, constraint, and accounting holes from explicit structure and constraints; preserve typed expectations and structural context; record structural pressure as an inspectable ledger rather than a universal score; reproduce findings deterministically; and demonstrate materially different structural forms without a domain-specific core primitive. The Phase 9 exit condition is satisfied.
-
-Phase 10 is complete. Its canonical semantics are defined in CANDIDATE_COMPLETION.md. Candidate completion remains downstream of an established hole, preserves inherited constraints, exposes assumptions and violations, preserves alternatives, and identifies discriminating consequences without collapsing fit into a universal score or turning candidates into evidence.
-
-Phase 11 is complete. Its canonical semantics are defined in GROUNDED_INGESTION.md. The phase strengthened the existing JSONL and Crossref ingestion boundaries without introducing a second ingestion model. The exit condition is satisfied.
-
-Phase 12 is complete. Its canonical semantics are defined in DISCOVERY_ORCHESTRATION.md. The declared workflow boundary makes the existing discovery loop runnable and inspectable without introducing a new epistemic primitive.
+**Phase 21 — Public Acquisition / Capture Inspection — Complete**
