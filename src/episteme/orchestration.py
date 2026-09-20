@@ -96,12 +96,16 @@ class WorkflowStepResult:
     """Execution metadata for one workflow step."""
 
     step_id: str
+    method: str
+    method_version: str
     status: str
     input_ids: tuple[str, ...]
     output_ids: tuple[str, ...]
     error: str | None = None
 
     def __post_init__(self) -> None:
+        if not self.method.strip() or not self.method_version.strip():
+            raise ValueError("workflow step result method and version must be non-empty")
         if self.status not in {"completed", "failed"}:
             raise ValueError("workflow step status must be completed or failed")
         if self.status == "failed" and not self.error:
@@ -112,6 +116,8 @@ class WorkflowStepResult:
     def to_dict(self) -> dict[str, Any]:
         return {
             "step_id": self.step_id,
+            "method": self.method,
+            "method_version": self.method_version,
             "status": self.status,
             "input_ids": list(self.input_ids),
             "output_ids": list(self.output_ids),
@@ -186,8 +192,9 @@ def run_workflow(
         if executor is None:
             result = WorkflowStepResult(
                 step_id=step.id,
-                status="failed",
-                input_ids=step.input_ids,
+                method=step.method,
+                method_version=step.method_version,
+                status="failed",                input_ids=step.input_ids,
                 output_ids=(),
                 error=f"no executor declared for workflow step: {step.name}",
             )
@@ -224,8 +231,9 @@ def run_workflow(
         results.append(
             WorkflowStepResult(
                 step_id=step.id,
-                status="completed",
-                input_ids=step.input_ids,
+                method=step.method,
+                method_version=step.method_version,
+                status="completed",                input_ids=step.input_ids,
                 output_ids=output_ids,
             )
         )
