@@ -2032,3 +2032,42 @@ def test_transformation_preserves_translation_lineage():
     assert restored.assumptions == ("source field value is represented verbatim",)
     assert restored.validation_result == "passed"
     assert restored.provenance == (provenance(),)
+
+
+def test_phase11_accepts_two_distinct_finite_source_representations(tmp_path):
+    from episteme import ingest_jsonl_file
+    from episteme.public_import import import_crossref_works
+
+    jsonl = tmp_path / "source.jsonl"
+    jsonl.write_text(
+        '{"id":"cccccccc-cccc-4ccc-8ccc-cccccccccccc","kind":"source","payload":{"external_format":"jsonl-source","content":"finite source material"},"provenance":[{"source_id":"finite:jsonl","source_location":"urn:finite:jsonl","source_version":"1","captured_at":"2026-09-18T00:00:00Z"}],"created_at":"2026-09-18T00:00:00Z","schema_version":1}\n',
+        encoding="utf-8",
+    )
+    crossref = {
+        "message": {
+            "items": [{
+                "DOI": "10.1234/phase11.1",
+                "title": ["Finite source material"],
+                "type": "journal-article",
+            }]
+        }
+    }
+
+    with Store() as store:
+        assert ingest_jsonl_file(jsonl, store) == 1
+        assert import_crossref_works(
+            crossref,
+            store,
+            captured_at="2026-09-18T00:00:01Z",
+        ) == 1
+        records = list(store.iter_records())
+
+    assert len(records) == 2
+    assert {record.payload["external_format"] for record in records} == {
+        "jsonl-source",
+        "crossref-work",
+    }
+    assert {record.provenance[0].source_id for record in records} == {
+        "finite:jsonl",
+        "crossref:10.1234/phase11.1",
+    }
