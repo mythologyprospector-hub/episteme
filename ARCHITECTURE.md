@@ -1086,3 +1086,30 @@ Public relationship inspection extends the read-only public instrument to expose
 ## Phase 17 — Public Epistemic Artifact Inspection
 
 Phase 17 extends the existing read-only public instrument to expose the persisted generated epistemic artifacts already used by the discovery loop: hypotheses, models, predictions, experiment proposals, prediction evaluations, and knowledge-state consequences. The boundary is persisted generated artifact → public Python API → CLI/HTTP. Existing model serialization and Store persistence remain authoritative. Public visibility does not promote generated artifacts to grounded evidence, and no second artifact model, inference layer, score, or mutation surface is introduced.
+
+
+## Phase 18 — Public Discovery Finding Inspection
+
+Phase 18 extends the existing read-only public scientific instrument to expose persisted `DiscoveryFinding` objects directly. The boundary is:
+
+**persisted DiscoveryFinding → public Python API → CLI/HTTP**
+
+The public surface reuses the existing `DiscoveryFinding` model, Store persistence, serialization, and generated status. It provides direct retrieval plus deterministic listing with the existing finding-kind filter.
+
+This closes the inspection gap between discovery trails or downstream generated artifacts and the discovery finding itself. It does not add discovery semantics.
+
+The public dependency direction remains:
+
+**Discovery Findings → read-only public API → CLI/HTTP**
+
+Public inspection must not:
+
+- create or mutate findings;
+- infer new findings;
+- rank or score findings;
+- create a second finding representation or provenance graph;
+- promote a finding to grounded evidence.
+
+A discovery finding remains generated material regardless of whether it is inspected directly, listed, or referenced by another public surface.
+
+The canonical Phase 18 public contract is defined in `PUBLIC_DISCOVERY_FINDING_INSPECTION.md`.
