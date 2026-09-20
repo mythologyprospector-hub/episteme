@@ -629,6 +629,6 @@ If implementation reveals that the roadmap is wrong, revise the roadmap rather t
 
 ## Current Position
 
-**Phase 23 — Public Captured Content Inspection — Complete**
+**Phase 25 — Capture-to-Execution Lineage — Complete**
 
 
