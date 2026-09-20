@@ -86,11 +86,11 @@ def test_failed_acquisition_as_workflow_step_preserves_acquisition_failure(tmp_p
 
         def acquire_step(step, input_ids):
             capture = acquire(request, provider, store, captured_at=CREATED, capture_id=CAPTURE_ID)
-            return (capture.id,) if capture.outcome is CaptureOutcome.COMPLETE else ()
+            return (capture.id,)
 
         execution = run_workflow(workflow, {"acquire": acquire_step}, started_at=CREATED)
         assert execution.status == "completed"
-        assert execution.step_results[0].output_ids == ()
+        assert execution.step_results[0].output_ids == (CAPTURE_ID,)
         captures = list(store.iter_captured_representations())
         assert len(captures) == 1
         assert captures[0].outcome is CaptureOutcome.FAILED
