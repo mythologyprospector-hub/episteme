@@ -156,4 +156,4 @@ def test_capture_storage_does_not_create_grounded_source_record(tmp_path):
 
     with Store(db, capture_root=root) as store:
         store.put_captured_representation(capture, CONTENT)
-        assert store.iter_records() == []
+        assert list(store.iter_records()) == []
