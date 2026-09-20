@@ -16,6 +16,8 @@ from .public import (
     discovery_trail,
     get_record,
     get_review,
+    get_relationship,
+    list_relationships,
     list_records,
     list_reviews,
     get_workflow_definition,
@@ -52,6 +54,12 @@ def _parser() -> argparse.ArgumentParser:
     reviews = subparsers.add_parser("reviews", help="List reviews.")
     reviews.add_argument("--target-kind", default=None, choices=[kind.value for kind in ReviewTargetKind])
     reviews.add_argument("--target-id", default=None)
+
+    relationship_list = subparsers.add_parser("relationships", help="List grounded relationships.")
+    relationship_list.add_argument("--predicate", default=None)
+
+    relationship = subparsers.add_parser("relationship", help="Inspect one grounded relationship.")
+    relationship.add_argument("relationship_id")
 
     workflow_list = subparsers.add_parser("workflows", help="List persisted workflow definitions.")
 
@@ -114,6 +122,10 @@ def main() -> int:
             result = list_reviews(store, target_kind=target_kind, target_id=args.target_id)
         elif args.command == "review":
             result = get_review(store, args.review_id)
+        elif args.command == "relationships":
+            result = list_relationships(store, predicate=args.predicate)
+        elif args.command == "relationship":
+            result = get_relationship(store, args.relationship_id)
         elif args.command == "workflows":
             result = list_workflow_definitions(store)
         elif args.command == "workflow":
