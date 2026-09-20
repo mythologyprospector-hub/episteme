@@ -20,12 +20,17 @@ def import_crossref_works(
     *,
     captured_at: str,
     source_location: str | None = None,
+    capture_id: str | None = None,
 ) -> int:
     """Import Crossref work metadata as grounded source records.
 
     The adapter preserves the supplied Crossref work object as payload. It does
     not extract scientific claims or infer epistemic status from the metadata.
     """
+    if capture_id is not None:
+        if store.get_captured_representation(capture_id) is None:
+            raise ValueError(f"Crossref import references missing capture: {capture_id}")
+
     if not isinstance(data, Mapping):
         raise ValueError("Crossref response must be a mapping")
 
@@ -53,6 +58,7 @@ def import_crossref_works(
                 source_location=location,
                 source_version=_source_version(item),
                 captured_at=captured_at,
+                capture_id=capture_id,
                 note=f"Imported by {CROSSREF_ADAPTER} v{CROSSREF_ADAPTER_VERSION}",
             ),
         )
