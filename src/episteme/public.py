@@ -91,7 +91,7 @@ def list_workflow_executions_for_artifact(
     store: Store, artifact_id: str
 ) -> list[dict[str, Any]]:
     """Return persisted workflow executions that consumed or produced an artifact."""
-    if not store._workflow_artifact_exists(artifact_id):
+    if not store.workflow_artifact_exists(artifact_id):
         raise PublicNotFoundError(f"artifact not found: {artifact_id}")
     return [
         execution.to_dict()
