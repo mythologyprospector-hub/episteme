@@ -44,7 +44,7 @@ class WorkflowStep:
             "method": self.method,
             "method_version": self.method_version,
             "input_ids": list(self.input_ids),
-            "parameters": dict(self.parameters or {}),
+            "parameters": dict(self.parameters) if self.parameters is not None else None,
             "assumptions": list(self.assumptions),
         }
 
