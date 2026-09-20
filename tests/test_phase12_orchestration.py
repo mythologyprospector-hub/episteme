@@ -248,7 +248,10 @@ def test_declared_workflow_runs_existing_discovery_loop_and_preserves_lineage():
 
         assert execution.status == "completed"
         assert [item.status for item in execution.step_results] == ["completed"] * 8
-        assert [(item.method, item.method_version) for item in execution.step_results] == [\n            (step.method, step.method_version) for step in workflow.steps\n        ]\n        assert execution.step_results[0].input_ids == workflow.input_ids
+        assert [(item.method, item.method_version) for item in execution.step_results] == [
+            (step.method, step.method_version) for step in workflow.steps
+        ]
+        assert execution.step_results[0].input_ids == workflow.input_ids
         assert execution.step_results[-1].output_ids == (state["renewed"].id,)
         assert state["renewed"].kind is DiscoveryFindingKind.TENSION
         assert all(
