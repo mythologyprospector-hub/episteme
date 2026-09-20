@@ -602,3 +602,12 @@ If implementation reveals that the roadmap is wrong, revise the roadmap rather t
 ## Current Position
 
 **Phase 23 — Public Captured Content Inspection — Complete**
+
+
+## Phase 24 — Acquisition Execution / Workflow Integration
+
+Phase 24 integrates the existing bounded acquisition operation with finite workflow execution. Workflow lineage may reference persisted captures as operational resources without classifying captures as epistemic artifacts. A completed acquisition operation records its resulting capture, including failed acquisition outcomes, while the existing execution-history boundary records what the declared workflow did. No new workflow engine or acquisition-history model is introduced.
+
+**Exit condition:** a finite declared workflow can invoke acquisition, preserve the resulting capture identifier in execution lineage, persist the workflow execution, and retain the independent acquisition outcome/content without changing epistemic status.
+
+**Status:** In progress
