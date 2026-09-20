@@ -75,6 +75,21 @@ def test_crossref_import_can_preserve_exact_capture_identity(tmp_path):
         assert recovered_record.provenance[0].capture_id == CAPTURE_ID
 
 
+
+def test_crossref_import_rejects_data_that_does_not_match_capture(tmp_path):
+    with Store(tmp_path / "episteme.sqlite", capture_root=tmp_path / "captures") as store:
+        captured = {"message": {"items": []}}
+        _capture(store, json.dumps(captured, separators=(",", ":")).encode())
+        with pytest.raises(ValueError, match="does not match captured representation"):
+            import_crossref_works(
+                {"message": {"items": [{"DOI": "10.1234/different"}]}},
+                store,
+                captured_at=CREATED,
+                capture_id=CAPTURE_ID,
+            )
+        assert list(store.iter_records()) == []
+
+
 def test_crossref_import_rejects_missing_capture_lineage(tmp_path):
     with Store(tmp_path / "episteme.sqlite", capture_root=tmp_path / "captures") as store:
         with pytest.raises(ValueError, match="missing capture"):
