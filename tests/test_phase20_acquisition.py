@@ -154,3 +154,67 @@ def test_crossref_request_is_bounded_to_versioned_works_endpoint(monkeypatch):
     assert "mailto=example%40example.org" in seen["url"]
     assert seen["user_agent"] == crossref.USER_AGENT
     assert seen["timeout"] == 7
+
+
+def test_acquire_persists_partial_response_as_partial(tmp_path):
+    db = tmp_path / "phase20.sqlite"
+    root = tmp_path / "captures"
+
+    def provider(request):
+        return AcquisitionResponse(
+            status=206,
+            media_type="application/json",
+            source_version="etag-partial",
+            content=CONTENT,
+            outcome=CaptureOutcome.PARTIAL,
+        )
+
+    with Store(db, capture_root=root) as store:
+        capture = acquire(
+            _request(),
+            provider,
+            store,
+            captured_at=CAPTURED_AT,
+            capture_id="capture-phase20-partial",
+        )
+        assert capture.outcome is CaptureOutcome.PARTIAL
+        assert capture.content_reference is not None
+        assert store.read_captured_content(capture.id) == CONTENT
+
+
+def test_repeated_acquisition_events_remain_distinct_with_identical_content(tmp_path):
+    db = tmp_path / "phase20.sqlite"
+    root = tmp_path / "captures"
+
+    def provider(request):
+        return AcquisitionResponse(
+            status=200,
+            media_type="application/json",
+            source_version="etag-example",
+            content=CONTENT,
+            outcome=CaptureOutcome.COMPLETE,
+        )
+
+    with Store(db, capture_root=root) as store:
+        first = acquire(
+            _request(),
+            provider,
+            store,
+            captured_at=CAPTURED_AT,
+            capture_id="capture-phase20-repeat-1",
+        )
+        second = acquire(
+            _request(),
+            provider,
+            store,
+            captured_at="2026-09-20T12:00:01Z",
+            capture_id="capture-phase20-repeat-2",
+        )
+
+        assert first.id != second.id
+        assert first.content_digest == second.content_digest
+        assert first.content_reference == second.content_reference
+        assert [capture.id for capture in store.iter_captured_representations()] == [
+            first.id,
+            second.id,
+        ]
