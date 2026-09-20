@@ -1048,6 +1048,22 @@ The expectation is not evidence and is not a universal fit, coherence, importanc
 
 Structural pressure is represented as an immutable ledger of typed components attached to a gap finding. Each component preserves its structural basis, grounded input identifiers, and method/version. The ledger is deliberately not a scalar score and does not infer statistical independence merely by counting components.
 
+## Phase 15 Artifact-to-Execution Lineage
+
+Phase 15 establishes the reverse inspection path from an existing artifact to persisted workflow executions that consumed or produced it. The relationship is derived from Phase 13 `WorkflowStepResult.input_ids` and `output_ids`; it is not persisted as a second graph or provenance model.
+
+The canonical traversal is:
+
+**artifact → execution(s) → step(s) → input/output artifact identifiers**
+
+The public lookup reuses the existing `WorkflowExecution` representation and deterministic execution ordering. An execution appears at most once for a given artifact even when that artifact occurs in multiple steps.
+
+Artifact-to-execution linkage is computational history, not provenance, evidence, confidence, validation, or truth. Existing artifact provenance remains independent and unchanged. An artifact can have provenance without workflow history, and workflow history does not confer epistemic authority.
+
+The public boundary is read-only through the Python API, CLI, and `/api/v1/artifacts/{artifact_id}/executions`. Missing artifacts are distinguished from known artifacts with no matching execution history.
+
+No persisted reverse index is required at this stage. The lookup scans the existing persisted execution history, keeping Phase 13 as the sole execution persistence boundary.
+
 ## Related Independent Research
 
 **Tiger Den** is a separate project by the same author with a closely related epistemic posture. Tiger Den maps existing computational knowledge rather than storing or replacing the implementations themselves. Its canon emphasizes evidence before assertion, provenance, preservation of meaningful distinctions, first-class unknowns, separation of observation from interpretation, and discovery before synthesis.
