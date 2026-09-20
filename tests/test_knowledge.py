@@ -203,6 +203,27 @@ def test_jsonl_ingestion_preserves_grounded_records(tmp_path):
     assert record.payload["value"] == 42
 
 
+def test_jsonl_ingestion_validates_entire_batch_before_persistence(tmp_path):
+    from episteme import ingest_jsonl_file
+
+    fixture = tmp_path / "mixed.jsonl"
+    fixture.write_text(
+        '{"id":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa","kind":"observation","payload":{"value":42},"provenance":[{"source_id":"example:source","captured_at":"2026-09-18T00:00:00Z"}],"created_at":"2026-09-18T00:00:00Z","schema_version":1}\n'
+        '{"kind":"observation"}\n',
+        encoding="utf-8",
+    )
+
+    with Store() as store:
+        try:
+            ingest_jsonl_file(fixture, store)
+        except ValueError as exc:
+            assert "line 2" in str(exc)
+        else:
+            raise AssertionError("invalid batch was accepted")
+
+        assert list(store.iter_records()) == []
+
+
 def test_jsonl_ingestion_rejects_malformed_record(tmp_path):
     from episteme import ingest_jsonl_file
 
