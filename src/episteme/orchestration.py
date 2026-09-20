@@ -48,6 +48,16 @@ class WorkflowStep:
             "assumptions": list(self.assumptions),
         }
 
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> "WorkflowStep":
+        return cls(
+            id=data["id"], name=data["name"], method=data["method"],
+            method_version=data["method_version"],
+            input_ids=tuple(data.get("input_ids", ())),
+            parameters=data.get("parameters"),
+            assumptions=tuple(data.get("assumptions", ())),
+        )
+
 
 @dataclass(frozen=True, slots=True)
 class WorkflowDefinition:
@@ -90,6 +100,16 @@ class WorkflowDefinition:
         """Return deterministic procedure semantics, excluding execution metadata."""
         return self.to_dict()
 
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> "WorkflowDefinition":
+        return cls(
+            id=data["id"], name=data["name"], method=data["method"],
+            method_version=data["method_version"],
+            input_ids=tuple(data.get("input_ids", ())),
+            steps=tuple(WorkflowStep.from_dict(item) for item in data["steps"]),
+            assumptions=tuple(data.get("assumptions", ())),
+        )
+
 
 @dataclass(frozen=True, slots=True)
 class WorkflowStepResult:
@@ -123,6 +143,16 @@ class WorkflowStepResult:
             "output_ids": list(self.output_ids),
             "error": self.error,
         }
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> "WorkflowStepResult":
+        return cls(
+            step_id=data["step_id"], method=data["method"],
+            method_version=data["method_version"], status=data["status"],
+            input_ids=tuple(data.get("input_ids", ())),
+            output_ids=tuple(data.get("output_ids", ())),
+            error=data.get("error"),
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -169,6 +199,19 @@ class WorkflowExecution:
             "status": self.status,
             "step_results": [result.to_dict() for result in self.step_results],
         }
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> "WorkflowExecution":
+        return cls(
+            id=data["id"], workflow_id=data["workflow_id"],
+            workflow_method=data["workflow_method"],
+            workflow_method_version=data["workflow_method_version"],
+            status=data["status"],
+            step_results=tuple(
+                WorkflowStepResult.from_dict(item) for item in data["step_results"]
+            ),
+            started_at=data["started_at"], completed_at=data.get("completed_at"),
+        )
 
 
 StepExecutor = Callable[[WorkflowStep, tuple[str, ...]], tuple[str, ...]]
