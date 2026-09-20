@@ -1211,6 +1211,23 @@ Phase 21 exposes persisted Phase 19/20 capture state through the existing read-o
 The canonical Phase 21 design is defined in PUBLIC_ACQUISITION_CAPTURE_INSPECTION.md.
 
 
+### Phase 23 — Public Captured Content Inspection
+
+Phase 23 extends the existing read-only public capture inspection boundary from persisted capture metadata to the exact immutable captured bytes.
+
+The public path is:
+
+**public inspection request → capture identity → persisted capture → existing digest-verified content read → exact bytes**
+
+The HTTP representation is raw bytes with the capture's persisted media type, falling back to application/octet-stream when no media type was captured. The Python surface returns the bytes and media type; the CLI can write the bytes to a file or stdout.
+
+Public content access receives an explicit capture root. Episteme does not infer a filesystem location from the SQLite store path.
+
+This phase reuses the existing capture store and Store.read_captured_content() integrity boundary. It does not introduce another content store, acquisition path, interpretation layer, provenance model, or epistemic status.
+
+The canonical Phase 23 design is defined in PUBLIC_CAPTURED_CONTENT_INSPECTION.md.
+
+
 ## Phase 22 — Capture-to-Grounded Provenance Lineage
 
 Phase 22 links grounded records produced by an external-source adapter to the exact persisted capture that supplied their material. The boundary is:
