@@ -44,6 +44,7 @@ from .public import (
     list_workflow_executions,
     workflow_execution_lineage,
     list_workflow_executions_for_artifact,
+    list_workflow_executions_for_capture,
 )
 from .store import Store
 
@@ -108,6 +109,11 @@ def _parser() -> argparse.ArgumentParser:
 
     execution_lineage = subparsers.add_parser("execution-lineage", help="Inspect timestamp-independent execution lineage.")
     execution_lineage.add_argument("execution_id")
+
+    capture_executions = subparsers.add_parser(
+        "capture-executions", help="List persisted workflow executions that reference a capture."
+    )
+    capture_executions.add_argument("capture_id")
 
     artifact_executions = subparsers.add_parser(
         "artifact-executions", help="List persisted workflow executions that reference an artifact."
@@ -233,6 +239,8 @@ def main() -> int:
             result = get_workflow_execution(store, args.execution_id)
         elif args.command == "execution-lineage":
             result = workflow_execution_lineage(store, args.execution_id)
+        elif args.command == "capture-executions":
+            result = list_workflow_executions_for_capture(store, args.capture_id)
         elif args.command == "artifact-executions":
             result = list_workflow_executions_for_artifact(store, args.artifact_id)
         elif args.command == "discoveries":
