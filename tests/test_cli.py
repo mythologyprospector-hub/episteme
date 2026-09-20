@@ -54,8 +54,8 @@ def test_cli_can_inspect_reviews(tmp_path, capsys, monkeypatch):
 def test_cli_serve_does_not_require_a_subcommand(monkeypatch):
     called = {}
 
-    def fake_serve(store_path, host, port):
-        called.update(store_path=store_path, host=host, port=port)
+    def fake_serve(store_path, host, port, capture_root=None):
+        called.update(store_path=store_path, host=host, port=port, capture_root=capture_root)
 
     monkeypatch.setattr("episteme.__main__.serve", fake_serve)
     monkeypatch.setattr(
@@ -73,7 +73,7 @@ def test_cli_serve_does_not_require_a_subcommand(monkeypatch):
     )
 
     assert main() == 0
-    assert called == {"store_path": Path("fixture.sqlite"), "host": "127.0.0.2", "port": 8123}
+    assert called == {"store_path": Path("fixture.sqlite"), "host": "127.0.0.2", "port": 8123, "capture_root": None}
 
 
 def test_cli_requires_an_existing_store_argument(monkeypatch, capsys):
