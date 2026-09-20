@@ -187,7 +187,9 @@ def run_workflow(
     execution metadata only and never changes epistemic status.
     """
     results: list[WorkflowStepResult] = []
+    previous_output_ids: tuple[str, ...] = ()
     for step in workflow.steps:
+        effective_input_ids = step.input_ids or previous_output_ids
         executor = executors.get(step.name)
         if executor is None:
             result = WorkflowStepResult(
@@ -195,7 +197,7 @@ def run_workflow(
                 method=step.method,
                 method_version=step.method_version,
                 status="failed",
-                input_ids=step.input_ids,
+                input_ids=effective_input_ids,
                 output_ids=(),
                 error=f"no executor declared for workflow step: {step.name}",
             )
@@ -231,6 +233,7 @@ def run_workflow(
                 step_results=tuple(results),
                 started_at=started_at,
             )
+        previous_output_ids = output_ids
         results.append(
             WorkflowStepResult(
                 step_id=step.id,
