@@ -612,17 +612,17 @@ The canonical Phase 25 design is defined in CAPTURE_EXECUTION_LINEAGE.md.
 
 Target capabilities:
 
-- [ ] reverse lookup from a persisted capture to workflow executions;
-- [ ] matching against existing step inputs and outputs;
-- [ ] deterministic execution ordering;
-- [ ] explicit missing-capture semantics;
-- [ ] read-only Python, CLI, and /api/v1 HTTP inspection;
-- [ ] preservation of acquisition, workflow, provenance, and epistemic boundaries;
-- [ ] executable tests covering the reverse capture boundary.
+- [x] reverse lookup from a persisted capture to workflow executions;
+- [x] matching against existing step inputs and outputs;
+- [x] deterministic execution ordering;
+- [x] explicit missing-capture semantics;
+- [x] read-only Python, CLI, and /api/v1 HTTP inspection;
+- [x] preservation of acquisition, workflow, provenance, and epistemic boundaries;
+- [x] executable tests covering the reverse capture boundary.
 
 **Exit condition:** A researcher can start from an existing captured representation and inspect every persisted workflow execution that consumed or produced it without creating a second lineage or epistemic model.
 
-**Status:** In progress.
+**Status:** Complete.
 
 ## Phase 24 — Acquisition Execution / Workflow Integration
 
