@@ -15,6 +15,18 @@ from .public import (
     discovery_report,
     discovery_trail,
     get_record,
+    get_hypothesis,
+    list_hypotheses,
+    get_model,
+    list_models,
+    get_prediction,
+    list_predictions,
+    get_experiment_proposal,
+    list_experiment_proposals,
+    get_prediction_evaluation,
+    list_prediction_evaluations,
+    get_knowledge_state_consequence,
+    list_knowledge_state_consequences,
     get_review,
     get_relationship,
     list_relationships,
@@ -138,6 +150,30 @@ def main() -> int:
             result = workflow_execution_lineage(store, args.execution_id)
         elif args.command == "artifact-executions":
             result = list_workflow_executions_for_artifact(store, args.artifact_id)
+        elif args.command == "hypotheses":
+            result = list_hypotheses(store)
+        elif args.command == "hypothesis":
+            result = get_hypothesis(store, args.artifact_id)
+        elif args.command == "models":
+            result = list_models(store)
+        elif args.command == "model":
+            result = get_model(store, args.artifact_id)
+        elif args.command == "predictions":
+            result = list_predictions(store)
+        elif args.command == "prediction":
+            result = get_prediction(store, args.artifact_id)
+        elif args.command == "experiment-proposals":
+            result = list_experiment_proposals(store)
+        elif args.command == "experiment-proposal":
+            result = get_experiment_proposal(store, args.artifact_id)
+        elif args.command == "prediction-evaluations":
+            result = list_prediction_evaluations(store)
+        elif args.command == "prediction-evaluation":
+            result = get_prediction_evaluation(store, args.artifact_id)
+        elif args.command == "knowledge-state-consequences":
+            result = list_knowledge_state_consequences(store)
+        elif args.command == "knowledge-state-consequence":
+            result = get_knowledge_state_consequence(store, args.artifact_id)
         elif args.command == "record":
             result = get_record(store, args.record_id)
         elif args.command == "trail":
