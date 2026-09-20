@@ -29,6 +29,24 @@ def list_records(store: Store, kind: str | None = None) -> list[dict[str, Any]]:
 
 
 
+def get_relationship(store: Store, relationship_id: str) -> dict[str, Any]:
+    """Return one grounded relationship as a public representation."""
+    relationship = store.get_relationship(relationship_id)
+    if relationship is None:
+        raise PublicNotFoundError(f"relationship not found: {relationship_id}")
+    return relationship.to_dict()
+
+
+def list_relationships(
+    store: Store, predicate: str | None = None
+) -> list[dict[str, Any]]:
+    """Return grounded relationships in deterministic order."""
+    return [
+        relationship.to_dict()
+        for relationship in store.iter_relationships(predicate=predicate)
+    ]
+
+
 def get_review(store: Store, review_id: str) -> dict[str, Any]:
     """Return one immutable review as a public representation."""
     review = store.get_review(review_id)
@@ -150,6 +168,8 @@ __all__ = [
     "list_records",
     "get_review",
     "list_reviews",
+    "get_relationship",
+    "list_relationships",
     "get_workflow_definition",
     "list_workflow_definitions",
     "get_workflow_execution",
