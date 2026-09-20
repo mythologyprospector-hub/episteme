@@ -556,6 +556,29 @@ Target capabilities:
 
 **Status:** Complete.
 
+
+## Phase 23 — Public Captured Content Inspection
+
+**Goal:** Expose the exact immutable captured representation through Episteme's existing read-only public scientific instrument without changing its epistemic status.
+
+The canonical Phase 23 design is defined in PUBLIC_CAPTURED_CONTENT_INSPECTION.md.
+
+Target capabilities:
+
+- [x] exact raw captured-content inspection;
+- [x] explicit capture-root configuration for public content access;
+- [x] Python captured-content retrieval;
+- [x] CLI captured-content inspection;
+- [x] versioned HTTP captured-content route;
+- [x] preserved captured media type;
+- [x] reuse of the existing digest-verified content read;
+- [x] executable tests covering raw-content inspection and failure behavior.
+
+**Exit condition:** A researcher can retrieve the exact immutable bytes associated with a persisted capture through Episteme's public Python, CLI, and HTTP surfaces, with explicit capture-root configuration, preserved media type, existing digest verification, deterministic failure behavior, and no change to the capture's epistemic status.
+
+**Status:** Complete.
+
+
 ## Roadmap Rules/
 
 ### No roadmap-driven architecture
@@ -578,4 +601,4 @@ If implementation reveals that the roadmap is wrong, revise the roadmap rather t
 
 ## Current Position
 
-**Phase 22 — Capture-to-Grounded Provenance Lineage — Complete**
+**Phase 23 — Public Captured Content Inspection — Complete**
