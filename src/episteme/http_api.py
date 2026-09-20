@@ -17,6 +17,11 @@ from .public import (
     get_review,
     list_records,
     list_reviews,
+    get_workflow_definition,
+    list_workflow_definitions,
+    get_workflow_execution,
+    list_workflow_executions,
+    workflow_execution_lineage,
     PublicNotFoundError,
 )
 from .store import Store
@@ -185,6 +190,39 @@ class _EpistemeHTTPServer(ThreadingHTTPServer):
                 if query:
                     raise _error(400, "unexpected query parameter")
                 return get_record(store, _identifier(parts[1], "record identifier")), "application/json; charset=utf-8"
+
+            if parts == ["workflows"]:
+                _reject_unexpected_query(query, set())
+                return list_workflow_definitions(store), "application/json; charset=utf-8"
+
+            if len(parts) == 2 and parts[0] == "workflows":
+                if query:
+                    raise _error(400, "unexpected query parameter")
+                return get_workflow_definition(
+                    store, _identifier(parts[1], "workflow identifier")
+                ), "application/json; charset=utf-8"
+
+            if parts == ["executions"]:
+                _reject_unexpected_query(query, {"workflow_id"})
+                workflow_id = _single_query(query, "workflow_id")
+                if workflow_id is not None:
+                    workflow_id = _identifier(workflow_id, "workflow identifier")
+                return list_workflow_executions(
+                    store, workflow_id=workflow_id
+                ), "application/json; charset=utf-8"
+
+            if len(parts) == 3 and parts[0] == "executions" and parts[2] == "lineage":
+                if query:
+                    raise _error(400, "unexpected query parameter")
+                execution_id = _identifier(parts[1], "workflow execution identifier")
+                return workflow_execution_lineage(store, execution_id), "application/json; charset=utf-8"
+
+            if len(parts) == 2 and parts[0] == "executions":
+                if query:
+                    raise _error(400, "unexpected query parameter")
+                return get_workflow_execution(
+                    store, _identifier(parts[1], "workflow execution identifier")
+                ), "application/json; charset=utf-8"
 
             if parts == ["reviews"]:
                 _reject_unexpected_query(query, {"target_kind", "target_id"})
