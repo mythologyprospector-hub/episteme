@@ -15,6 +15,8 @@ from .public import (
     discovery_trail,
     get_record,
     get_review,
+    get_relationship,
+    list_relationships,
     list_records,
     list_reviews,
     get_workflow_definition,
@@ -197,6 +199,20 @@ class _EpistemeHTTPServer(ThreadingHTTPServer):
                 if query:
                     raise _error(400, "unexpected query parameter")
                 return get_record(store, _identifier(parts[1], "record identifier")), "application/json; charset=utf-8"
+
+            if parts == ["relationships"]:
+                _reject_unexpected_query(query, {"predicate"})
+                predicate = _single_query(query, "predicate")
+                return list_relationships(
+                    store, predicate=predicate
+                ), "application/json; charset=utf-8"
+
+            if len(parts) == 2 and parts[0] == "relationships":
+                if query:
+                    raise _error(400, "unexpected query parameter")
+                return get_relationship(
+                    store, _identifier(parts[1], "relationship identifier")
+                ), "application/json; charset=utf-8"
 
             if parts == ["workflows"]:
                 _reject_unexpected_query(query, set())
