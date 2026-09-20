@@ -78,13 +78,12 @@ The first documents to read are:
 
 ## Project Status
 
-Project Status
 
 Phase 1 grounded substrate, Phase 2 knowledge integrity, and Phase 3 discovery are complete and verified. Phase 4 hypothesis and prediction, Phase 5 experiment design, and Phase 6 closed-loop discovery are also complete and verified.
 
 Phase 7 is complete and verified. The first two domain demonstrations are Astronomy and Biology, showing that materially different evidence shapes can use domain-specific layers while preserving Episteme's stable epistemic primitives, provenance, generated-versus-grounded boundaries, closed-loop lineage, and reproducibility.
 
-Phase 8 established the public scientific instrument and is complete. Phase 9 established structural-gap discovery and is complete. Phase 10 established candidate completion downstream of those gaps and is complete. Phase 11 established the grounded evidence ingestion boundary and is complete. Phase 12 is complete. Phase 13 established durable execution history and is complete. Phase 14 exposed that durable execution history through the existing read-only public instrument and is complete. Phase 15 established reverse artifact-to-execution lineage and is complete. Phase 16 is now active, exposing the existing first-class relationship edges through the read-only public instrument. The canonical Phase 13 design is documented in [EXECUTION_HISTORY.md](EXECUTION_HISTORY.md), the Phase 14 design in [PUBLIC_EXECUTION_TRACEABILITY.md](PUBLIC_EXECUTION_TRACEABILITY.md), and the Phase 15 design in [ARTIFACT_EXECUTION_LINEAGE.md](ARTIFACT_EXECUTION_LINEAGE.md).
+Phase 8 established the public scientific instrument and is complete. Phase 9 established structural-gap discovery and is complete. Phase 10 established candidate completion downstream of those gaps and is complete. Phase 11 established the grounded evidence ingestion boundary and is complete. Phase 12 is complete. Phase 13 established durable execution history and is complete. Phase 14 exposed that durable execution history through the existing read-only public instrument and is complete. Phase 15 established reverse artifact-to-execution lineage and is complete. Phase 16 exposed the existing first-class relationship edges through the read-only public instrument and is complete. Phase 17 is now active, exposing the existing generated epistemic artifacts through the same read-only public instrument. The canonical Phase 13 design is documented in [EXECUTION_HISTORY.md](EXECUTION_HISTORY.md), the Phase 14 design in [PUBLIC_EXECUTION_TRACEABILITY.md](PUBLIC_EXECUTION_TRACEABILITY.md), the Phase 15 design in [ARTIFACT_EXECUTION_LINEAGE.md](ARTIFACT_EXECUTION_LINEAGE.md), the Phase 16 design in [PUBLIC_RELATIONSHIP_INSPECTION.md](PUBLIC_RELATIONSHIP_INSPECTION.md), and the Phase 17 design in [PUBLIC_EPISTEMIC_ARTIFACT_INSPECTION.md](PUBLIC_EPISTEMIC_ARTIFACT_INSPECTION.md).
 
 ## Project Boundary
 
