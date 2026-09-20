@@ -23,6 +23,7 @@ from .public import (
     get_workflow_execution,
     list_workflow_executions,
     workflow_execution_lineage,
+    list_workflow_executions_for_artifact,
 )
 from .store import Store
 
@@ -65,6 +66,11 @@ def _parser() -> argparse.ArgumentParser:
 
     execution_lineage = subparsers.add_parser("execution-lineage", help="Inspect timestamp-independent execution lineage.")
     execution_lineage.add_argument("execution_id")
+
+    artifact_executions = subparsers.add_parser(
+        "artifact-executions", help="List persisted workflow executions that reference an artifact."
+    )
+    artifact_executions.add_argument("artifact_id")
 
     review = subparsers.add_parser("review", help="Inspect one review.")
     review.add_argument("review_id")
@@ -118,6 +124,8 @@ def main() -> int:
             result = get_workflow_execution(store, args.execution_id)
         elif args.command == "execution-lineage":
             result = workflow_execution_lineage(store, args.execution_id)
+        elif args.command == "artifact-executions":
+            result = list_workflow_executions_for_artifact(store, args.artifact_id)
         elif args.command == "record":
             result = get_record(store, args.record_id)
         elif args.command == "trail":
