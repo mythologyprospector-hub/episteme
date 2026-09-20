@@ -87,6 +87,18 @@ def workflow_execution_lineage(store: Store, execution_id: str) -> dict[str, Any
     return execution.lineage_dict()
 
 
+def list_workflow_executions_for_artifact(
+    store: Store, artifact_id: str
+) -> list[dict[str, Any]]:
+    """Return persisted workflow executions that consumed or produced an artifact."""
+    if not store._workflow_artifact_exists(artifact_id):
+        raise PublicNotFoundError(f"artifact not found: {artifact_id}")
+    return [
+        execution.to_dict()
+        for execution in store.iter_workflow_executions_for_artifact(artifact_id)
+    ]
+
+
 def discovery_trail(
     store: Store,
     finding_id: str,
@@ -143,6 +155,7 @@ __all__ = [
     "get_workflow_execution",
     "list_workflow_executions",
     "workflow_execution_lineage",
+    "list_workflow_executions_for_artifact",
     "discovery_trail",
     "discovery_lineage",
     "discovery_report",
