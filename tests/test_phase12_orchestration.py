@@ -143,17 +143,28 @@ def test_declared_workflow_runs_existing_discovery_loop_and_preserves_lineage():
             proposal = state["proposal"]
             result = state["result"]
             evaluations = []
-            outcomes = (
-                PredictionEvaluationOutcome.CONSISTENT,
-                PredictionEvaluationOutcome.INCONSISTENT,
+            # Give one prediction two grounded results with differing
+            # classifications so the existing renewal detector has a real
+            # evaluation tension to discover.
+            result_inconsistent = Record(
+                id="55555555-5555-4555-8555-555555555556",
+                kind=RecordKind.RESULT,
+                payload={"position": 5.0},
+                provenance=PROVENANCE,
+                created_at=CREATED,
             )
-            for index, (prediction, outcome) in enumerate(
-                zip(predictions, outcomes), start=1
-            ):
+            store.put_record(result_inconsistent)
+            evaluation_specs = (
+                ("66666666-6666-4666-8666-666666666661", result.id, predictions[0].id,
+                 PredictionEvaluationOutcome.CONSISTENT),
+                ("66666666-6666-4666-8666-666666666662", result_inconsistent.id, predictions[0].id,
+                 PredictionEvaluationOutcome.INCONSISTENT),
+            )
+            for evaluation_id, result_id, prediction_id, outcome in evaluation_specs:
                 evaluation = PredictionEvaluation(
-                    id=f"66666666-6666-4666-8666-66666666666{index}",
-                    result_id=result.id,
-                    prediction_id=prediction.id,
+                    id=evaluation_id,
+                    result_id=result_id,
+                    prediction_id=prediction_id,
                     experiment_proposal_id=proposal.id,
                     comparison_conditions="Same bounded test conditions.",
                     assumptions=(),
