@@ -50,7 +50,7 @@ Adding an optional capture_id preserves the existing provenance mechanism rather
 - a reverse-index table;
 - a separate lineage object.
 
-The capture identifier points back to the durable Phase 19 capture record. The capture record remains the authoritative source for the exact content digest and immutable captured representation.
+The capture identifier points back to the durable Phase 19 capture record. When a capture identifier is supplied to the Crossref adapter, the adapter reads the persisted captured content and requires the supplied response mapping to match that captured representation before producing grounded records. The capture record remains the authoritative source for the exact content digest and immutable captured representation.
 
 ## Optionality and Compatibility
 
@@ -68,7 +68,7 @@ Phase 22 first proves the boundary through the existing Crossref adapter.
 
 The adapter may receive capture_id alongside its existing captured timestamp and source-location inputs. Every grounded Crossref SOURCE record produced from that import receives the same capture identifier in its provenance.
 
-The adapter does not copy capture content into provenance. The capture identifier is the explicit link; the capture record remains authoritative for content identity.
+The adapter does not copy capture content into provenance. The capture identifier is the explicit link, and the adapter verifies that its supplied response matches the persisted captured representation. The capture record remains authoritative for content identity.
 
 ## Epistemic Boundary
 
@@ -131,6 +131,7 @@ The implementation must demonstrate:
 - exact capture identity is retained on grounded provenance;
 - capture linkage survives to_dict / from_dict and Store persistence;
 - missing capture identifiers are rejected before grounded records are created;
+- supplied Crossref data that does not match the persisted capture is rejected before grounded records are created;
 - existing provenance without capture linkage remains valid;
 - Crossref remains an adapter over captured material rather than becoming an acquisition or provenance subsystem;
 - no new provenance graph or reverse index is introduced;
