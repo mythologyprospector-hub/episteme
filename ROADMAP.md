@@ -295,19 +295,36 @@ The canonical Phase 13 design is defined in EXECUTION_HISTORY.md.
 
 Target capabilities:
 
-- [ ] persist declared workflow definitions without semantic drift;
-- [ ] persist workflow execution occurrences and ordered step lineage;
-- [ ] preserve actual effective inputs, outputs, method versions, and failures across process boundaries;
-- [ ] preserve immutable historical execution identity;
-- [ ] preserve timestamp-independent reproducibility semantics;
-- [ ] preserve grounded/generated boundaries and existing artifact provenance;
-- [ ] provide read-only inspection of persisted execution history where justified.
+- [x] persist declared workflow definitions without semantic drift;
+- [x] persist workflow execution occurrences and ordered step lineage;
+- [x] preserve actual effective inputs, outputs, method versions, and failures across process boundaries;
+- [x] preserve immutable historical execution identity;
+- [x] preserve timestamp-independent reproducibility semantics;
+- [x] preserve grounded/generated boundaries and existing artifact provenance;
+- [x] provide read-only inspection of persisted execution history where justified.
 
 **Exit condition:** A finite declared workflow can be executed, persisted, recovered, and inspected after the original process has ended, with complete step lineage, method/version history, failure history, reproducibility semantics, and unchanged epistemic boundaries.
 
-**Status:** Active.
+**Status:** Complete.
 
-## Roadmap Rules
+### Phase 13 Exit Audit
+
+The implemented Phase 13 behavior satisfies the stated exit condition.
+
+- workflow definitions persist and recover without semantic drift, including absent optional parameters;
+- workflow executions persist and recover across process boundaries;
+- actual effective step inputs and produced outputs are preserved, including downstream propagation;
+- step and workflow method/version history survives persistence and failure;
+- failed executions retain completed prior steps and the exact failure boundary;
+- duplicate workflow definitions and executions are rejected, preserving append-only historical identity;
+- repeated executions receive distinct identities while equal declared executions retain equal timestamp-independent lineage;
+- persisted execution history does not alter grounded/generated artifact classification;
+- artifact-level provenance remains separate and independently valid;
+- executable Phase 13 tests provide proof of the durable boundary.
+
+**Status:** Complete.
+
+## Roadmap Rules/
 
 ### No roadmap-driven architecture
 
@@ -329,13 +346,13 @@ If implementation reveals that the roadmap is wrong, revise the roadmap rather t
 
 ## Current Position
 
-**Phase 13 — Execution History — Active**
+**Phase 13 — Execution History — Complete**
 
 Phase 11 is complete. Heterogeneous finite source representations enter through the existing grounded boundary without creating a second ingestion model, with provenance, deterministic adapter/version metadata, translation lineage, rejection, and immutability verified.
 
 Phase 12 is complete. The discovery machinery now composes its existing capabilities into a declared, reproducible, inspectable workflow without creating a second epistemic model. Execution lineage records effective inputs, outputs, method versions, downstream dependencies, failures, and reproducibility semantics.
 
-Phase 13 is active. The current architectural pressure is durable execution history: workflow executions are presently inspectable only while the process remains alive, while the artifacts they produced can persist. EXECUTION_HISTORY.md defines the smallest justified boundary for preserving that history without treating execution metadata as epistemic authority.
+Phase 13 is complete. Durable workflow definitions and execution occurrences now persist independently of process lifetime. Step-level effective inputs, outputs, method versions, failures, immutable historical identity, and timestamp-independent lineage survive recovery, while persisted execution metadata remains separate from epistemic meaning and artifact provenance.
 
 Phase 1 is complete. The grounded substrate, provenance boundary, relationships, deterministic serialization, validation, SQLite persistence, and externally grounded ingestion fixture are implemented and verified.
 
