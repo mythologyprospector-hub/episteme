@@ -1239,3 +1239,18 @@ The existing Provenance model is extended with optional capture identity rather 
 The capture remains operational acquisition history. The grounded record remains grounded under the existing provenance rules. Capture linkage answers which representation supplied a record; it does not grant that representation epistemic authority.
 
 The first vertical proof is the existing Crossref adapter. The canonical Phase 22 design is defined in CAPTURE_TO_GROUNDED_PROVENANCE.md.
+
+
+## Phase 24 — Acquisition Execution / Workflow Integration
+
+Phase 24 integrates the existing bounded acquisition operation with the existing finite workflow and execution-history machinery. No new workflow engine or acquisition-history model is introduced.
+
+The dependency direction is:
+
+**declared workflow → acquisition step → existing acquisition contract → Phase 19 capture → workflow execution lineage**
+
+Workflow step input/output identifiers may reference existing epistemic artifacts or operational resources such as persisted captured representations. This is execution lineage, not epistemic classification: a capture remains acquisition history and does not become an epistemic artifact merely because a workflow references it.
+
+A successful acquisition operation that persists a failed capture can still be a completed workflow step; the workflow records that the operation ran, while the capture records that the external acquisition failed. Existing workflow-step failure semantics remain unchanged when the executor itself fails.
+
+The canonical Phase 24 design is defined in ACQUISITION_EXECUTION_WORKFLOW.md.
