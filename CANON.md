@@ -190,3 +190,12 @@ A capture records what an acquisition supplied, including enough acquisition met
 Captured content must remain immutable and independently identifiable. Failed and partial acquisitions must remain distinguishable from complete captures.
 
 The capture boundary must not silently promote acquired material into grounded knowledge. Existing source adapters remain responsible for translating captured representations into grounded records, preserving the existing provenance and grounded-versus-generated boundary.
+
+
+### 18. External capture lineage is provenance, not authority
+
+When a grounded record is produced from a persisted external capture, its existing provenance may identify the exact capture event that supplied the material. This operational lineage must remain distinct from epistemic authority.
+
+The capture identifier answers which captured representation supplied the record. It does not establish that the captured material is scientifically true, and it does not replace source identity, source version, timestamp, or other existing provenance.
+
+Capture lineage should use the existing provenance mechanism rather than creating a second provenance graph or silently promoting capture history into evidence.
