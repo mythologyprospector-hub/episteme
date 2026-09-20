@@ -22,6 +22,7 @@ from .public import (
     get_workflow_execution,
     list_workflow_executions,
     workflow_execution_lineage,
+    list_workflow_executions_for_artifact,
     PublicNotFoundError,
 )
 from .store import Store
@@ -228,6 +229,14 @@ class _EpistemeHTTPServer(ThreadingHTTPServer):
                     raise _error(400, "unexpected query parameter")
                 return get_workflow_execution(
                     store, _identifier(parts[1], "workflow execution identifier")
+                ), "application/json; charset=utf-8"
+
+            if len(parts) == 3 and parts[0] == "artifacts" and parts[2] == "executions":
+                if query:
+                    raise _error(400, "unexpected query parameter")
+                artifact_id = _nonempty_identifier(parts[1], "artifact identifier")
+                return list_workflow_executions_for_artifact(
+                    store, artifact_id
                 ), "application/json; charset=utf-8"
 
             if parts == ["reviews"]:
