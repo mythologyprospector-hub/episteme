@@ -13,6 +13,8 @@ from episteme.orchestration import (
 
 
 CREATED = "2026-09-19T00:00:00Z"
+INPUT_ID = "11111111-1111-4111-8111-111111111111"
+OUTPUT_ID = "22222222-2222-4222-8222-222222222222"
 PROVENANCE = (
     Provenance(
         source_id="phase13-fixture",
@@ -29,7 +31,7 @@ def _workflow() -> WorkflowDefinition:
         name="Durable history fixture",
         method="phase13-fixture-workflow",
         method_version="1",
-        input_ids=("phase13-input",),
+        input_ids=(INPUT_ID,),
         steps=(
             WorkflowStep(
                 "step-one", "first", "phase13-first", "1", ("phase13-input",)
@@ -50,7 +52,7 @@ def _records() -> tuple[Record, Record]:
             created_at=CREATED,
         ),
         Record(
-            id="phase13-output",
+            id=OUTPUT_ID,
             kind=RecordKind.RESULT,
             payload={"value": 2},
             provenance=PROVENANCE,
