@@ -14,6 +14,18 @@ from .public import (
     discovery_report,
     discovery_trail,
     get_record,
+    get_hypothesis,
+    list_hypotheses,
+    get_model,
+    list_models,
+    get_prediction,
+    list_predictions,
+    get_experiment_proposal,
+    list_experiment_proposals,
+    get_prediction_evaluation,
+    list_prediction_evaluations,
+    get_knowledge_state_consequence,
+    list_knowledge_state_consequences,
     get_review,
     get_relationship,
     list_relationships,
@@ -199,6 +211,49 @@ class _EpistemeHTTPServer(ThreadingHTTPServer):
                 if query:
                     raise _error(400, "unexpected query parameter")
                 return get_record(store, _identifier(parts[1], "record identifier")), "application/json; charset=utf-8"
+
+            if parts == ["hypotheses"]:
+                _reject_unexpected_query(query, set())
+                return list_hypotheses(store), "application/json; charset=utf-8"
+            if len(parts) == 2 and parts[0] == "hypotheses":
+                if query:
+                    raise _error(400, "unexpected query parameter")
+                return get_hypothesis(store, _identifier(parts[1], "hypothesis identifier")), "application/json; charset=utf-8"
+            if parts == ["models"]:
+                _reject_unexpected_query(query, set())
+                return list_models(store), "application/json; charset=utf-8"
+            if len(parts) == 2 and parts[0] == "models":
+                if query:
+                    raise _error(400, "unexpected query parameter")
+                return get_model(store, _identifier(parts[1], "model identifier")), "application/json; charset=utf-8"
+            if parts == ["predictions"]:
+                _reject_unexpected_query(query, set())
+                return list_predictions(store), "application/json; charset=utf-8"
+            if len(parts) == 2 and parts[0] == "predictions":
+                if query:
+                    raise _error(400, "unexpected query parameter")
+                return get_prediction(store, _identifier(parts[1], "prediction identifier")), "application/json; charset=utf-8"
+            if parts == ["experiment-proposals"]:
+                _reject_unexpected_query(query, set())
+                return list_experiment_proposals(store), "application/json; charset=utf-8"
+            if len(parts) == 2 and parts[0] == "experiment-proposals":
+                if query:
+                    raise _error(400, "unexpected query parameter")
+                return get_experiment_proposal(store, _identifier(parts[1], "experiment proposal identifier")), "application/json; charset=utf-8"
+            if parts == ["prediction-evaluations"]:
+                _reject_unexpected_query(query, set())
+                return list_prediction_evaluations(store), "application/json; charset=utf-8"
+            if len(parts) == 2 and parts[0] == "prediction-evaluations":
+                if query:
+                    raise _error(400, "unexpected query parameter")
+                return get_prediction_evaluation(store, _identifier(parts[1], "prediction evaluation identifier")), "application/json; charset=utf-8"
+            if parts == ["knowledge-state-consequences"]:
+                _reject_unexpected_query(query, set())
+                return list_knowledge_state_consequences(store), "application/json; charset=utf-8"
+            if len(parts) == 2 and parts[0] == "knowledge-state-consequences":
+                if query:
+                    raise _error(400, "unexpected query parameter")
+                return get_knowledge_state_consequence(store, _identifier(parts[1], "knowledge-state consequence identifier")), "application/json; charset=utf-8"
 
             if parts == ["relationships"]:
                 _reject_unexpected_query(query, {"predicate"})
