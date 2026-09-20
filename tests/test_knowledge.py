@@ -1988,3 +1988,47 @@ def test_renewed_discovery_does_not_merge_different_comparison_contexts():
             )
 
         assert discover_evaluation_tensions(store, "2026-09-18T00:00:14Z") == ()
+
+
+def test_transformation_preserves_translation_lineage():
+    from episteme import Transformation
+
+    source = make_record(
+        RecordKind.SOURCE,
+        {"external_format": "example", "value": "raw"},
+        (provenance(),),
+        "2026-09-18T00:00:01Z",
+    )
+    output = make_record(
+        RecordKind.DATASET,
+        {"value": "canonical"},
+        (provenance(),),
+        "2026-09-18T00:00:02Z",
+    )
+    transformation = Transformation(
+        id="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        input_ids=(source.id,),
+        operation="example-source-to-canonical",
+        operation_version="1",
+        assumptions=("source field value is represented verbatim",),
+        output_ids=(output.id,),
+        executed_at="2026-09-18T00:00:03Z",
+        validation_result="passed",
+        provenance=(provenance(),),
+    )
+
+    with Store() as store:
+        store.put_record(source)
+        store.put_record(output)
+        store.put_transformation(transformation)
+        restored = store.get_transformation(transformation.id)
+
+    assert restored == transformation
+    assert restored is not None
+    assert restored.input_ids == (source.id,)
+    assert restored.output_ids == (output.id,)
+    assert restored.operation == "example-source-to-canonical"
+    assert restored.operation_version == "1"
+    assert restored.assumptions == ("source field value is represented verbatim",)
+    assert restored.validation_result == "passed"
+    assert restored.provenance == (provenance(),)
