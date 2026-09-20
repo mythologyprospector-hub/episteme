@@ -52,7 +52,7 @@ def _seed(path):
     m = Model(MID, "A generated model.", (HID,), (), (), "fixture", "1", "test", CREATED)
     p = Prediction(PID, HID, "An expected consequence.", "Under fixture conditions.", (), "fixture", "1", "test", (), CREATED)
     ep = ExperimentProposal(EID, (PID,), "Test the prediction.", "Observe the consequence.", "The observation distinguishes the prediction.", "Fixture conditions.", (), "fixture", "1", "test", CREATED)
-    pe = PredictionEvaluation(PEID, RID, PID, EID, "Fixture conditions.", (), PredictionEvaluationOutcome.CONSISTENT, "The result is consistent.", "fixture", "1", CREATED)
+    pe = PredictionEvaluation(PEID, RESULT_ID, PID, EID, "Fixture conditions.", (), PredictionEvaluationOutcome.CONSISTENT, "The result is consistent.", "fixture", "1", CREATED)
     k = KnowledgeStateConsequence(KID, (PEID,), KnowledgeStateTargetKind.HYPOTHESIS, HID, KnowledgeStateConsequenceKind.SUPPORTS, (), "The evaluation supports the hypothesis.", "fixture", "1", CREATED)
     with Store(path) as store:
         observation = Record(OID, RecordKind.OBSERVATION, {"value": "fixture"}, PROV, CREATED)
