@@ -285,6 +285,7 @@ class Store:
                 acquisition_method TEXT NOT NULL,
                 acquisition_method_version TEXT NOT NULL,
                 outcome TEXT NOT NULL,
+                error TEXT,
                 schema_version INTEGER NOT NULL
             );
 
@@ -320,6 +321,15 @@ class Store:
                 CREATE INDEX IF NOT EXISTS idx_relationships_object
                     ON relationships(object_id);
                 """
+            )
+
+        capture_columns = {
+            row["name"]
+            for row in self._connection.execute("PRAGMA table_info(captured_representations)")
+        }
+        if "error" not in capture_columns:
+            self._connection.execute(
+                "ALTER TABLE captured_representations ADD COLUMN error TEXT"
             )
 
         discovery_columns = {
@@ -1508,8 +1518,8 @@ class Store:
                 (id, source_id, requested_resource, request_parameters, captured_at,
                  response_status, media_type, source_version, content_digest,
                  content_reference, acquisition_method, acquisition_method_version,
-                 outcome, schema_version)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 outcome, error, schema_version)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 capture.id, capture.source_id, capture.requested_resource,
@@ -1517,7 +1527,7 @@ class Store:
                 capture.response_status, capture.media_type, capture.source_version,
                 capture.content_digest, capture.content_reference,
                 capture.acquisition_method, capture.acquisition_method_version,
-                capture.outcome.value, capture.schema_version,
+                capture.outcome.value, capture.error, capture.schema_version,
             ),
         )
         self._connection.commit()
@@ -1538,7 +1548,8 @@ class Store:
             "content_reference": row["content_reference"],
             "acquisition_method": row["acquisition_method"],
             "acquisition_method_version": row["acquisition_method_version"],
-            "outcome": row["outcome"], "schema_version": row["schema_version"],
+            "outcome": row["outcome"], "error": row["error"],
+            "schema_version": row["schema_version"],
         })
 
     def iter_captured_representations(
