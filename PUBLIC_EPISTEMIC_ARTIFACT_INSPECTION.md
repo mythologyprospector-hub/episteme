@@ -143,3 +143,19 @@ These remain separate because each answers a different inspection question.
 ## Exit Condition
 
 A researcher using Episteme's documented public inspection surfaces can directly retrieve and list each existing generated epistemic artifact type, inspect its stored content and lineage fields, and distinguish it from grounded evidence without creating a second artifact model or changing its epistemic status.
+
+## Exit Audit
+
+The implemented Phase 17 behavior satisfies the stated exit condition.
+
+- all six existing generated artifact types are directly retrievable and listable through the public Python API;
+- the CLI provides read-only retrieval and listing for each artifact type;
+- versioned `/api/v1` HTTP routes expose the same existing model representations;
+- deterministic Store ordering and existing public missing-resource semantics are preserved;
+- generated artifact content and lineage fields remain the existing persisted representations;
+- no second artifact model, provenance model, graph, score, inference layer, or mutation surface was introduced;
+- the grounded/generated boundary remains unchanged: public inspection does not promote hypotheses, models, predictions, experiment proposals, prediction evaluations, or knowledge-state consequences into grounded evidence;
+- executable Phase 17 tests cover the public artifact boundary, including retrieval/listing, missing-resource behavior, CLI inspection, and HTTP inspection;
+- GitHub Actions Test run #461 for commit `7fedf34a9bcc5bc551e668489a08c88d31eac4b1` completed successfully.
+
+**Status:** Complete.
