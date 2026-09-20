@@ -448,17 +448,17 @@ The canonical Phase 18 design is defined in PUBLIC_DISCOVERY_FINDING_INSPECTION.
 
 Target capabilities:
 
-- [ ] read-only public retrieval of persisted discovery findings;
-- [ ] deterministic listing of discovery findings;
-- [ ] existing discovery-finding kind filter;
-- [ ] read-only CLI inspection;
-- [ ] versioned HTTP read routes;
-- [ ] preservation of generated-versus-grounded boundaries;
-- [ ] executable tests covering the public discovery-finding boundary.
+- [x] read-only public retrieval of persisted discovery findings;
+- [x] deterministic listing of discovery findings;
+- [x] existing discovery-finding kind filter;
+- [x] read-only CLI inspection;
+- [x] versioned HTTP read routes;
+- [x] preservation of generated-versus-grounded boundaries;
+- [x] executable tests covering the public discovery-finding boundary.
 
 **Exit condition:** A researcher can directly inspect a persisted discovery finding and deterministically list existing findings through Episteme's public Python, CLI, and HTTP surfaces, while the finding remains explicitly generated and retains its existing content and provenance relationships.
 
-**Status:** Active.
+**Status:** Complete.
 
 ## Roadmap Rules/
 
@@ -482,7 +482,7 @@ If implementation reveals that the roadmap is wrong, revise the roadmap rather t
 
 ## Current Position
 
-**Phase 17 — Public Epistemic Artifact Inspection — Complete**
+**Phase 18 — Public Discovery Finding Inspection — Complete**
 
 Phase 11 is complete. Heterogeneous finite source representations enter through the existing grounded boundary without creating a second ingestion model, with provenance, deterministic adapter/version metadata, translation lineage, rejection, and immutability verified.
 
@@ -498,7 +498,7 @@ Phase 16 is complete. The existing first-class relationship objects are directly
 
 Phase 17 is complete. The existing generated hypotheses, models, predictions, experiment proposals, prediction evaluations, and knowledge-state consequences are directly inspectable through the read-only Python, CLI, and /api/v1 HTTP surfaces. Their stored representations and lineage fields remain authoritative, while public visibility does not promote generated artifacts to grounded evidence. The Phase 17 exit condition is satisfied.
 
-Phase 18 is active. The existing persisted discovery findings are being exposed directly through the same read-only public instrument. This closes the remaining direct-inspection gap between discovery trails/downstream artifacts and the discovery finding itself without introducing new discovery semantics or changing generated status.
+Phase 18 is complete. The existing persisted discovery findings are directly inspectable through the same read-only public instrument. This closes the direct-inspection gap between discovery trails/downstream artifacts and the discovery finding itself without introducing new discovery semantics or changing generated status. The Phase 18 exit condition is satisfied.
 
 Phase 1 is complete. The grounded substrate, provenance boundary, relationships, deterministic serialization, validation, SQLite persistence, and externally grounded ingestion fixture are implemented and verified.
 
