@@ -1492,6 +1492,10 @@ class Store:
             for table in tables
         )
 
+    def workflow_artifact_exists(self, artifact_id: str) -> bool:
+        """Return whether an identifier resolves to a persisted workflow artifact."""
+        return self._workflow_artifact_exists(artifact_id)
+
     def put_workflow_execution(self, execution: "WorkflowExecution") -> None:
         from .orchestration import WorkflowExecution
 
