@@ -125,6 +125,7 @@ class Provenance:
     captured_at: str
     source_location: str | None = None
     source_version: str | None = None
+    capture_id: str | None = None
     note: str | None = None
 
     def __post_init__(self) -> None:
@@ -134,6 +135,8 @@ class Provenance:
             _require_absolute_uri(self.source_location, "source_location")
         if self.source_version is not None:
             _require_text(self.source_version, "source_version")
+        if self.capture_id is not None:
+            _require_uuid(self.capture_id, "capture_id")
         if self.note is not None:
             _require_text(self.note, "note")
 
@@ -146,6 +149,8 @@ class Provenance:
             data["source_location"] = self.source_location
         if self.source_version is not None:
             data["source_version"] = self.source_version
+        if self.capture_id is not None:
+            data["capture_id"] = self.capture_id
         if self.note is not None:
             data["note"] = self.note
         return data
@@ -157,6 +162,7 @@ class Provenance:
             captured_at=data["captured_at"],
             source_location=data.get("source_location"),
             source_version=data.get("source_version"),
+            capture_id=data.get("capture_id"),
             note=data.get("note"),
         )
 
