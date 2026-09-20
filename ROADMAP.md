@@ -362,6 +362,41 @@ The implemented Phase 14 behavior satisfies the stated exit condition.
 
 **Status:** Complete.
 
+## Phase 15 — Artifact-to-Execution Lineage
+
+**Goal:** Make the relationship between existing Episteme artifacts and the persisted workflow executions that consumed or produced them directly inspectable without creating a second provenance or execution model.
+
+The canonical Phase 15 design is defined in ARTIFACT_EXECUTION_LINEAGE.md.
+
+Target capabilities:
+
+- [x] reverse lookup from an existing artifact to persisted workflow executions;
+- [x] matching against both step inputs and outputs;
+- [x] deterministic execution ordering and per-execution deduplication;
+- [x] explicit missing-artifact semantics;
+- [x] read-only Python, CLI, and /api/v1 HTTP inspection;
+- [x] preservation of artifact provenance and execution semantics;
+- [x] executable tests covering the reverse execution boundary.
+
+**Exit condition:** A researcher can start from an existing Episteme artifact and inspect every persisted workflow execution that consumed or produced it, including the relevant step-level input/output history, through the same read-only public instrument used for Phase 14, without changing artifact meaning, provenance, or execution semantics.
+
+**Status:** Complete.
+
+### Phase 15 Exit Audit
+
+The implemented Phase 15 behavior satisfies the stated exit condition.
+
+- artifact-to-execution lookup derives exclusively from persisted workflow step input/output identifiers;
+- one execution is returned at most once even when an artifact occurs in multiple steps;
+- results preserve the existing deterministic execution ordering;
+- missing artifact identifiers are rejected rather than presented as known artifacts with empty history;
+- the Python API, CLI, and /api/v1 HTTP route are read-only;
+- no reverse-index persistence table or second artifact/execution model was introduced;
+- artifact provenance and grounded/generated semantics remain unchanged;
+- executable Phase 15 tests cover input/output matching, deduplication, missing-resource behavior, CLI inspection, and HTTP inspection.
+
+**Status:** Complete.
+
 ## Roadmap Rules/
 
 ### No roadmap-driven architecture
