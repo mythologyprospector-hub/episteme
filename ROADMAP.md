@@ -2,7 +2,7 @@
 
 **Status:** Canonical planning document  
 **Version:** 2.0  
-**Last updated:** 2026-09-19
+**Last updated:** 2026-09-20
 
 ## Mission
 
@@ -332,18 +332,35 @@ The canonical Phase 14 design is defined in PUBLIC_EXECUTION_TRACEABILITY.md.
 
 Target capabilities:
 
-- [ ] read-only public retrieval of persisted workflow definitions;
-- [ ] read-only public retrieval of persisted workflow executions;
-- [ ] deterministic listing of persisted workflow definitions and executions where justified;
-- [ ] timestamp-independent execution lineage inspection;
-- [ ] read-only CLI execution-history inspection;
-- [ ] versioned HTTP read routes using the existing public representation;
-- [ ] preservation of workflow-definition, workflow-execution, and epistemic-artifact distinctions;
-- [ ] executable tests covering the public execution boundary.
+- [x] read-only public retrieval of persisted workflow definitions;
+- [x] read-only public retrieval of persisted workflow executions;
+- [x] deterministic listing of persisted workflow definitions and executions where justified;
+- [x] timestamp-independent execution lineage inspection;
+- [x] read-only CLI execution-history inspection;
+- [x] versioned HTTP read routes using the existing public representation;
+- [x] preservation of workflow-definition, workflow-execution, and epistemic-artifact distinctions;
+- [x] executable tests covering the public execution boundary.
 
 **Exit condition:** A researcher using Episteme's documented public inspection surfaces can inspect a persisted workflow definition and execution, reconstruct its ordered computational history and success/failure boundary, compare timestamp-independent lineage, and inspect the relationship to existing Episteme artifacts without execution metadata acquiring epistemic authority.
 
-**Status:** Active.
+**Status:** Complete.
+
+### Phase 14 Exit Audit
+
+The implemented Phase 14 behavior satisfies the stated exit condition.
+
+- persisted workflow definitions are exposed through the existing read-only public API without semantic reinterpretation;
+- persisted workflow executions are exposed through the same public boundary without creating a parallel execution representation;
+- workflow and execution listings use the existing deterministic store ordering;
+- timestamp-independent execution lineage is publicly inspectable without execution identity or timestamps entering the lineage representation;
+- failed executions remain publicly inspectable with completed prior steps, the failure boundary, effective inputs, and failure information preserved;
+- CLI execution-history commands use the read-only store path and introduce no mutation surface;
+- versioned HTTP routes expose workflow definitions, executions, and execution lineage through /api/v1 while preserving existing read-only error and mutation semantics;
+- workflow definitions, workflow executions, and epistemic artifacts remain distinct, and execution metadata does not alter grounded/generated classification or artifact provenance;
+- the public execution surface reads the Phase 13 persistence boundary rather than creating a second persistence or epistemic model;
+- executable Phase 14 tests provide proof of the public execution boundary, and the resulting GitHub Actions Test run for commit 91261f127b2b3303910f8e5dbcd16928f3d53bbd completed successfully.
+
+**Status:** Complete.
 
 ## Roadmap Rules/
 
@@ -367,7 +384,7 @@ If implementation reveals that the roadmap is wrong, revise the roadmap rather t
 
 ## Current Position
 
-**Phase 13 — Execution History — Complete**
+**Phase 14 — Public Execution Traceability — Complete**
 
 Phase 11 is complete. Heterogeneous finite source representations enter through the existing grounded boundary without creating a second ingestion model, with provenance, deterministic adapter/version metadata, translation lineage, rejection, and immutability verified.
 
@@ -375,7 +392,7 @@ Phase 12 is complete. The discovery machinery now composes its existing capabili
 
 Phase 13 is complete. Durable workflow definitions and execution occurrences now persist independently of process lifetime. Step-level effective inputs, outputs, method versions, failures, immutable historical identity, and timestamp-independent lineage survive recovery, while persisted execution metadata remains separate from epistemic meaning and artifact provenance.
 
-Phase 14 is active. The demonstrated next boundary is public inspection of that durable execution history through the existing read-only scientific instrument. Phase 14 is limited to public retrieval and inspection; it does not introduce public mutation, scheduling, distributed execution, truth adjudication, or a second persistence model.
+Phase 14 is complete. The existing read-only public scientific instrument now exposes persisted workflow definitions, workflow executions, and timestamp-independent execution lineage through the Python API, CLI, and /api/v1 HTTP routes. The public surface preserves workflow-definition, workflow-execution, and epistemic-artifact distinctions, retains failed execution history, and does not introduce public mutation, scheduling, distributed execution, truth adjudication, or a second persistence model. The Phase 14 exit condition is satisfied.
 
 Phase 1 is complete. The grounded substrate, provenance boundary, relationships, deterministic serialization, validation, SQLite persistence, and externally grounded ingestion fixture are implemented and verified.
 
