@@ -318,6 +318,7 @@ __all__ = [
     "get_workflow_execution",
     "list_workflow_executions",
     "workflow_execution_lineage",
+    "list_workflow_executions_for_capture",
     "list_workflow_executions_for_artifact",
     "discovery_trail",
     "discovery_lineage",
