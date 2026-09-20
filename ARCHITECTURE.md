@@ -1081,3 +1081,8 @@ The existence of this related project is recorded here so future builders do not
 ## Phase 16 — Public Relationship Inspection
 
 Public relationship inspection extends the read-only public instrument to expose the existing first-class subject–predicate–object relationships and their provenance. It reads the existing relationship persistence boundary; it does not create a second graph, infer new edges, score relationships, or add public mutation. The public boundary is persisted relationship → Python inspection API → CLI/HTTP. Relationship visibility does not upgrade the epistemic status of the represented relationship.
+
+
+## Phase 17 — Public Epistemic Artifact Inspection
+
+Phase 17 extends the existing read-only public instrument to expose the persisted generated epistemic artifacts already used by the discovery loop: hypotheses, models, predictions, experiment proposals, prediction evaluations, and knowledge-state consequences. The boundary is persisted generated artifact → public Python API → CLI/HTTP. Existing model serialization and Store persistence remain authoritative. Public visibility does not promote generated artifacts to grounded evidence, and no second artifact model, inference layer, score, or mutation surface is introduced.
