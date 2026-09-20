@@ -332,7 +332,7 @@ class Store:
                 "ALTER TABLE captured_representations ADD COLUMN error TEXT"
             )
 
-        capture_columns = {\n            row["name"]\n            for row in self._connection.execute("PRAGMA table_info(captured_representations)")\n        }\n        if "error" not in capture_columns:\n            self._connection.execute(\n                "ALTER TABLE captured_representations ADD COLUMN error TEXT"\n            )\n\n        discovery_columns = {
+        discovery_columns = {
             row["name"]
             for row in self._connection.execute("PRAGMA table_info(discovery_findings)")
         }
