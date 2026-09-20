@@ -462,7 +462,7 @@ If implementation reveals that the roadmap is wrong, revise the roadmap rather t
 
 ## Current Position
 
-**Phase 17 — Public Epistemic Artifact Inspection — Active**
+**Phase 17 — Public Epistemic Artifact Inspection — Complete**
 
 Phase 11 is complete. Heterogeneous finite source representations enter through the existing grounded boundary without creating a second ingestion model, with provenance, deterministic adapter/version metadata, translation lineage, rejection, and immutability verified.
 
@@ -473,6 +473,10 @@ Phase 13 is complete. Durable workflow definitions and execution occurrences now
 Phase 14 is complete. The existing read-only public scientific instrument now exposes persisted workflow definitions, workflow executions, and timestamp-independent execution lineage through the Python API, CLI, and /api/v1 HTTP routes. The public surface preserves workflow-definition, workflow-execution, and epistemic-artifact distinctions, retains failed execution history, and does not introduce public mutation, scheduling, distributed execution, truth adjudication, or a second persistence model. The Phase 14 exit condition is satisfied.
 
 Phase 15 is complete. The existing read-only public scientific instrument now supports reverse lookup from an existing artifact to every persisted workflow execution that consumed or produced it, using the existing step input/output history without introducing a second provenance or execution model. The Python API, CLI, and /api/v1 HTTP route preserve deterministic ordering, missing-artifact semantics, artifact provenance, and execution meaning. The Phase 15 exit condition is satisfied.
+
+Phase 16 is complete. The existing first-class relationship objects are directly inspectable through the read-only Python, CLI, and /api/v1 HTTP surfaces without creating a second graph or changing relationship meaning.
+
+Phase 17 is complete. The existing generated hypotheses, models, predictions, experiment proposals, prediction evaluations, and knowledge-state consequences are directly inspectable through the read-only Python, CLI, and /api/v1 HTTP surfaces. Their stored representations and lineage fields remain authoritative, while public visibility does not promote generated artifacts to grounded evidence. The Phase 17 exit condition is satisfied.
 
 Phase 1 is complete. The grounded substrate, provenance boundary, relationships, deterministic serialization, validation, SQLite persistence, and externally grounded ingestion fixture are implemented and verified.
 
