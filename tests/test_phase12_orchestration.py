@@ -269,6 +269,60 @@ def test_declared_workflow_runs_existing_discovery_loop_and_preserves_lineage():
         assert execution.lineage_dict() == execution.lineage_dict()
 
 
+def test_workflow_reproduction_excludes_fresh_execution_identity_and_timestamps():
+    workflow = WorkflowDefinition(
+        id="phase12-reproducible",
+        name="Reproducibility fixture",
+        method="phase12-reproducible-workflow",
+        method_version="1",
+        input_ids=("grounded-input",),
+        steps=(
+            WorkflowStep("step-one", "first", "fixture", "1"),
+            WorkflowStep("step-two", "second", "fixture", "1"),
+        ),
+    )
+
+    def first(step):
+        return ("generated-one",)
+
+    def second(step):
+        return ("generated-two",)
+
+    executors = {"first": first, "second": second}
+    first_execution = run_workflow(workflow, executors, started_at="2026-01-01T00:00:00Z")
+    second_execution = run_workflow(workflow, executors, started_at="2027-02-02T00:00:00Z")
+
+    assert first_execution.id != second_execution.id
+    assert first_execution.started_at != second_execution.started_at
+    assert first_execution.lineage_dict() == second_execution.lineage_dict()
+    assert first_execution.lineage_dict() == {
+        "workflow_id": workflow.id,
+        "workflow_method": workflow.method,
+        "workflow_method_version": workflow.method_version,
+        "status": "completed",
+        "step_results": [
+            {
+                "step_id": "step-one",
+                "method": "fixture",
+                "method_version": "1",
+                "status": "completed",
+                "input_ids": ["grounded-input"],
+                "output_ids": ["generated-one"],
+                "error": None,
+            },
+            {
+                "step_id": "step-two",
+                "method": "fixture",
+                "method_version": "1",
+                "status": "completed",
+                "input_ids": ["generated-one"],
+                "output_ids": ["generated-two"],
+                "error": None,
+            },
+        ],
+    }
+
+
 def test_workflow_failure_is_inspectable_and_stops_without_erasing_prior_steps():
     workflow = WorkflowDefinition(
         id="phase12-failure",
