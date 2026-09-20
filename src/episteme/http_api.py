@@ -15,6 +15,7 @@ from .public import (
     discovery_trail,
     get_captured_representation,
     list_captured_representations,
+    get_captured_content,
     get_record,
     get_discovery_finding,
     list_discovery_findings,
@@ -183,8 +184,14 @@ class _Handler(BaseHTTPRequestHandler):
 class _EpistemeHTTPServer(ThreadingHTTPServer):
     allow_reuse_address = True
 
-    def __init__(self, server_address: tuple[str, int], store_path: str | Path) -> None:
+    def __init__(
+        self,
+        server_address: tuple[str, int],
+        store_path: str | Path,
+        capture_root: str | Path | None = None,
+    ) -> None:
         self.store_path = str(store_path)
+        self.capture_root = str(capture_root) if capture_root is not None else None
         super().__init__(server_address, _Handler)
 
     def read(self, request_path: str) -> tuple[object, str]:
@@ -205,7 +212,20 @@ class _EpistemeHTTPServer(ThreadingHTTPServer):
             }, "application/json; charset=utf-8"
 
         parts = [part for part in suffix.split("/") if part]
-        with Store(self.store_path, read_only=True) as store:
+        with Store(
+            self.store_path,
+            read_only=True,
+            capture_root=self.capture_root,
+        ) as store:
+            if len(parts) == 3 and parts[0] == "captures" and parts[2] == "content":
+                if query:
+                    raise _error(400, "unexpected query parameter")
+                content, media_type = get_captured_content(
+                    store,
+                    _nonempty_identifier(parts[1], "captured representation identifier"),
+                )
+                return content, media_type
+
             if parts == ["captures"]:
                 _reject_unexpected_query(query, {"source_id"})
                 return list_captured_representations(store, source_id=_single_query(query, "source_id")), "application/json; charset=utf-8"
@@ -378,18 +398,29 @@ def create_http_server(
     store_path: str | Path,
     host: str = "127.0.0.1",
     port: int = 8000,
+    capture_root: str | Path | None = None,
 ) -> ThreadingHTTPServer:
     """Create a read-only Episteme HTTP server."""
-    return _EpistemeHTTPServer((host, port), store_path)
+    return _EpistemeHTTPServer(
+        (host, port),
+        store_path,
+        capture_root=capture_root,
+    )
 
 
 def serve(
     store_path: str | Path,
     host: str = "127.0.0.1",
     port: int = 8000,
+    capture_root: str | Path | None = None,
 ) -> None:
     """Serve the read-only Episteme HTTP API until interrupted."""
-    server = create_http_server(store_path, host=host, port=port)
+    server = create_http_server(
+        store_path,
+        host=host,
+        port=port,
+        capture_root=capture_root,
+    )
     try:
         server.serve_forever()
     finally:
