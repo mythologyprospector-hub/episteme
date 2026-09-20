@@ -460,6 +460,27 @@ Target capabilities:
 
 **Status:** Complete.
 
+## Phase 19 — External Acquisition / Captured Representation
+
+**Goal:** Preserve the external material actually received by Episteme as an immutable, inspectable capture without conflating acquisition history with grounded evidence, artifact provenance, or workflow execution history.
+
+The canonical Phase 19 design is defined in CAPTURED_REPRESENTATION.md.
+
+Target capabilities:
+
+- [x] captured representation model;
+- [x] durable SQLite capture metadata;
+- [x] filesystem-backed immutable content;
+- [x] content-addressed SHA-256 references;
+- [x] digest verification on write and read;
+- [x] append-only capture identity;
+- [x] complete, partial, and failed acquisition outcomes;
+- [x] executable persistence tests.
+
+**Exit condition:** A captured external representation can be persisted with inspectable acquisition metadata, stored independently from SQLite as immutable content, recovered after process boundaries, verified by content digest, and represented as complete, partial, or failed without changing the epistemic status of downstream artifacts.
+
+**Status:** Active.
+
 ## Roadmap Rules/
 
 ### No roadmap-driven architecture
@@ -482,7 +503,7 @@ If implementation reveals that the roadmap is wrong, revise the roadmap rather t
 
 ## Current Position
 
-**Phase 18 — Public Discovery Finding Inspection — Complete**
+**Phase 19 — External Acquisition / Captured Representation — Active**
 
 Phase 11 is complete. Heterogeneous finite source representations enter through the existing grounded boundary without creating a second ingestion model, with provenance, deterministic adapter/version metadata, translation lineage, rejection, and immutability verified.
 
@@ -499,6 +520,8 @@ Phase 16 is complete. The existing first-class relationship objects are directly
 Phase 17 is complete. The existing generated hypotheses, models, predictions, experiment proposals, prediction evaluations, and knowledge-state consequences are directly inspectable through the read-only Python, CLI, and /api/v1 HTTP surfaces. Their stored representations and lineage fields remain authoritative, while public visibility does not promote generated artifacts to grounded evidence. The Phase 17 exit condition is satisfied.
 
 Phase 18 is complete. The existing persisted discovery findings are directly inspectable through the same read-only public instrument. This closes the direct-inspection gap between discovery trails/downstream artifacts and the discovery finding itself without introducing new discovery semantics or changing generated status. The Phase 18 exit condition is satisfied.
+
+Phase 19 is active. External acquisition now has a durable captured-representation boundary: SQLite stores capture metadata while immutable captured content is stored separately in a filesystem-backed, SHA-256 content-addressed store. Capture identity remains append-only; complete, partial, and failed outcomes remain distinct; and capture storage does not itself create grounded evidence.
 
 Phase 1 is complete. The grounded substrate, provenance boundary, relationships, deterministic serialization, validation, SQLite persistence, and externally grounded ingestion fixture are implemented and verified.
 
