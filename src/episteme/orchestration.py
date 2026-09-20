@@ -171,7 +171,7 @@ class WorkflowExecution:
         }
 
 
-StepExecutor = Callable[[WorkflowStep], tuple[str, ...]]
+StepExecutor = Callable[[WorkflowStep, tuple[str, ...]], tuple[str, ...]]
 
 
 def run_workflow(
@@ -182,7 +182,8 @@ def run_workflow(
 ) -> WorkflowExecution:
     """Execute a declared finite workflow in declared order.
 
-    Executors are adapters over existing Episteme operations. They return
+    Executors are adapters over existing Episteme operations. They receive the
+    exact effective input identifiers recorded for the step and return
     identifiers of artifacts produced by the operation. The runner records
     execution metadata only and never changes epistemic status.
     """
@@ -212,14 +213,14 @@ def run_workflow(
                 started_at=started_at,
             )
         try:
-            output_ids = tuple(executor(step))
+            output_ids = tuple(executor(step, effective_input_ids))
         except Exception as exc:
             result = WorkflowStepResult(
                 step_id=step.id,
                 method=step.method,
                 method_version=step.method_version,
                 status="failed",
-                input_ids=step.input_ids,
+                input_ids=effective_input_ids,
                 output_ids=(),
                 error=f"{type(exc).__name__}: {exc}",
             )
