@@ -42,6 +42,7 @@ from .proposals import complete_structural_gap, predict, propose_candidate_discr
 from .public import discovery_lineage, discovery_report, discovery_trail, get_record, get_review, list_records, list_reviews
 from .html import render_discovery_report_html
 from .public_import import import_crossref_works
+from .orchestration import WorkflowDefinition, WorkflowExecution, WorkflowStep, WorkflowStepResult, run_workflow
 
 __version__ = "0.1.0"
 
@@ -111,4 +112,9 @@ __all__ = [
     "discovery_report",
     "render_discovery_report_html",
     "import_crossref_works",
+    "WorkflowDefinition",
+    "WorkflowExecution",
+    "WorkflowStep",
+    "WorkflowStepResult",
+    "run_workflow",
 ]
