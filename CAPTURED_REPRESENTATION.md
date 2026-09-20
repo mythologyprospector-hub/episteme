@@ -82,7 +82,7 @@ Content reads verify the digest before returning the representation.
 
 ## Failure and Partial Acquisition
 
-A failed acquisition remains inspectable as acquisition history but does not create a grounded SOURCE record.
+A failed acquisition remains inspectable as acquisition history, including its failure description, but does not create a grounded SOURCE record.
 
 A partial acquisition may preserve the material actually received and must remain explicitly marked partial.
 
