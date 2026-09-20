@@ -1202,3 +1202,10 @@ The acquisition layer may invoke the capture layer, but capture does not know ho
 > **External acquisition records the interaction with an external source; it does not interpret the retrieved material or grant it epistemic authority.**
 
 The canonical Phase 20 design is defined in EXTERNAL_ACQUISITION.md.
+
+
+## Phase 21 — Public Acquisition / Capture Inspection
+
+Phase 21 exposes persisted Phase 19/20 capture state through the existing read-only public instrument. The public layer returns the existing CapturedRepresentation representation and delegates deterministic ordering and source filtering to the existing store. Python, CLI, and versioned HTTP inspection surfaces share the same representation. Inspection does not acquire, interpret, ingest, or promote evidence.
+
+The canonical Phase 21 design is defined in PUBLIC_ACQUISITION_CAPTURE_INSPECTION.md.
