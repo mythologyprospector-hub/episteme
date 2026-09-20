@@ -536,6 +536,25 @@ Target capabilities:
 
 **Status:** Complete.
 
+## Phase 22 — Capture-to-Grounded Provenance Lineage
+
+**Goal:** Preserve an explicit link from grounded records produced by external-source adapters to the exact persisted capture that supplied their material, using the existing provenance mechanism without changing epistemic status.
+
+The canonical Phase 22 design is defined in CAPTURE_TO_GROUNDED_PROVENANCE.md.
+
+Target capabilities:
+
+- [x] optional capture identity in grounded provenance;
+- [x] validation of referenced capture identity;
+- [x] preservation through provenance serialization and Store persistence;
+- [x] Crossref adapter handoff;
+- [x] backward-compatible provenance without capture linkage;
+- [x] executable tests covering exact lineage and missing-capture rejection.
+
+**Exit condition:** A grounded record produced from a persisted capture can explicitly identify that capture through its existing provenance representation, the linkage survives serialization and persistence, missing capture identities are rejected, and existing provenance without capture linkage remains valid.
+
+**Status:** Complete.
+
 ## Roadmap Rules/
 
 ### No roadmap-driven architecture
@@ -558,4 +577,4 @@ If implementation reveals that the roadmap is wrong, revise the roadmap rather t
 
 ## Current Position
 
-**Phase 21 — Public Acquisition / Capture Inspection — Complete**
+**Phase 22 — Capture-to-Grounded Provenance Lineage — Complete**
