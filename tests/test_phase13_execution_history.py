@@ -183,6 +183,43 @@ def test_workflow_history_is_immutable(tmp_path):
         assert store.get_workflow_execution(execution.id) == execution
 
 
+def test_repeated_workflow_executions_have_distinct_history_ids_and_equal_lineage(tmp_path):
+    path = tmp_path / "phase13.sqlite"
+    workflow = _workflow()
+    input_record, output_record = _records()
+
+    with Store(path) as store:
+        store.put_record(input_record)
+        store.put_record(output_record)
+        store.put_workflow_definition(workflow)
+
+        def first(step, input_ids):
+            return (OUTPUT_ID,)
+
+        def second(step, input_ids):
+            return (INPUT_ID,)
+
+        first_execution = run_workflow(
+            workflow,
+            {"first": first, "second": second},
+            started_at=CREATED,
+        )
+        second_execution = run_workflow(
+            workflow,
+            {"first": first, "second": second},
+            started_at=CREATED,
+        )
+        store.put_workflow_execution(first_execution)
+        store.put_workflow_execution(second_execution)
+
+    assert first_execution.id != second_execution.id
+    assert first_execution.lineage_dict() == second_execution.lineage_dict()
+
+    with Store(path) as store:
+        assert store.get_workflow_execution(first_execution.id) == first_execution
+        assert store.get_workflow_execution(second_execution.id) == second_execution
+
+
 def test_execution_history_does_not_change_grounded_or_generated_artifacts(tmp_path):
     path = tmp_path / "phase13.sqlite"
     workflow = _workflow()
