@@ -1,8 +1,9 @@
 """Phase 12 finite workflow orchestration.
 
 This module coordinates existing Episteme operations without introducing a new
-epistemic object or persistence model. Workflow artifacts are execution
-metadata: they describe what ran, what it consumed, and what it produced.
+epistemic object or persistence model. Workflow lineage is execution
+metadata: it describes what ran, what it consumed, and what it produced. References may
+point to epistemic artifacts or operational resources such as captured representations.
 """
 
 from __future__ import annotations
@@ -227,7 +228,7 @@ def run_workflow(
 
     Executors are adapters over existing Episteme operations. They receive the
     exact effective input identifiers recorded for the step and return
-    identifiers of artifacts produced by the operation. The runner records
+    identifiers of resources produced by the operation. The runner records
     execution metadata only and never changes epistemic status.
     """
     results: list[WorkflowStepResult] = []
