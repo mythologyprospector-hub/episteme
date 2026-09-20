@@ -42,6 +42,7 @@ from .public import (
     list_workflow_executions,
     workflow_execution_lineage,
     list_workflow_executions_for_artifact,
+    list_workflow_executions_for_capture,
     PublicNotFoundError,
 )
 from .store import Store
@@ -225,6 +226,12 @@ class _EpistemeHTTPServer(ThreadingHTTPServer):
                     _nonempty_identifier(parts[1], "captured representation identifier"),
                 )
                 return content, media_type
+
+            if len(parts) == 3 and parts[0] == "captures" and parts[2] == "executions":
+                if query:
+                    raise _error(400, "unexpected query parameter")
+                capture_id = _nonempty_identifier(parts[1], "captured representation identifier")
+                return list_workflow_executions_for_capture(store, capture_id), "application/json; charset=utf-8"
 
             if parts == ["captures"]:
                 _reject_unexpected_query(query, {"source_id"})
