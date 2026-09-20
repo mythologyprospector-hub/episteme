@@ -13,7 +13,7 @@ from .store import Store
 def ingest_jsonl(stream: TextIO, store: Store) -> int:
     """Validate and persist grounded records from a JSON Lines stream."""
 
-    count = 0
+    records: list[Record] = []
     for line_number, line in enumerate(stream, start=1):
         if not line.strip():
             continue
@@ -25,10 +25,12 @@ def ingest_jsonl(stream: TextIO, store: Store) -> int:
                 f"invalid grounded record on line {line_number}: {exc}"
             ) from exc
 
-        store.put_record(record)
-        count += 1
+        records.append(record)
 
-    return count
+    for record in records:
+        store.put_record(record)
+
+    return len(records)
 
 
 def ingest_jsonl_file(path: str | Path, store: Store) -> int:
