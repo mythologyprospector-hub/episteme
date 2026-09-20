@@ -132,6 +132,19 @@ def workflow_execution_lineage(store: Store, execution_id: str) -> dict[str, Any
     return execution.lineage_dict()
 
 
+def list_workflow_executions_for_capture(
+    store: Store, capture_id: str
+) -> list[dict[str, Any]]:
+    """Return persisted workflow executions that consumed or produced a capture."""
+    capture = store.get_captured_representation(capture_id)
+    if capture is None:
+        raise PublicNotFoundError(f"captured representation not found: {capture_id}")
+    return [
+        execution.to_dict()
+        for execution in store.iter_workflow_executions_for_artifact(capture_id)
+    ]
+
+
 def list_workflow_executions_for_artifact(
     store: Store, artifact_id: str
 ) -> list[dict[str, Any]]:
