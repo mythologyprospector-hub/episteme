@@ -1550,6 +1550,18 @@ class Store:
         for row in rows:
             yield WorkflowExecution.from_dict(json.loads(row["execution"]))
 
+    def iter_workflow_executions_for_artifact(
+        self, artifact_id: str
+    ) -> Iterator["WorkflowExecution"]:
+        from .orchestration import WorkflowExecution
+
+        for execution in self.iter_workflow_executions():
+            if any(
+                artifact_id in result.input_ids or artifact_id in result.output_ids
+                for result in execution.step_results
+            ):
+                yield execution
+
     def close(self) -> None:
         self._connection.close()
 
