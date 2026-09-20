@@ -15,6 +15,19 @@ class PublicNotFoundError(ValueError):
 
 
 
+def get_captured_representation(store: Store, capture_id: str) -> dict[str, Any]:
+    """Return one captured external representation as a public representation."""
+    capture = store.get_captured_representation(capture_id)
+    if capture is None:
+        raise PublicNotFoundError(f"captured representation not found: {capture_id}")
+    return capture.to_dict()
+
+
+def list_captured_representations(store: Store, source_id: str | None = None) -> list[dict[str, Any]]:
+    """Return captured representations in deterministic order."""
+    return [capture.to_dict() for capture in store.iter_captured_representations(source_id=source_id)]
+
+
 def get_record(store: Store, record_id: str) -> dict[str, Any]:
     """Return one grounded record as a canonical public representation."""
     record = store.get_record(record_id)
@@ -250,6 +263,8 @@ def discovery_report(
 
 __all__ = [
     "PublicNotFoundError",
+    "get_captured_representation",
+    "list_captured_representations",
     "get_record",
     "list_records",
     "get_discovery_finding",
