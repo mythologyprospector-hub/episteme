@@ -56,9 +56,9 @@ def render_discovery_report_html(report: dict[str, Any]) -> str:
             if method:
                 context.append(f'<small><strong>Method</strong> · {method}</small>')
             if rationale:
-                context.append(f"<p><strong>Why this step exists</strong> · {rationale}</p>")
+                context.append(f"<p><strong>Why this step exists:</strong> {rationale}</p>")
             items.append(
-                f'<details class="artifact artifact-{html.escape(kind_value)}">'
+                f'<details>'
                 "<summary>"
                 f'<span class="kind">{kind}</span><span class="label">{label}</span>'
                 "</summary>"
