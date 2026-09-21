@@ -1241,18 +1241,6 @@ The capture remains operational acquisition history. The grounded record remains
 The first vertical proof is the existing Crossref adapter. The canonical Phase 22 design is defined in CAPTURE_TO_GROUNDED_PROVENANCE.md.
 
 
-## Phase 25 — Capture-to-Execution Lineage
-
-Phase 25 extends the Phase 15 reverse execution inspection to operational captures introduced into workflow lineage by Phase 24.
-
-The dependency is:
-
-**persisted capture → existing workflow execution lineage → read-only public inspection**
-
-Capture-to-execution lookup is derived from existing workflow step input/output identifiers. No reverse-index table or second lineage model is introduced. A capture remains an operational acquisition record and does not become an epistemic artifact because a workflow references it.
-
-The canonical Phase 25 design is defined in CAPTURE_EXECUTION_LINEAGE.md.
-
 ## Phase 24 — Acquisition Execution / Workflow Integration
 
 Phase 24 integrates the existing bounded acquisition operation with the existing finite workflow and execution-history machinery. No new workflow engine or acquisition-history model is introduced.
@@ -1266,3 +1254,15 @@ Workflow step input/output identifiers may reference existing epistemic artifact
 A successful acquisition operation that persists a failed capture can still be a completed workflow step; the workflow records that the operation ran, while the capture records that the external acquisition failed. Existing workflow-step failure semantics remain unchanged when the executor itself fails.
 
 The canonical Phase 24 design is defined in ACQUISITION_EXECUTION_WORKFLOW.md.
+
+## Phase 25 — Capture-to-Execution Lineage
+
+Phase 25 extends the Phase 15 reverse execution inspection to operational captures introduced into workflow lineage by Phase 24.
+
+The dependency is:
+
+**persisted capture → existing workflow execution lineage → read-only public inspection**
+
+Capture-to-execution lookup is derived from existing workflow step input/output identifiers. No reverse-index table or second lineage model is introduced. A capture remains an operational acquisition record and does not become an epistemic artifact because a workflow references it.
+
+The canonical Phase 25 design is defined in CAPTURE_EXECUTION_LINEAGE.md.
