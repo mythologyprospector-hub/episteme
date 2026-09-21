@@ -396,9 +396,9 @@ def test_http_root_renders_observatory_without_mutation(tmp_path) -> None:
     record = _record()
     finding = DiscoveryFinding(
         id=str(uuid4()),
-        kind=DiscoveryFindingKind.GAP,
-        title="Fixture gap",
-        description="A missing fixture relationship.",
+        kind=DiscoveryFindingKind.CONTRADICTION,
+        title="Fixture contradiction",
+        description="Two fixture records conflict.",
         input_ids=(record.id,),
         method="fixture",
         method_version="1",
@@ -412,21 +412,6 @@ def test_http_root_renders_observatory_without_mutation(tmp_path) -> None:
             ),
         ),
         created_at="2026-01-05T00:00:00+00:00",
-        expectation=None,
-    )
-    # GAP findings require an expectation; use the existing valid contradiction
-    # shape instead so this test remains focused on presentation and routing.
-    finding = DiscoveryFinding(
-        id=finding.id,
-        kind=DiscoveryFindingKind.CONTRADICTION,
-        title=finding.title,
-        description=finding.description,
-        input_ids=finding.input_ids,
-        method=finding.method,
-        method_version=finding.method_version,
-        rationale=finding.rationale,
-        measures=finding.measures,
-        created_at=finding.created_at,
     )
     with Store(store_path) as store:
         store.put_record(record)
@@ -442,7 +427,7 @@ def test_http_root_renders_observatory_without_mutation(tmp_path) -> None:
             assert response.headers["Content-Type"].startswith("text/html")
             page = response.read().decode("utf-8")
         assert "Observatory" in page
-        assert "Fixture gap" in page
+        assert "Fixture contradiction" in page
         assert f"/api/v1/discoveries/{finding.id}/report" in page
         assert "Read-only" in page
 
