@@ -1211,7 +1211,19 @@ Phase 21 exposes persisted Phase 19/20 capture state through the existing read-o
 The canonical Phase 21 design is defined in PUBLIC_ACQUISITION_CAPTURE_INSPECTION.md.
 
 
-### Phase 23 — Public Captured Content Inspection
+### Phase 22 — Capture-to-Grounded Provenance Lineage
+
+Phase 22 links grounded records produced by an external-source adapter to the exact persisted capture that supplied their material. The boundary is:
+
+**captured representation → existing source adapter → grounded record with capture-linked provenance**
+
+The existing Provenance model is extended with optional capture identity rather than introducing a second provenance graph, relationship type, transformation type, or reverse index. When supplied, the adapter verifies that the capture exists and that its persisted Crossref representation matches the supplied response before creating grounded records.
+
+The capture remains operational acquisition history. The grounded record remains grounded under the existing provenance rules. Capture linkage answers which representation supplied a record; it does not grant that representation epistemic authority.
+
+The first vertical proof is the existing Crossref adapter. The canonical Phase 22 design is defined in CAPTURE_TO_GROUNDED_PROVENANCE.md.
+
+## Phase 23 — Public Captured Content Inspection
 
 Phase 23 extends the existing read-only public capture inspection boundary from persisted capture metadata to the exact immutable captured bytes.
 
@@ -1226,21 +1238,6 @@ Public content access receives an explicit capture root. Episteme does not infer
 This phase reuses the existing capture store and Store.read_captured_content() integrity boundary. It does not introduce another content store, acquisition path, interpretation layer, provenance model, or epistemic status.
 
 The canonical Phase 23 design is defined in PUBLIC_CAPTURED_CONTENT_INSPECTION.md.
-
-
-## Phase 22 — Capture-to-Grounded Provenance Lineage
-
-Phase 22 links grounded records produced by an external-source adapter to the exact persisted capture that supplied their material. The boundary is:
-
-**captured representation → existing source adapter → grounded record with capture-linked provenance**
-
-The existing Provenance model is extended with optional capture identity rather than introducing a second provenance graph, relationship type, transformation type, or reverse index. When supplied, the adapter verifies that the capture exists and that its persisted Crossref representation matches the supplied response before creating grounded records.
-
-The capture remains operational acquisition history. The grounded record remains grounded under the existing provenance rules. Capture linkage answers which representation supplied a record; it does not grant that representation epistemic authority.
-
-The first vertical proof is the existing Crossref adapter. The canonical Phase 22 design is defined in CAPTURE_TO_GROUNDED_PROVENANCE.md.
-
-
 ## Phase 24 — Acquisition Execution / Workflow Integration
 
 Phase 24 integrates the existing bounded acquisition operation with the existing finite workflow and execution-history machinery. No new workflow engine or acquisition-history model is introduced.
