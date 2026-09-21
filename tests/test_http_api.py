@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import html
 import json
 from threading import Thread
 from urllib.request import Request, urlopen
@@ -313,6 +314,50 @@ def test_http_renders_discovery_report_as_json_and_html(tmp_path) -> None:
             html = response.read().decode("utf-8")
         assert "Fixture contradiction" in html
         assert "Read-only" in html
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+
+
+def test_http_observatory_report_link_preserves_timestamp(tmp_path) -> None:
+    store_path = tmp_path / "episteme.sqlite"
+    record = _record()
+    finding = DiscoveryFinding(
+        id=str(uuid4()),
+        kind=DiscoveryFindingKind.CONTRADICTION,
+        title="Encoded timestamp fixture",
+        description="The Observatory report link must preserve timezone offsets.",
+        input_ids=(record.id,),
+        method="fixture",
+        method_version="1",
+        rationale="Regression coverage for generated report URLs.",
+        measures=(),
+        created_at="2026-01-06T01:20:58.980922+00:00",
+    )
+    with Store(store_path) as store:
+        store.put_record(record)
+        store.put_discovery_finding(finding)
+
+    server = create_http_server(store_path, port=0)
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        host, port = server.server_address
+        with urlopen(f"http://{host}:{port}/") as response:
+            page = response.read().decode("utf-8")
+
+        marker = f"/api/v1/discoveries/{finding.id}/report?"
+        start = page.index(marker)
+        href = page[start:page.index('"', start)]
+        href = html.unescape(href)
+
+        with urlopen(f"http://{host}:{port}{href}") as response:
+            assert response.status == 200
+            assert response.headers["Content-Type"].startswith("text/html")
+            report = response.read().decode("utf-8")
+
+        assert "Encoded timestamp fixture" in report
     finally:
         server.shutdown()
         server.server_close()

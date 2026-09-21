@@ -5,6 +5,7 @@ from __future__ import annotations
 import html
 import json
 from collections import Counter
+from urllib.parse import urlencode
 from typing import Any
 
 
@@ -32,7 +33,7 @@ h2{font-size:1.2rem;letter-spacing:-.015em;margin:2.5rem 0 .8rem}
 .subtitle{color:var(--muted);max-width:760px;margin:0}
 .notice{
   margin-top:1.2rem;padding:1rem 1.1rem;border:1px solid #2c4554;border-radius:.7rem;
-  background:linear-gradient(135deg,rgba(103,214,196,.08),rgba(119,169,255,.05));color:#cbd7e2
+  background:linear-gradient(135deg,rgba(103,214,196,.08),rgba(119,169,255,.05));color:#cbd7e2;cursor:default
 }
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.8rem}
 .card{
@@ -63,12 +64,12 @@ def render_observatory_html(discoveries: list[dict[str, Any]]) -> str:
         title = html.escape(str(finding.get("title") or "Untitled discovery"))
         description = html.escape(str(finding.get("description") or ""))
         created_at = str(finding.get("created_at", ""))
+        query = urlencode({"created_at": created_at, "format": "html"})
         href = (
             "/api/v1/discoveries/"
             + finding_id
-            + "/report?created_at="
-            + html.escape(created_at, quote=True)
-            + "&format=html"
+            + "/report?"
+            + html.escape(query, quote=True)
         )
         cards.append(
             f'<a class="card" href="{href}">'
