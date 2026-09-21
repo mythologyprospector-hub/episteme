@@ -390,3 +390,66 @@ def test_http_does_not_misclassify_internal_key_error_as_not_found(tmp_path, mon
         server.shutdown()
         server.server_close()
         thread.join(timeout=2)
+
+def test_http_root_renders_observatory_without_mutation(tmp_path) -> None:
+    store_path = tmp_path / "episteme.sqlite"
+    record = _record()
+    finding = DiscoveryFinding(
+        id=str(uuid4()),
+        kind=DiscoveryFindingKind.GAP,
+        title="Fixture gap",
+        description="A missing fixture relationship.",
+        input_ids=(record.id,),
+        method="fixture",
+        method_version="1",
+        rationale="Observatory route coverage",
+        measures=(
+            DiscoveryMeasure(
+                name="example",
+                value=1.0,
+                scale="fixture",
+                basis="test",
+            ),
+        ),
+        created_at="2026-01-05T00:00:00+00:00",
+        expectation=None,
+    )
+    # GAP findings require an expectation; use the existing valid contradiction
+    # shape instead so this test remains focused on presentation and routing.
+    finding = DiscoveryFinding(
+        id=finding.id,
+        kind=DiscoveryFindingKind.CONTRADICTION,
+        title=finding.title,
+        description=finding.description,
+        input_ids=finding.input_ids,
+        method=finding.method,
+        method_version=finding.method_version,
+        rationale=finding.rationale,
+        measures=finding.measures,
+        created_at=finding.created_at,
+    )
+    with Store(store_path) as store:
+        store.put_record(record)
+        store.put_discovery_finding(finding)
+
+    server = create_http_server(store_path, port=0)
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        host, port = server.server_address
+        with urlopen(f"http://{host}:{port}/") as response:
+            assert response.status == 200
+            assert response.headers["Content-Type"].startswith("text/html")
+            page = response.read().decode("utf-8")
+        assert "Observatory" in page
+        assert "Fixture gap" in page
+        assert f"/api/v1/discoveries/{finding.id}/report" in page
+        assert "Read-only" in page
+
+        with Store(store_path) as store:
+            assert [item.id for item in store.iter_records()] == [record.id]
+            assert [item.id for item in store.iter_discovery_findings()] == [finding.id]
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
