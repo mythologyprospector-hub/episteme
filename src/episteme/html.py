@@ -95,7 +95,7 @@ def render_observatory_html(discoveries: list[dict[str, Any]]) -> str:
             '<p class="eyebrow">Scientific discovery instrument</p>',
             "<h1>Observatory</h1>",
             '<p class="subtitle">Start with a discovery. Follow what Episteme recorded, what it generated, and how the pieces connect.</p>',
-            '<p class="notice"><strong>Read-only.</strong> This is a window into Episteme's recorded state. Presentation does not decide what is true.</p>',
+            "<p class=\"notice\"><strong>Read-only.</strong> This is a window into Episteme's recorded state. Presentation does not decide what is true.</p>",
             "</header>",
             "<main>",
             "<h2>Discoveries</h2>",
