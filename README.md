@@ -25,6 +25,36 @@ The goal is not to make a machine that sounds certain.
 
 The goal is to build an instrument that can show **why we believe something, where the gaps are, what competing explanations remain possible, and what evidence would help distinguish them.**
 
+## Looking for Scientific Testers
+
+Episteme is ready for **external exploratory testing**.
+
+If you are a scientist, researcher, engineer, mathematician, student, or simply someone who enjoys asking difficult questions, we'd like you to try it.
+
+You do **not** need to be an Episteme expert, and you do not need to know how to program.
+
+We're especially interested in what happens when someone tries to use Episteme for a real problem:
+
+- What makes sense immediately?
+- What is confusing?
+- What information do you expect to be able to inspect but cannot?
+- Does the provenance and reasoning trail make sense?
+- Where does the system get in your way?
+- What does it fail to represent?
+- What unexpected behavior do you find?
+
+**You do not need to know how to fix anything.**
+
+If you find a software bug, please open a GitHub Issue.
+
+If you have a scientific, conceptual, or workflow question or observation, please start a GitHub Discussion.
+
+Tell us what you tried, what you expected, and what happened.
+
+A failed attempt is useful information too.
+
+Episteme is being developed as an instrument for inquiry. We want real use to show us where the instrument's actual boundaries are.
+
 ## The Core Idea
 
 Episteme follows a closed discovery loop:
