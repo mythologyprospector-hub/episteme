@@ -358,6 +358,8 @@ def test_http_observatory_report_link_preserves_timestamp(tmp_path) -> None:
             report = response.read().decode("utf-8")
 
         assert "Encoded timestamp fixture" in report
+        assert "</style>" in report
+        assert report.index("</style>") < report.index("</head><body>")
     finally:
         server.shutdown()
         server.server_close()

@@ -185,7 +185,7 @@ summary{cursor:pointer;display:flex;gap:.7rem;align-items:baseline;list-style:no
 .summary .kind,.kind{flex:0 0 auto;color:var(--accent);font-size:.72rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase}.label{font-weight:650}
 small{color:var(--muted);display:block;margin:.65rem 0 .2rem;padding-left:1.45rem}details p{color:#c0cedb;padding-left:1.45rem}.empty{color:var(--dim);font-style:italic}
 @media (max-width:700px){.summary{grid-template-columns:1fr}}
-""",
+</style>""",
         ),
         "</head><body>",
         "<header>",
