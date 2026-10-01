@@ -18,7 +18,7 @@ def _seed(path):
         record = Record(OID, RecordKind.SOURCE, {"title": "fixture"}, PROV, CREATED)
         observation = ExplorationObservation(
             id=RID,
-            observation="Two supplied records appear adjacent in the represented metadata.",
+            observation="A supplied record is represented in the exploration corpus.",
             input_ids=(OID,),
             evidence=("Both records are explicitly present in the supplied corpus.",),
             method="fixture-observation",
