@@ -17,8 +17,6 @@ from .public import (
     discovery_trail,
     get_exploration_observation,
     list_exploration_observations,
-    get_exploration_observation,
-    list_exploration_observations,
     get_captured_representation,
     list_captured_representations,
     get_captured_content,
@@ -152,10 +150,6 @@ def _parser() -> argparse.ArgumentParser:
     exploration_observation = subparsers.add_parser("exploration-observation", help="Inspect one generated exploration observation.")
     exploration_observation.add_argument("artifact_id")
 
-    exploration_observations = subparsers.add_parser("exploration-observations", help="List generated exploration observations.")
-    exploration_observation = subparsers.add_parser("exploration-observation", help="Inspect one generated exploration observation.")
-    exploration_observation.add_argument("artifact_id")
-
     discovery_finding = subparsers.add_parser("discovery", help="Inspect one generated discovery finding.")
     discovery_finding.add_argument("finding_id")
 
@@ -255,10 +249,6 @@ def main() -> int:
             result = list_workflow_executions_for_capture(store, args.capture_id)
         elif args.command == "artifact-executions":
             result = list_workflow_executions_for_artifact(store, args.artifact_id)
-        elif args.command == "exploration-observations":
-            result = list_exploration_observations(store)
-        elif args.command == "exploration-observation":
-            result = get_exploration_observation(store, args.artifact_id)
         elif args.command == "exploration-observations":
             result = list_exploration_observations(store)
         elif args.command == "exploration-observation":
