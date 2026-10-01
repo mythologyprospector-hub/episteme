@@ -442,6 +442,67 @@ class Review:
 
 
 @dataclass(frozen=True, slots=True)
+class ExplorationObservation:
+    """A generated observation produced by examining represented knowledge."""
+
+    id: str
+    observation: str
+    input_ids: tuple[str, ...]
+    evidence: tuple[str, ...]
+    method: str
+    method_version: str
+    uncertainty: str
+    parameters: Mapping[str, Any] | None
+    created_at: str
+    schema_version: int = SCHEMA_VERSION
+
+    def __post_init__(self) -> None:
+        _require_uuid(self.id, "id")
+        _require_text(self.observation, "observation")
+        if not self.input_ids:
+            raise ValueError("exploration observation requires at least one input")
+        for input_id in self.input_ids:
+            _require_uuid(input_id, "input_id")
+        if not self.evidence:
+            raise ValueError("exploration observation requires evidence")
+        for item in self.evidence:
+            _require_text(item, "evidence")
+        _require_text(self.method, "method")
+        _require_text(self.method_version, "method_version")
+        _require_text(self.uncertainty, "uncertainty")
+        if self.parameters is not None:
+            canonical_json(self.parameters)
+        _require_iso_timestamp(self.created_at, "created_at")
+        if self.schema_version != SCHEMA_VERSION:
+            raise ValueError(f"unsupported schema_version: {self.schema_version}")
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "observation": self.observation,
+            "input_ids": list(self.input_ids),
+            "evidence": list(self.evidence),
+            "method": self.method,
+            "method_version": self.method_version,
+            "uncertainty": self.uncertainty,
+            "parameters": dict(self.parameters) if self.parameters is not None else None,
+            "created_at": self.created_at,
+            "schema_version": self.schema_version,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> "ExplorationObservation":
+        return cls(
+            id=data["id"], observation=data["observation"],
+            input_ids=tuple(data["input_ids"]), evidence=tuple(data["evidence"]),
+            method=data["method"], method_version=data["method_version"],
+            uncertainty=data["uncertainty"], parameters=data.get("parameters"),
+            created_at=data["created_at"],
+            schema_version=data.get("schema_version", SCHEMA_VERSION),
+        )
+
+
+@dataclass(frozen=True, slots=True)
 class Transformation:
     """A reproducible relationship between existing records."""
 
