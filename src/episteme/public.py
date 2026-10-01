@@ -176,6 +176,19 @@ def list_discovery_findings(
     ]
 
 
+def get_exploration_observation(store: Store, observation_id: str) -> dict[str, Any]:
+    """Return one generated exploration observation as a public representation."""
+    observation = store.get_exploration_observation(observation_id)
+    if observation is None:
+        raise PublicNotFoundError(f"exploration observation not found: {observation_id}")
+    return observation.to_dict()
+
+
+def list_exploration_observations(store: Store) -> list[dict[str, Any]]:
+    """Return generated exploration observations in deterministic order."""
+    return [item.to_dict() for item in store.iter_exploration_observations()]
+
+
 def get_hypothesis(store: Store, hypothesis_id: str) -> dict[str, Any]:
     hypothesis = store.get_hypothesis(hypothesis_id)
     if hypothesis is None:
