@@ -12,6 +12,7 @@ from .capture import CapturedRepresentation
 from .model import (
     AssessmentTargetKind,
     DiscoveryFinding,
+    ExplorationObservation,
     Hypothesis,
     Model,
     Prediction,
@@ -127,6 +128,13 @@ class Store:
                 created_at TEXT NOT NULL,
                 related_finding_id TEXT,
                 expectation TEXT,
+                schema_version INTEGER NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS exploration_observations (
+                id TEXT PRIMARY KEY, observation TEXT NOT NULL, input_ids TEXT NOT NULL,
+                evidence TEXT NOT NULL, method TEXT NOT NULL, method_version TEXT NOT NULL,
+                uncertainty TEXT NOT NULL, parameters TEXT, created_at TEXT NOT NULL,
                 schema_version INTEGER NOT NULL
             );
 
@@ -649,6 +657,49 @@ class Store:
                     "schema_version": row["schema_version"],
                 }
             )
+
+    def put_exploration_observation(self, observation: ExplorationObservation) -> None:
+        missing = [input_id for input_id in observation.input_ids
+                   if self.get_record(input_id) is None and self.get_relationship(input_id) is None]
+        if missing:
+            raise ValueError("exploration observation references missing input(s): " + ", ".join(missing))
+        self._connection.execute("""INSERT INTO exploration_observations
+            (id, observation, input_ids, evidence, method, method_version, uncertainty, parameters, created_at, schema_version)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (observation.id, observation.observation, canonical_json(list(observation.input_ids)),
+             canonical_json(list(observation.evidence)), observation.method, observation.method_version,
+             observation.uncertainty, canonical_json(observation.parameters) if observation.parameters is not None else None,
+             observation.created_at, observation.schema_version))
+        self._connection.commit()
+
+    def get_exploration_observation(self, observation_id: str) -> ExplorationObservation | None:
+        row = self._connection.execute("""SELECT id, observation, input_ids, evidence, method, method_version,
+                   uncertainty, parameters, created_at, schema_version
+            FROM exploration_observations WHERE id = ?""", (observation_id,)).fetchone()
+        if row is None:
+            return None
+        return ExplorationObservation.from_dict({
+            "id": row["id"], "observation": row["observation"],
+            "input_ids": json.loads(row["input_ids"]), "evidence": json.loads(row["evidence"]),
+            "method": row["method"], "method_version": row["method_version"],
+            "uncertainty": row["uncertainty"],
+            "parameters": json.loads(row["parameters"]) if row["parameters"] is not None else None,
+            "created_at": row["created_at"], "schema_version": row["schema_version"],
+        })
+
+    def iter_exploration_observations(self) -> Iterator[ExplorationObservation]:
+        rows = self._connection.execute("""SELECT id, observation, input_ids, evidence, method, method_version,
+                   uncertainty, parameters, created_at, schema_version
+            FROM exploration_observations ORDER BY created_at, id""")
+        for row in rows:
+            yield ExplorationObservation.from_dict({
+                "id": row["id"], "observation": row["observation"],
+                "input_ids": json.loads(row["input_ids"]), "evidence": json.loads(row["evidence"]),
+                "method": row["method"], "method_version": row["method_version"],
+                "uncertainty": row["uncertainty"],
+                "parameters": json.loads(row["parameters"]) if row["parameters"] is not None else None,
+                "created_at": row["created_at"], "schema_version": row["schema_version"],
+            })
 
     def put_hypothesis(self, hypothesis: Hypothesis) -> None:
         missing_findings = [

@@ -14,6 +14,12 @@ The central rule is:
 
 > **Discovery may reveal a gap in knowledge without pretending to know what fills it.**
 
+## Exploration Observations
+
+Exploration observations preserve machine-generated observations before they become explicit discovery requests. They are generated artifacts, not evidence.
+
+An observation retains its represented input identifiers, supplied evidence, generation method and version, explicit uncertainty, and optional generation parameters. It may guide human inspection, but it does not establish a gap, contradiction, relationship, or question.
+
 ## Finding Kinds
 
 ### Gap

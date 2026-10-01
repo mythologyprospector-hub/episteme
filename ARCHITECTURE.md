@@ -567,6 +567,14 @@ Phase 3 introduces a derived discovery layer above the grounded substrate and Ph
 
 Discovery is analysis of represented knowledge, not a new source of knowledge.
 
+### Exploration Observations
+
+Exploration observations are generated artifacts produced while examining represented knowledge. They sit between machine observation and an explicit human question.
+
+They preserve the represented input identifiers, generated observation, supplied evidence, generation method and version, explicit uncertainty, optional generation parameters, creation timestamp, and schema version.
+
+They are not grounded records or discovery findings. Persistence does not establish an observation as an external fact, structural expectation, scientific gap, or relationship.
+
 ### Discovery Findings
 
 A discovery finding is a generated artifact that records an observed pattern in the Episteme knowledge state.
