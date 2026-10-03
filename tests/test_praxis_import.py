@@ -20,8 +20,11 @@ def _handoff():
             "source_result_id": "result-1",
         },
         "praxis_admission": {
+            "id": "admission-1",
             "problem_id": "problem-1",
             "evidence_item_id": "evidence:result-1",
+            "authorized_by": "human-1",
+            "rationale": "Admit the observed result.",
         },
     }
 
@@ -34,6 +37,9 @@ def test_praxis_handoff_becomes_grounded_record_without_merging_identity():
     assert record.id != _handoff()["praxis_evidence"]["id"]
     assert record.payload["praxis_evidence"]["id"] == "evidence:result-1"
     assert record.payload["praxis_admission"]["problem_id"] == "problem-1"
+    assert record.payload["praxis_admission"]["id"] == "admission-1"
+    assert record.payload["praxis_admission"]["authorized_by"] == "human-1"
+    assert record.payload["praxis_admission"]["rationale"] == "Admit the observed result."
     assert record.provenance[0].source_id == "praxis:test-source"
     assert record.provenance[0].captured_at == CAPTURED_AT
 
