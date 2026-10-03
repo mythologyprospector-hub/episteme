@@ -2,7 +2,7 @@
 
 **Status:** Canonical planning document  
 **Version:** 2.0  
-**Last updated:** 2026-09-20
+**Last updated:** 2026-10-03
 
 ## Mission
 
@@ -607,6 +607,24 @@ Target capabilities:
 
 **Status:** Complete.
 
+## Phase 26 — Praxis Evidence Interoperability
+
+**Goal:** Establish a bounded translation boundary for admitted Praxis evidence without coupling the projects or changing Episteme's epistemic semantics.
+
+Target capabilities:
+
+- [x] explicit JSON-compatible Praxis evidence handoff contract;
+- [x] preservation of Praxis evidence and human-admission identities;
+- [x] explicit Episteme RecordKind, source identity, and capture time;
+- [x] Episteme-owned record identity and provenance;
+- [x] rejection of malformed or unsupported handoff packets;
+- [x] no runtime dependency on Praxis;
+- [x] executable tests covering translation and boundary preservation.
+
+**Exit condition:** An admitted Praxis evidence item can cross into Episteme through an explicit, inspectable translation boundary that preserves source identity and human-admission provenance while leaving Episteme responsible for its own record identity and epistemic semantics.
+
+**Status:** Complete.
+
 ## Roadmap Rules/
 
 ### No roadmap-driven architecture
@@ -629,6 +647,6 @@ If implementation reveals that the roadmap is wrong, revise the roadmap rather t
 
 ## Current Position
 
-**Phase 25 — Capture-to-Execution Lineage — Complete**
+**Phase 26 — Praxis Evidence Interoperability — Complete**
 
 
