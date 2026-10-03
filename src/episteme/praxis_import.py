@@ -56,6 +56,16 @@ def import_praxis_evidence_handoff(
     if not isinstance(admission, Mapping):
         raise ValueError("Praxis handoff requires praxis_admission")
 
+    evidence_id = evidence.get("id")
+    if not isinstance(evidence_id, str) or not evidence_id.strip():
+        raise ValueError("Praxis handoff praxis_evidence requires id")
+
+    admission_evidence_item_id = admission.get("evidence_item_id")
+    if admission_evidence_item_id != evidence_id:
+        raise ValueError(
+            "Praxis handoff admission evidence_item_id must match praxis_evidence id"
+        )
+
     source_location = data.get("source_location")
     if source_location is not None and (
         not isinstance(source_location, str) or not source_location.strip()
