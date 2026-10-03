@@ -42,6 +42,9 @@ def test_praxis_handoff_becomes_grounded_record_without_merging_identity():
     assert record.payload["praxis_admission"]["rationale"] == "Admit the observed result."
     assert record.provenance[0].source_id == "praxis:test-source"
     assert record.provenance[0].captured_at == CAPTURED_AT
+    assert record.provenance[0].source_location == "https://example.test/result/1"
+    assert record.payload["external_format"] == "praxis-evidence-handoff"
+    assert record.payload["adapter_version"] == "1"
 
 
 def test_praxis_handoff_does_not_infer_record_kind():
