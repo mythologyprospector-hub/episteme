@@ -78,3 +78,14 @@ def test_praxis_handoff_rejects_missing_nested_material():
             assert field in str(exc)
         else:
             raise AssertionError(f"{field} should be required")
+
+
+def test_praxis_handoff_rejects_mismatched_admission_evidence_identity():
+    data = _handoff()
+    data["praxis_admission"]["evidence_item_id"] = "evidence:other"
+    try:
+        import_praxis_evidence_handoff(data, Store())
+    except ValueError as exc:
+        assert "evidence_item_id" in str(exc)
+    else:
+        raise AssertionError("mismatched admission evidence identity should be rejected")
