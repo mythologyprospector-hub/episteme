@@ -1,3 +1,5 @@
+![Episteme social preview](episteme.jpeg)
+
 # Episteme
 
 > An open scientific discovery engine for mapping knowledge, exposing unknowns, testing hypotheses, and finding the experiments that matter.
