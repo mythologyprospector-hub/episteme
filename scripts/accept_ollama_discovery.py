@@ -9,7 +9,17 @@ from __future__ import annotations
 
 import json
 import os
+import sys
+from pathlib import Path
 from typing import Any
+
+
+# Allow this acceptance script to run directly from a source checkout without
+# requiring the caller to preconfigure PYTHONPATH.
+ROOT = Path(__file__).resolve().parents[1]
+SRC = ROOT / "src"
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
 
 from episteme.autonomy import run_autonomous_discovery
 from episteme.discovery import detect_positional_gap
