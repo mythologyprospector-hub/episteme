@@ -256,7 +256,8 @@ def execute_action(store: Any, action: DiscoveryAction, *, created_at: str) -> t
     if action.kind == "experiment":
         if len(action.target_ids) < 2:
             raise PlannerActionError("experiment action requires at least two prediction ids")
-        proposal = propose_candidate_discrimination_experiment(
+        try:
+                proposal = propose_candidate_discrimination_experiment(
             store,
             prediction_ids=action.target_ids,
             objective=_require(action.objective, "objective"),
@@ -268,6 +269,8 @@ def execute_action(store: Any, action: DiscoveryAction, *, created_at: str) -> t
             rationale=action.rationale,
             created_at=created_at,
         )
+        except ValueError as exc:
+            raise PlannerActionError(str(exc)) from exc
         store.put_experiment_proposal(proposal)
         return (proposal.id,)
 
