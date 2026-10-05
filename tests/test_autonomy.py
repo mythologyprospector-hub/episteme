@@ -20,6 +20,40 @@ def _records():
     )
 
 
+def _grounded_test_predictions(store):
+    from episteme.proposals import propose_discriminating_prediction, propose_hypothesis
+
+    hypotheses = []
+    for index, statement in enumerate(("candidate one", "candidate two"), start=1):
+        hypothesis = propose_hypothesis(
+            statement=statement,
+            finding_ids=(f"aaaaaaaa-000{index}-4aaa-8aaa-aaaaaaaaaaaa",),
+            method="fixture",
+            method_version="1",
+            rationale="fixture",
+            created_at=CREATED,
+        )
+        store.put_hypothesis(hypothesis)
+        hypotheses.append(hypothesis)
+
+    predictions = []
+    for hypothesis in hypotheses:
+        prediction = propose_discriminating_prediction(
+            store,
+            candidate_id=hypothesis.id,
+            competing_candidate_ids=tuple(item.id for item in hypotheses),
+            consequence="test",
+            conditions="test",
+            method="fixture",
+            method_version="1",
+            rationale="fixture",
+            created_at=CREATED,
+        )
+        store.put_prediction(prediction)
+        predictions.append(prediction)
+    return tuple(predictions)
+
+
 class FixturePlanner:
     def __init__(self):
         self.calls = 0
@@ -420,33 +454,29 @@ def test_grounded_executor_rejects_missing_input_record():
     from episteme.model import ExperimentProposal
 
     missing_id = "bbbbbbbb-0001-4aaa-8aaa-bbbbbbbbbbbb"
-    proposal = ExperimentProposal(
-        id="cccccccc-0001-4aaa-8aaa-cccccccccccc",
-        prediction_ids=("11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222"),
-        objective="test",
-        proposed_observation="test",
-        discrimination_basis="test",
-        conditions="test",
-        assumptions=(),
-        method="fixture",
-        method_version="1",
-        rationale="fixture",
-        created_at=CREATED,
-        execution_spec={
-            "operation": "positional_presence",
-            "position": 3.0,
-            "expected_presence": {"11111111-1111-4111-8111-111111111111": True, "22222222-2222-4222-8222-222222222222": False},
-        },
-    )
     with Store() as store:
+        predictions = _grounded_test_predictions(store)
+        proposal = ExperimentProposal(
+            id="cccccccc-0001-4aaa-8aaa-cccccccccccc",
+            prediction_ids=tuple(item.id for item in predictions),
+            objective="test",
+            proposed_observation="test",
+            discrimination_basis="test",
+            conditions="test",
+            assumptions=(),
+            method="fixture",
+            method_version="1",
+            rationale="fixture",
+            created_at=CREATED,
+            execution_spec={
+                "operation": "positional_presence",
+                "position": 3.0,
+                "expected_presence": {predictions[0].id: True, predictions[1].id: False},
+            },
+        )
         store.put_experiment_proposal(proposal)
         try:
-            PositionalObservationExecutor().execute(
-                store,
-                proposal,
-                input_ids=(missing_id,),
-                created_at=CREATED,
-            )
+            PositionalObservationExecutor().execute(store, proposal, input_ids=(missing_id,), created_at=CREATED)
         except ValueError as exc:
             assert "references missing record" in str(exc)
         else:
@@ -465,34 +495,30 @@ def test_grounded_executor_rejects_non_observation_input():
         provenance=PROVENANCE,
         created_at=CREATED,
     )
-    proposal = ExperimentProposal(
-        id="eeeeeeee-0001-4aaa-8aaa-eeeeeeeeeeee",
-        prediction_ids=("prediction-a", "prediction-b"),
-        objective="test",
-        proposed_observation="test",
-        discrimination_basis="test",
-        conditions="test",
-        assumptions=(),
-        method="fixture",
-        method_version="1",
-        rationale="fixture",
-        created_at=CREATED,
-        execution_spec={
-            "operation": "positional_presence",
-            "position": 3.0,
-            "expected_presence": {"prediction-a": True, "prediction-b": False},
-        },
-    )
     with Store() as store:
+        predictions = _grounded_test_predictions(store)
+        proposal = ExperimentProposal(
+            id="eeeeeeee-0001-4aaa-8aaa-eeeeeeeeeeee",
+            prediction_ids=tuple(item.id for item in predictions),
+            objective="test",
+            proposed_observation="test",
+            discrimination_basis="test",
+            conditions="test",
+            assumptions=(),
+            method="fixture",
+            method_version="1",
+            rationale="fixture",
+            created_at=CREATED,
+            execution_spec={
+                "operation": "positional_presence",
+                "position": 3.0,
+                "expected_presence": {predictions[0].id: True, predictions[1].id: False},
+            },
+        )
         store.put_record(result_record)
         store.put_experiment_proposal(proposal)
         try:
-            PositionalObservationExecutor().execute(
-                store,
-                proposal,
-                input_ids=(result_id,),
-                created_at=CREATED,
-            )
+            PositionalObservationExecutor().execute(store, proposal, input_ids=(result_id,), created_at=CREATED)
         except ValueError as exc:
             assert "requires observation records" in str(exc)
         else:
