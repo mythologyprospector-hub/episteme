@@ -157,6 +157,32 @@ def test_executable_spec_cannot_select_unregistered_operation():
         raise AssertionError("unregistered executable operation was accepted")
 
 
+
+
+def test_executable_spec_must_match_prediction_ids():
+    action = DiscoveryAction(
+        kind="experiment",
+        target_ids=("prediction-a", "prediction-b"),
+        objective="test",
+        proposed_observation="test",
+        discrimination_basis="test",
+        conditions="test",
+        execution_spec={
+            "operation": "positional_presence",
+            "position": 3.0,
+            "expected_presence": {"prediction-a": True},
+        },
+        rationale="Reject incomplete executable expectations.",
+    )
+    with Store() as store:
+        try:
+            execute_action(store, action, created_at=CREATED)
+        except PlannerActionError as exc:
+            assert "expected_presence must exactly match" in str(exc)
+        else:
+            raise AssertionError("incomplete executable expectations were accepted")
+
+
 class AdaptiveFixturePlanner(FixturePlanner):
     def __init__(self):
         super().__init__()
