@@ -2,6 +2,8 @@ from episteme.executor import PositionalObservationExecutor
 from episteme.model import (
     DiscoveryFinding,
     DiscoveryFindingKind,
+    DiscoveryExpectation,
+    DiscoveryExpectationKind,
     Provenance,
     Record,
     RecordKind,
@@ -48,6 +50,10 @@ def test_positional_executor_records_a_real_result():
             rationale="fixture",
             measures=(),
             created_at=CREATED,
+            expectation=DiscoveryExpectation(
+                kind=DiscoveryExpectationKind.POSITIONAL,
+                data={"position": 3.0},
+            ),
         )
         store.put_discovery_finding(finding)
 
