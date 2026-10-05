@@ -7,7 +7,9 @@ while the deterministic autonomy/runtime tests remain CI-safe.
 
 from __future__ import annotations
 
+import json
 import os
+from typing import Any
 
 from episteme.autonomy import run_autonomous_discovery
 from episteme.discovery import detect_positional_gap
@@ -25,6 +27,21 @@ PROVENANCE = (
         source_version="1",
     ),
 )
+
+
+class TracingOllamaPlanner(OllamaPlanner):
+    """Acceptance-only planner that prints the raw model response."""
+
+    def _request(self, payload: dict[str, Any]) -> dict[str, Any]:
+        response = super()._request(payload)
+        content = response.get("message", {}).get("content")
+        print("\n--- Ollama response ---")
+        if isinstance(content, str):
+            print(content)
+        else:
+            print(json.dumps(response, indent=2, sort_keys=True))
+        print("--- end Ollama response ---")
+        return response
 
 
 def main() -> int:
@@ -57,7 +74,7 @@ def main() -> int:
             raise RuntimeError("acceptance fixture did not produce a positional gap")
         store.put_discovery_finding(gap)
 
-        planner = OllamaPlanner(model, timeout=timeout)
+        planner = TracingOllamaPlanner(model, timeout=timeout)
         result = run_autonomous_discovery(
             store,
             planner,
