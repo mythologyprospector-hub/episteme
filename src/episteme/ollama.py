@@ -84,7 +84,17 @@ class OllamaPlanner:
             "generated text is evidence. Use only identifiers present in the supplied "
             "context. Prefer a discriminating experiment when competing hypotheses exist. "
             "If external evidence is required and the instrument cannot acquire it, stop. "
-            "Return JSON only with fields accepted by DiscoveryAction."
+            "Return one JSON object only. The JSON field for the action type is named "
+            "'kind', never 'action'. The only allowed JSON fields are: kind, target_ids, "
+            "statement, consequence, consequences, conditions, objective, "
+            "proposed_observation, discrimination_basis, rationale. Do not invent other "
+            "field names. For question and hypothesis, target_ids must contain exactly "
+            "one existing finding id. A hypothesis requires statement. For prediction, "
+            "target_ids must contain at least two existing hypothesis ids and conditions "
+            "plus either consequence or consequences. For experiment, target_ids must "
+            "contain at least two existing prediction ids and conditions, objective, "
+            "proposed_observation, and discrimination_basis are required. For stop, "
+            "rationale is required. Always include rationale."
         )
         return {
             "model": self.model,
