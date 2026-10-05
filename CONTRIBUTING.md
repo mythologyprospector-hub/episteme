@@ -61,6 +61,18 @@ External infrastructure may be used as an integration reference. Changes to unre
 
 Historical or abandoned projects are reference material only and do not become architecture by implication.
 
+## Development Environment
+
+Episteme uses **uv** as the canonical Python environment and command runner for local development and verification.
+
+Run project commands through `uv run` rather than the system Python or a manually activated virtual environment. In particular, the standard test command is:
+
+```bash
+uv run pytest -q
+```
+
+This keeps local execution aligned with the project's declared dependencies and avoids accidentally testing against the system Python environment.
+
 ## Verification
 
 A change is not complete merely because it exists.
