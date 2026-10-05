@@ -57,6 +57,45 @@ class Planner(Protocol):
         """Choose exactly one bounded next action from the supplied context."""
 
 
+class ExperimentExecutor(Protocol):
+    def execute(
+        self,
+        store: Any,
+        proposal: ExperimentProposal,
+        *,
+        input_ids: tuple[str, ...],
+        created_at: str,
+    ) -> Any:
+        """Execute the explicitly bound experiment operation."""
+
+
+class ExperimentEvaluator(Protocol):
+    def evaluate(
+        self,
+        store: Any,
+        result: Any,
+        proposal: ExperimentProposal,
+        predictions: tuple[Prediction, ...],
+        *,
+        comparison_conditions: str,
+        created_at: str,
+    ) -> tuple[PredictionEvaluation, ...]:
+        """Evaluate the result using explicitly bound executable semantics."""
+
+
+@dataclass(frozen=True, slots=True)
+class ExperimentRuntime:
+    """Explicit runtime binding for executing and evaluating planner proposals.
+
+    The planner can propose an experiment, but it cannot choose this executor,
+    evaluator, their configuration, or the grounded inputs they receive.
+    """
+
+    executor: ExperimentExecutor
+    evaluator_factory: Callable[[ExperimentProposal, tuple[Prediction, ...]], ExperimentEvaluator]
+    comparison_conditions: str = ""
+
+
 @dataclass(frozen=True, slots=True)
 class DiscoveryStep:
     action: DiscoveryAction
@@ -229,9 +268,7 @@ def _execute_experiment_cycle(
     proposal: ExperimentProposal,
     *,
     grounded_input_ids: tuple[str, ...],
-    experiment_executor: Any,
-    prediction_evaluator_factory: Callable[[ExperimentProposal, tuple[Prediction, ...]], Any],
-    comparison_conditions: str,
+    runtime: ExperimentRuntime,
     created_at: str,
 ) -> tuple[str, ...]:
     """Execute, evaluate, and record consequences for one persisted proposal.
@@ -240,7 +277,7 @@ def _execute_experiment_cycle(
     bounded driver. The planner never chooses executable semantics, and the
     evaluator never asks the planner or an LLM to interpret a result.
     """
-    result = experiment_executor.execute(
+    result = runtime.executor.execute(
         store,
         proposal,
         input_ids=grounded_input_ids,
@@ -254,13 +291,13 @@ def _execute_experiment_cycle(
     if len(predictions) != len(proposal.prediction_ids):
         raise ValueError("experiment proposal references missing predictions")
 
-    evaluator = prediction_evaluator_factory(proposal, predictions)
+    evaluator = runtime.evaluator_factory(proposal, predictions)
     evaluations = evaluator.evaluate(
         store,
         result,
         proposal,
         predictions,
-        comparison_conditions=comparison_conditions,
+        comparison_conditions=runtime.comparison_conditions,
         created_at=created_at,
     )
     consequence_ids = record_prediction_consequences(
@@ -315,9 +352,7 @@ def run_autonomous_discovery(
     grounded_input_ids: tuple[str, ...],
     started_at: str,
     max_steps: int = 12,
-    experiment_executor: Any | None = None,
-    prediction_evaluator_factory: Callable[[ExperimentProposal, tuple[Prediction, ...]], Any] | None = None,
-    comparison_conditions: str = "",
+    experiment_runtime: ExperimentRuntime | None = None,
 ) -> DiscoveryRun:
     """Run a finite planner-steered investigation until stop or a hard budget."""
     if max_steps < 1:
@@ -340,11 +375,7 @@ def run_autonomous_discovery(
             )
 
         output_ids = execute_action(store, action, created_at=started_at)
-        if action.kind == "experiment" and experiment_executor is not None:
-            if prediction_evaluator_factory is None:
-                raise ValueError(
-                    "prediction_evaluator_factory is required when experiment_executor is configured"
-                )
+        if action.kind == "experiment" and experiment_runtime is not None:
             proposal = store.get_experiment_proposal(output_ids[0])
             if proposal is None:
                 raise ValueError("experiment action did not persist its proposal")
@@ -352,9 +383,7 @@ def run_autonomous_discovery(
                 store,
                 proposal,
                 grounded_input_ids=grounded_input_ids,
-                experiment_executor=experiment_executor,
-                prediction_evaluator_factory=prediction_evaluator_factory,
-                comparison_conditions=comparison_conditions,
+                runtime=experiment_runtime,
                 created_at=started_at,
             )
         steps.append(DiscoveryStep(action=action, output_ids=output_ids))
