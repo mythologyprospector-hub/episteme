@@ -51,6 +51,7 @@ class DiscoveryContext:
     evaluations: tuple[Mapping[str, Any], ...] = ()
     consequences: tuple[Mapping[str, Any], ...] = ()
     feedback: tuple[str, ...] = ()
+    feedback: tuple[str, ...] = ()
 
 
 class Planner(Protocol):
@@ -158,7 +159,12 @@ def _experiment_view(item: Any) -> dict[str, Any]:
     }
 
 
-def build_context(\n    store: Any,\n    grounded_input_ids: tuple[str, ...],\n    actions_taken: tuple[DiscoveryAction, ...],\n    feedback: tuple[str, ...] = (),\n) -> DiscoveryContext:
+def build_context(
+    store: Any,
+    grounded_input_ids: tuple[str, ...],
+    actions_taken: tuple[DiscoveryAction, ...],
+    feedback: tuple[str, ...] = (),
+) -> DiscoveryContext:
     return DiscoveryContext(
         grounded_input_ids=tuple(grounded_input_ids),
         findings=tuple(_finding_view(item) for item in store.iter_discovery_findings()),
