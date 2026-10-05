@@ -176,18 +176,7 @@ def test_experiment_is_executed_evaluated_and_changes_planner_knowledge_state():
             planner,
             grounded_input_ids=tuple(record.id for record in records),
             started_at=CREATED,
-            experiment_runtime=ExperimentRuntime(
-                executor=PositionalObservationExecutor(),
-                evaluator_factory=lambda proposal, predictions: PositionalPredictionEvaluator(
-                    position=3.0,
-                    expected_presence={
-                        predictions[0].id: True,
-                        predictions[1].id: False,
-                    },
-                ),
-                comparison_conditions="Same bounded test conditions.",
-            ),
-        )
+       )
 
         assert result.status == "stopped"
         assert len(result.steps) == 4
