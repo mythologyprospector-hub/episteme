@@ -173,6 +173,7 @@ def build_context(
         evaluations=tuple(_evaluation_view(item) for item in store.iter_prediction_evaluations()),
         consequences=tuple(_consequence_view(item) for item in store.iter_knowledge_state_consequences()),
         actions_taken=actions_taken,
+        feedback=feedback,
     )
 
 
