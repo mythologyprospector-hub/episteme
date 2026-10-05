@@ -412,3 +412,88 @@ def test_execution_spec_rejects_extra_runtime_controls():
             assert "invalid execution_spec" in str(exc)
         else:
             raise AssertionError("runtime-control fields were accepted")
+
+
+
+def test_grounded_executor_rejects_missing_input_record():
+    from episteme.executor import PositionalObservationExecutor
+    from episteme.model import ExperimentProposal
+
+    missing_id = "bbbbbbbb-0001-4aaa-8aaa-bbbbbbbbbbbb"
+    proposal = ExperimentProposal(
+        id="cccccccc-0001-4aaa-8aaa-cccccccccccc",
+        prediction_ids=("prediction-a", "prediction-b"),
+        objective="test",
+        proposed_observation="test",
+        discrimination_basis="test",
+        conditions="test",
+        assumptions=(),
+        method="fixture",
+        method_version="1",
+        rationale="fixture",
+        created_at=CREATED,
+        execution_spec={
+            "operation": "positional_presence",
+            "position": 3.0,
+            "expected_presence": {"prediction-a": True, "prediction-b": False},
+        },
+    )
+    with Store() as store:
+        store.put_experiment_proposal(proposal)
+        try:
+            PositionalObservationExecutor().execute(
+                store,
+                proposal,
+                input_ids=(missing_id,),
+                created_at=CREATED,
+            )
+        except ValueError as exc:
+            assert "references missing record" in str(exc)
+        else:
+            raise AssertionError("missing grounded input was accepted")
+
+
+def test_grounded_executor_rejects_non_observation_input():
+    from episteme.executor import PositionalObservationExecutor
+    from episteme.model import ExperimentProposal
+
+    result_id = "dddddddd-0001-4aaa-8aaa-dddddddddddd"
+    result_record = Record(
+        id=result_id,
+        kind=RecordKind.RESULT,
+        payload={"position": 3.0},
+        provenance=PROVENANCE,
+        created_at=CREATED,
+    )
+    proposal = ExperimentProposal(
+        id="eeeeeeee-0001-4aaa-8aaa-eeeeeeeeeeee",
+        prediction_ids=("prediction-a", "prediction-b"),
+        objective="test",
+        proposed_observation="test",
+        discrimination_basis="test",
+        conditions="test",
+        assumptions=(),
+        method="fixture",
+        method_version="1",
+        rationale="fixture",
+        created_at=CREATED,
+        execution_spec={
+            "operation": "positional_presence",
+            "position": 3.0,
+            "expected_presence": {"prediction-a": True, "prediction-b": False},
+        },
+    )
+    with Store() as store:
+        store.put_record(result_record)
+        store.put_experiment_proposal(proposal)
+        try:
+            PositionalObservationExecutor().execute(
+                store,
+                proposal,
+                input_ids=(result_id,),
+                created_at=CREATED,
+            )
+        except ValueError as exc:
+            assert "requires observation records" in str(exc)
+        else:
+            raise AssertionError("non-observation grounded input was accepted")
