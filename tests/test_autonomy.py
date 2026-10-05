@@ -41,7 +41,7 @@ class FixturePlanner:
         if not predictions:
             return DiscoveryAction(kind="prediction", target_ids=tuple(item["id"] for item in hypotheses), consequence="The measured occupant is at position 3.0.", conditions="Same bounded test conditions.", rationale="The competing hypotheses require a discriminating observation.")
 
-        if len(predictions) == 2:
+        if len(predictions) == 2 and not context.experiments:
             return DiscoveryAction(kind="experiment", target_ids=tuple(item["id"] for item in predictions), objective="Distinguish the competing position hypotheses.", proposed_observation="Measure the missing position.", discrimination_basis="The hypotheses imply different outcomes.", conditions="Same bounded test conditions.", rationale="A direct measurement can discriminate the candidates.")
 
         return DiscoveryAction(kind="stop", rationale="An explicit discriminating experiment now exists; external evidence is required.")
