@@ -183,6 +183,34 @@ def test_executable_spec_must_match_prediction_ids():
             raise AssertionError("incomplete executable expectations were accepted")
 
 
+def test_executable_spec_rejects_unregistered_control_fields():
+    action = DiscoveryAction(
+        kind="experiment",
+        target_ids=("prediction-a", "prediction-b"),
+        objective="test",
+        proposed_observation="test",
+        discrimination_basis="test",
+        conditions="test",
+        execution_spec={
+            "operation": "positional_presence",
+            "position": 3.0,
+            "expected_presence": {
+                "prediction-a": True,
+                "prediction-b": False,
+            },
+            "executor": "arbitrary.callable",
+        },
+        rationale="Reject planner-supplied executable control data.",
+    )
+    with Store() as store:
+        try:
+            execute_action(store, action, created_at=CREATED)
+        except PlannerActionError as exc:
+            assert "invalid execution_spec" in str(exc)
+        else:
+            raise AssertionError("planner-supplied executable control field was accepted")
+
+
 class AdaptiveFixturePlanner(FixturePlanner):
     def __init__(self):
         super().__init__()
