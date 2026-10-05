@@ -11,7 +11,8 @@ from dataclasses import dataclass
 from typing import Any, Mapping, Protocol
 
 from .discovery import question_from_finding
-from .model import DiscoveryFindingKind
+from .model import (DiscoveryFindingKind, KnowledgeStateConsequence, KnowledgeStateConsequenceKind, KnowledgeStateTargetKind, PredictionEvaluation)
+from uuid import uuid4
 from .proposals import (
     propose_candidate_discrimination_experiment,
     propose_discriminating_prediction,
@@ -46,6 +47,8 @@ class DiscoveryContext:
     hypotheses: tuple[Mapping[str, Any], ...]
     predictions: tuple[Mapping[str, Any], ...]
     experiments: tuple[Mapping[str, Any], ...]
+    evaluations: tuple[Mapping[str, Any], ...]
+    consequences: tuple[Mapping[str, Any], ...]
     actions_taken: tuple[DiscoveryAction, ...]
 
 
@@ -97,6 +100,14 @@ def _prediction_view(item: Any) -> dict[str, Any]:
     }
 
 
+def _evaluation_view(item: Any) -> dict[str, Any]:
+    return {"id": item.id, "result_id": item.result_id, "prediction_id": item.prediction_id, "experiment_proposal_id": item.experiment_proposal_id, "outcome": item.outcome.value}
+
+
+def _consequence_view(item: Any) -> dict[str, Any]:
+    return {"id": item.id, "evaluation_ids": tuple(item.evaluation_ids), "target_kind": item.target_kind.value, "target_id": item.target_id, "consequence": item.consequence.value}
+
+
 def _experiment_view(item: Any) -> dict[str, Any]:
     return {
         "id": item.id,
@@ -114,6 +125,8 @@ def build_context(store: Any, grounded_input_ids: tuple[str, ...], actions_taken
         hypotheses=tuple(_hypothesis_view(item) for item in store.iter_hypotheses()),
         predictions=tuple(_prediction_view(item) for item in store.iter_predictions()),
         experiments=tuple(_experiment_view(item) for item in store.iter_experiment_proposals()),
+        evaluations=tuple(_evaluation_view(item) for item in store.iter_prediction_evaluations()),
+        consequences=tuple(_consequence_view(item) for item in store.iter_knowledge_state_consequences()),
         actions_taken=actions_taken,
     )
 
@@ -209,6 +222,38 @@ def execute_action(store: Any, action: DiscoveryAction, *, created_at: str) -> t
         return (proposal.id,)
 
     raise ValueError(f"unsupported discovery action: {action.kind}")
+
+
+def record_prediction_consequences(
+    store: Any,
+    evaluations: tuple[PredictionEvaluation, ...],
+    *,
+    created_at: str,
+) -> tuple[str, ...]:
+    """Record contextual consequences from deterministic evaluations."""
+    outputs: list[str] = []
+    for evaluation in evaluations:
+        if evaluation.outcome.value == "consistent":
+            kind = KnowledgeStateConsequenceKind.SUPPORTS
+        elif evaluation.outcome.value == "inconsistent":
+            kind = KnowledgeStateConsequenceKind.CONTRADICTS
+        else:
+            kind = KnowledgeStateConsequenceKind.LEAVES_UNRESOLVED
+        item = KnowledgeStateConsequence(
+            id=str(uuid4()),
+            evaluation_ids=(evaluation.id,),
+            target_kind=KnowledgeStateTargetKind.PREDICTION,
+            target_id=evaluation.prediction_id,
+            consequence=kind,
+            assumptions=evaluation.assumptions,
+            rationale="Deterministic bookkeeping consequence; not a claim of truth.",
+            method="prediction-evaluation-consequence",
+            method_version="1",
+            created_at=created_at,
+        )
+        store.put_knowledge_state_consequence(item)
+        outputs.append(item.id)
+    return tuple(outputs)
 
 
 def run_autonomous_discovery(
