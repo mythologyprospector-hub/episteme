@@ -46,7 +46,7 @@ The driver must:
 3. permit only the declared action vocabulary;
 4. preserve generated-versus-grounded distinctions;
 5. preserve the planner's rationale and method/version;
-6. stop on malformed planner output;
+6. reject malformed planner output and, when retry budget remains, feed the rejection back to the planner for bounded correction;
 7. enforce a finite step budget;
 8. never treat planner text as evidence;
 9. never execute arbitrary code supplied by a planner;
