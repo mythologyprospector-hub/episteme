@@ -191,6 +191,7 @@ def propose_experiment(
     method_version: str,
     rationale: str,
     created_at: str,
+    execution_spec: dict[str, object] | None = None,
 ) -> ExperimentProposal:
     """Construct an experiment proposal from explicitly supplied content."""
     return ExperimentProposal(
@@ -222,6 +223,7 @@ def propose_candidate_discrimination_experiment(
     method_version: str,
     rationale: str,
     created_at: str,
+    execution_spec: dict[str, object] | None = None,
 ) -> ExperimentProposal:
     """Construct an experiment proposal from candidate-derived predictions."""
     ids = tuple(prediction_ids)
@@ -265,6 +267,7 @@ def propose_candidate_discrimination_experiment(
         method_version=method_version,
         rationale=rationale,
         created_at=created_at,
+        execution_spec=execution_spec,
     )
 
 
