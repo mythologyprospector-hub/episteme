@@ -1,4 +1,4 @@
-from episteme.autonomy import DiscoveryAction, DiscoveryContext, run_autonomous_discovery
+from episteme.autonomy import DiscoveryAction, DiscoveryContext, ExperimentRuntime, run_autonomous_discovery
 from episteme.discovery import detect_positional_gap
 from episteme.evaluator import PositionalPredictionEvaluator
 from episteme.executor import PositionalObservationExecutor
@@ -102,15 +102,17 @@ def test_experiment_is_executed_evaluated_and_returned_to_planner():
             planner,
             grounded_input_ids=tuple(record.id for record in records),
             started_at=CREATED,
-            experiment_executor=PositionalObservationExecutor(),
-            prediction_evaluator_factory=lambda proposal, predictions: PositionalPredictionEvaluator(
-                position=3.0,
-                expected_presence={
-                    predictions[0].id: True,
-                    predictions[1].id: False,
-                },
+            experiment_runtime=ExperimentRuntime(
+                executor=PositionalObservationExecutor(),
+                evaluator_factory=lambda proposal, predictions: PositionalPredictionEvaluator(
+                    position=3.0,
+                    expected_presence={
+                        predictions[0].id: True,
+                        predictions[1].id: False,
+                    },
+                ),
+                comparison_conditions="Same bounded test conditions.",
             ),
-            comparison_conditions="Same bounded test conditions.",
         )
 
         assert result.status == "stopped"
