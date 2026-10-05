@@ -304,6 +304,12 @@ def execute_action(store: Any, action: DiscoveryAction, *, created_at: str) -> t
         )
         except ValueError as exc:
             raise PlannerActionError(str(exc)) from exc
+        expected_ids = set(proposal.prediction_ids)
+        spec_expected_ids = set(proposal.execution_spec["expected_presence"])
+        if spec_expected_ids != expected_ids:
+            raise PlannerActionError(
+                "execution_spec expected_presence must exactly match experiment prediction ids"
+            )
         store.put_experiment_proposal(proposal)
         return (proposal.id,)
 
