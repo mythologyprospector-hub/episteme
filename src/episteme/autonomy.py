@@ -39,9 +39,9 @@ class DiscoveryAction:
 
     def __post_init__(self) -> None:
         if self.kind not in {"question", "hypothesis", "prediction", "experiment", "stop"}:
-            raise ValueError(f"unknown discovery action: {self.kind}")
+            raise PlannerActionError(f"unknown discovery action: {self.kind}")
         if not self.rationale.strip():
-            raise ValueError("discovery action requires a rationale")
+            raise PlannerActionError("discovery action requires a rationale")
 
 
 @dataclass(frozen=True, slots=True)
@@ -183,7 +183,7 @@ def build_context(
 
 def _require(value: str | None, field: str) -> str:
     if value is None or not value.strip():
-        raise ValueError(f"{field} is required for this discovery action")
+        raise PlannerActionError(f"{field} is required for this discovery action")
     return value
 
 
