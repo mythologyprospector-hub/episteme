@@ -1,5 +1,7 @@
 from episteme.autonomy import DiscoveryAction, DiscoveryContext, run_autonomous_discovery
 from episteme.discovery import detect_positional_gap
+from episteme.evaluator import PositionalPredictionEvaluator
+from episteme.executor import PositionalObservationExecutor
 from episteme.model import Provenance, Record, RecordKind
 from episteme.store import Store
 
@@ -66,3 +68,57 @@ def test_planner_drives_the_loop_without_a_declared_workflow():
         assert [item.action.kind for item in result.steps] == ["hypothesis", "hypothesis", "prediction", "experiment"]
         assert result.steps[3].output_ids
         assert store.get_experiment_proposal(result.steps[3].output_ids[0]) is not None
+
+class ExecutingFixturePlanner(FixturePlanner):
+    def choose(self, context: DiscoveryContext) -> DiscoveryAction:
+        action = super().choose(context)
+        if context.evaluations:
+            return DiscoveryAction(
+                kind="stop",
+                rationale="The experiment ran and the resulting evaluation is now visible to the planner.",
+            )
+        return action
+
+
+def test_experiment_is_executed_evaluated_and_returned_to_planner():
+    records = _records()
+    with Store() as store:
+        for record in records:
+            store.put_record(record)
+
+        gap = detect_positional_gap(
+            store,
+            record_ids=tuple(record.id for record in records),
+            position_key="position",
+            step=1.0,
+            created_at=CREATED,
+        )
+        assert gap is not None
+        store.put_discovery_finding(gap)
+
+        planner = ExecutingFixturePlanner()
+        result = run_autonomous_discovery(
+            store,
+            planner,
+            grounded_input_ids=tuple(record.id for record in records),
+            started_at=CREATED,
+            experiment_executor=PositionalObservationExecutor(),
+            prediction_evaluator_factory=lambda proposal, predictions: PositionalPredictionEvaluator(
+                position=3.0,
+                expected_presence={
+                    predictions[0].id: True,
+                    predictions[1].id: False,
+                },
+            ),
+            comparison_conditions="Same bounded test conditions.",
+        )
+
+        assert result.status == "stopped"
+        assert len(result.steps) == 4
+        assert planner.calls == 5
+        assert len(result.steps[3].output_ids) == 6
+        assert len(store.list_prediction_evaluations()) == 2
+        assert len(store.list_knowledge_state_consequences()) == 2
+        assert len(result.steps[3].output_ids) == 1 + 1 + 2 + 2
+        assert len(result.steps[3].output_ids) > 0
+        assert len(result.steps[3].output_ids) == 6
