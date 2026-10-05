@@ -383,10 +383,10 @@ def run_autonomous_discovery(
                 tuple(actions),
                 tuple(feedback),
             )
-            feedback.clear()
 
             try:
                 action = planner.choose(context)
+                feedback.clear()
                 if not isinstance(action, DiscoveryAction):
                     raise TypeError("planner must return DiscoveryAction")
                 if action.kind == "stop":
