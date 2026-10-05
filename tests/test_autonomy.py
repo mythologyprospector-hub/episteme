@@ -23,11 +23,25 @@ def _records():
 def _grounded_test_predictions(store):
     from episteme.proposals import propose_discriminating_prediction, propose_hypothesis
 
+    records = _records()
+    for record in records:
+        store.put_record(record)
+    gap = detect_positional_gap(
+        store,
+        record_ids=tuple(record.id for record in records),
+        position_key="position",
+        step=1.0,
+        created_at=CREATED,
+    )
+    assert gap is not None
+    store.put_discovery_finding(gap)
+
     hypotheses = []
-    for index, statement in enumerate(("candidate one", "candidate two"), start=1):
+    for statement in ("candidate one", "candidate two"):
         hypothesis = propose_hypothesis(
             statement=statement,
-            finding_ids=(f"aaaaaaaa-000{index}-4aaa-8aaa-aaaaaaaaaaaa",),
+            finding_ids=(gap.id,),
+            input_ids=tuple(record.id for record in records),
             method="fixture",
             method_version="1",
             rationale="fixture",
