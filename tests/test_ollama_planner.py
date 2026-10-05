@@ -39,7 +39,7 @@ def test_ollama_planner_translates_structured_model_output():
     assert captured["format"]["type"] == "object"
     assert captured["format"]["additionalProperties"] is False
     assert "rationale" in captured["format"]["properties"]
-    assert "rationale" in captured["format"]["oneOf"][3]["required"]
+    assert captured["format"]["required"] == ["kind", "rationale"]
     assert captured["messages"][0]["role"] == "system"
 
 
