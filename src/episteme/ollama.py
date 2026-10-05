@@ -108,7 +108,23 @@ class OllamaPlanner:
         return {
             "model": self.model,
             "stream": False,
-            "format": "json",
+            "format": {
+                "type": "object",
+                "properties": {
+                    "kind": {"type": "string"},
+                    "target_ids": {"type": "array", "items": {"type": "string"}},
+                    "statement": {"type": ["string", "null"]},
+                    "consequence": {"type": ["string", "null"]},
+                    "consequences": {"type": "array", "items": {"type": "string"}},
+                    "conditions": {"type": ["string", "null"]},
+                    "objective": {"type": ["string", "null"]},
+                    "proposed_observation": {"type": ["string", "null"]},
+                    "discrimination_basis": {"type": ["string", "null"]},
+                    "rationale": {"type": "string"},
+                },
+                "required": ["kind", "rationale"],
+                "additionalProperties": False,
+            },
             "messages": [
                 {"role": "system", "content": system},
                 {
