@@ -889,7 +889,6 @@ class Store:
                 "method": row["method"], "method_version": row["method_version"],
                 "rationale": row["rationale"], "created_at": row["created_at"],
                 "schema_version": row["schema_version"],
-                "execution_spec": json.loads(row["execution_spec"]) if row["execution_spec"] is not None else None,
             })
 
     def put_prediction(self, prediction: Prediction) -> None:
