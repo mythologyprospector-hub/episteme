@@ -8,7 +8,7 @@ the observed result. Executors never manufacture epistemic conclusions.
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Callable, Mapping, Protocol
 from uuid import uuid4
 
@@ -29,7 +29,7 @@ class ExecutableExperimentSpec:
     operation: str
     position: float
     position_key: str = "position"
-    expected_presence: Mapping[str, bool] = ()
+    expected_presence: Mapping[str, bool] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if self.operation != "positional_presence":
