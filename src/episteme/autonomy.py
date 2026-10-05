@@ -51,7 +51,6 @@ class DiscoveryContext:
     evaluations: tuple[Mapping[str, Any], ...] = ()
     consequences: tuple[Mapping[str, Any], ...] = ()
     feedback: tuple[str, ...] = ()
-    feedback: tuple[str, ...] = ()
 
 
 class Planner(Protocol):
