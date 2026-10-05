@@ -1,3 +1,3 @@
 # Exploration observation bridge
 
-Draft implementation seam.
+This is the explicit generated-observation discovery boundary.
