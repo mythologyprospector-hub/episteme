@@ -236,22 +236,27 @@ def execute_action(store: Any, action: DiscoveryAction, *, created_at: str) -> t
             consequences = tuple(consequence for _ in action.target_ids)
         if len(consequences) != len(action.target_ids):
             raise PlannerActionError("prediction consequences must match hypothesis targets")
-        outputs = []
-        for candidate_id, consequence in zip(action.target_ids, consequences):
-            prediction = propose_discriminating_prediction(
-                store,
-                candidate_id=candidate_id,
-                competing_candidate_ids=action.target_ids,
-                consequence=consequence,
-                conditions=conditions,
-                method="planner-driven-prediction",
-                method_version="1",
-                rationale=action.rationale,
-                created_at=created_at,
-            )
+        predictions = []
+        try:
+            for candidate_id, consequence in zip(action.target_ids, consequences):
+                prediction = propose_discriminating_prediction(
+                    store,
+                    candidate_id=candidate_id,
+                    competing_candidate_ids=action.target_ids,
+                    consequence=consequence,
+                    conditions=conditions,
+                    method="planner-driven-prediction",
+                    method_version="1",
+                    rationale=action.rationale,
+                    created_at=created_at,
+                )
+                predictions.append(prediction)
+        except ValueError as exc:
+            raise PlannerActionError(str(exc)) from exc
+
+        for prediction in predictions:
             store.put_prediction(prediction)
-            outputs.append(prediction.id)
-        return tuple(outputs)
+        return tuple(prediction.id for prediction in predictions)
 
     if action.kind == "experiment":
         if len(action.target_ids) < 2:
