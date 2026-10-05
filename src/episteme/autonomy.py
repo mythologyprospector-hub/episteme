@@ -47,9 +47,9 @@ class DiscoveryContext:
     hypotheses: tuple[Mapping[str, Any], ...]
     predictions: tuple[Mapping[str, Any], ...]
     experiments: tuple[Mapping[str, Any], ...]
-    evaluations: tuple[Mapping[str, Any], ...]
-    consequences: tuple[Mapping[str, Any], ...]
     actions_taken: tuple[DiscoveryAction, ...]
+    evaluations: tuple[Mapping[str, Any], ...] = ()
+    consequences: tuple[Mapping[str, Any], ...] = ()
 
 
 class Planner(Protocol):
