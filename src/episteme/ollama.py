@@ -61,7 +61,7 @@ class OllamaPlanner:
             "hypotheses": list(context.hypotheses),
             "predictions": list(context.predictions),
             "experiments": list(context.experiments),
-            "actions_taken": [
+            "feedback": list(context.feedback),\n            "actions_taken": [
                 {
                     "kind": action.kind,
                     "target_ids": list(action.target_ids),
@@ -102,7 +102,7 @@ class OllamaPlanner:
             "For kind='experiment', target_ids MUST contain at least two existing "
             "prediction ids and conditions, objective, proposed_observation, and "
             "discrimination_basis are required. For kind='stop', rationale is required. "
-            "Always include rationale."
+            "Always include rationale. If feedback is supplied, it describes a rejected prior action; correct the action instead of repeating the same error."
         )
         return {
             "model": self.model,
