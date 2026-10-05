@@ -50,6 +50,7 @@ class DiscoveryContext:
     actions_taken: tuple[DiscoveryAction, ...]
     evaluations: tuple[Mapping[str, Any], ...] = ()
     consequences: tuple[Mapping[str, Any], ...] = ()
+    feedback: tuple[str, ...] = ()
 
 
 class Planner(Protocol):
@@ -157,7 +158,7 @@ def _experiment_view(item: Any) -> dict[str, Any]:
     }
 
 
-def build_context(store: Any, grounded_input_ids: tuple[str, ...], actions_taken: tuple[DiscoveryAction, ...]) -> DiscoveryContext:
+def build_context(\n    store: Any,\n    grounded_input_ids: tuple[str, ...],\n    actions_taken: tuple[DiscoveryAction, ...],\n    feedback: tuple[str, ...] = (),\n) -> DiscoveryContext:
     return DiscoveryContext(
         grounded_input_ids=tuple(grounded_input_ids),
         findings=tuple(_finding_view(item) for item in store.iter_discovery_findings()),
@@ -353,41 +354,72 @@ def run_autonomous_discovery(
     started_at: str,
     max_steps: int = 12,
     experiment_runtime: ExperimentRuntime | None = None,
+    max_retries_per_step: int = 2,
 ) -> DiscoveryRun:
-    """Run a finite planner-steered investigation until stop or a hard budget."""
+    """Run a finite planner-steered investigation until stop or a hard budget.
+
+    Invalid planner actions are fed back to the planner for bounded correction
+    rather than terminating the entire run. No invalid action is persisted.
+    """
     if max_steps < 1:
         raise ValueError("max_steps must be positive")
+    if max_retries_per_step < 0:
+        raise ValueError("max_retries_per_step must be non-negative")
 
     actions: list[DiscoveryAction] = []
     steps: list[DiscoveryStep] = []
+    feedback: list[str] = []
 
     for _ in range(max_steps):
-        context = build_context(store, grounded_input_ids, tuple(actions))
-        action = planner.choose(context)
-        if not isinstance(action, DiscoveryAction):
-            raise TypeError("planner must return DiscoveryAction")
-
-        if action.kind == "stop":
-            return DiscoveryRun(
-                status="stopped",
-                steps=tuple(steps),
-                stop_reason=action.rationale,
-            )
-
-        output_ids = execute_action(store, action, created_at=started_at)
-        if action.kind == "experiment" and experiment_runtime is not None:
-            proposal = store.get_experiment_proposal(output_ids[0])
-            if proposal is None:
-                raise ValueError("experiment action did not persist its proposal")
-            output_ids = _execute_experiment_cycle(
+        for attempt in range(max_retries_per_step + 1):
+            context = build_context(
                 store,
-                proposal,
-                grounded_input_ids=grounded_input_ids,
-                runtime=experiment_runtime,
-                created_at=started_at,
+                grounded_input_ids,
+                tuple(actions),
+                tuple(feedback),
             )
-        steps.append(DiscoveryStep(action=action, output_ids=output_ids))
-        actions.append(action)
+            feedback.clear()
+
+            try:
+                action = planner.choose(context)
+                if not isinstance(action, DiscoveryAction):
+                    raise TypeError("planner must return DiscoveryAction")
+                if action.kind == "stop":
+                    return DiscoveryRun(
+                        status="stopped",
+                        steps=tuple(steps),
+                        stop_reason=action.rationale,
+                    )
+
+                output_ids = execute_action(store, action, created_at=started_at)
+                if action.kind == "experiment" and experiment_runtime is not None:
+                    proposal = store.get_experiment_proposal(output_ids[0])
+                    if proposal is None:
+                        raise ValueError("experiment action did not persist its proposal")
+                    output_ids = _execute_experiment_cycle(
+                        store,
+                        proposal,
+                        grounded_input_ids=grounded_input_ids,
+                        runtime=experiment_runtime,
+                        created_at=started_at,
+                    )
+
+            except (TypeError, ValueError) as exc:
+                if attempt >= max_retries_per_step:
+                    return DiscoveryRun(
+                        status="failed",
+                        steps=tuple(steps),
+                        stop_reason=f"planner action failed after {attempt + 1} attempts: {exc}",
+                    )
+                feedback.append(
+                    f"The previous proposed action was rejected: {exc}. "
+                    "Choose a corrected action that satisfies the supplied action contract."
+                )
+                continue
+
+            steps.append(DiscoveryStep(action=action, output_ids=output_ids))
+            actions.append(action)
+            break
 
     return DiscoveryRun(
         status="budget_exhausted",
