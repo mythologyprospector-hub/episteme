@@ -48,6 +48,7 @@ from .praxis_import import import_praxis_evidence_handoff
 from .orchestration import WorkflowDefinition, WorkflowExecution, WorkflowStep, WorkflowStepResult, run_workflow
 from .autonomy import DiscoveryAction, DiscoveryContext, DiscoveryRun, DiscoveryStep, Planner, run_autonomous_discovery
 from .ollama import OllamaPlanner
+from .executor import ExperimentExecutor, PositionalObservationExecutor
 
 __version__ = "0.1.0"
 
@@ -161,4 +162,6 @@ __all__ = [
     "Planner",
     "run_autonomous_discovery",
     "OllamaPlanner",
+    "ExperimentExecutor",
+    "PositionalObservationExecutor",
 ]
