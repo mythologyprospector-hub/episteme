@@ -1,6 +1,7 @@
 from episteme.autonomy import DiscoveryAction, DiscoveryContext, run_autonomous_discovery
 from episteme.discovery import detect_positional_gap
-from episteme.model import Provenance, Record, RecordKind, Store
+from episteme.model import Provenance, Record, RecordKind
+from episteme.store import Store
 
 CREATED = "2026-10-05T00:00:00Z"
 PROVENANCE = (Provenance(source_id="autonomy-fixture", captured_at=CREATED, source_location="https://example.org/autonomy", source_version="1"),)
