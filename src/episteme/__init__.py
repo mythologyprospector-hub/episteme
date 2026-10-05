@@ -46,6 +46,7 @@ from .html import render_discovery_report_html
 from .public_import import import_crossref_works
 from .praxis_import import import_praxis_evidence_handoff
 from .orchestration import WorkflowDefinition, WorkflowExecution, WorkflowStep, WorkflowStepResult, run_workflow
+from .autonomy import DiscoveryAction, DiscoveryContext, DiscoveryRun, DiscoveryStep, Planner, run_autonomous_discovery
 
 __version__ = "0.1.0"
 
@@ -152,4 +153,10 @@ __all__ = [
     "WorkflowStep",
     "WorkflowStepResult",
     "run_workflow",
+    "DiscoveryAction",
+    "DiscoveryContext",
+    "DiscoveryRun",
+    "DiscoveryStep",
+    "Planner",
+    "run_autonomous_discovery",
 ]
