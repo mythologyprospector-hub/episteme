@@ -111,19 +111,56 @@ class OllamaPlanner:
             "format": {
                 "type": "object",
                 "properties": {
-                    "kind": {"type": "string"},
+                    "kind": {
+                        "type": "string",
+                        "enum": ["question", "hypothesis", "prediction", "experiment", "stop"],
+                    },
                     "target_ids": {"type": "array", "items": {"type": "string"}},
-                    "statement": {"type": ["string", "null"]},
-                    "consequence": {"type": ["string", "null"]},
+                    "statement": {"type": "string"},
+                    "consequence": {"type": "string"},
                     "consequences": {"type": "array", "items": {"type": "string"}},
-                    "conditions": {"type": ["string", "null"]},
-                    "objective": {"type": ["string", "null"]},
-                    "proposed_observation": {"type": ["string", "null"]},
-                    "discrimination_basis": {"type": ["string", "null"]},
+                    "conditions": {"type": "string"},
+                    "objective": {"type": "string"},
+                    "proposed_observation": {"type": "string"},
+                    "discrimination_basis": {"type": "string"},
                     "rationale": {"type": "string"},
                 },
                 "required": ["kind", "rationale"],
                 "additionalProperties": False,
+                "oneOf": [
+                    {
+                        "properties": {"kind": {"const": "question"}},
+                        "required": ["kind", "target_ids", "rationale"],
+                    },
+                    {
+                        "properties": {"kind": {"const": "hypothesis"}},
+                        "required": ["kind", "target_ids", "statement", "rationale"],
+                    },
+                    {
+                        "properties": {"kind": {"const": "prediction"}},
+                        "required": ["kind", "target_ids", "conditions", "rationale"],
+                        "oneOf": [
+                            {"required": ["consequence"]},
+                            {"required": ["consequences"]},
+                        ],
+                    },
+                    {
+                        "properties": {"kind": {"const": "experiment"}},
+                        "required": [
+                            "kind",
+                            "target_ids",
+                            "conditions",
+                            "objective",
+                            "proposed_observation",
+                            "discrimination_basis",
+                            "rationale",
+                        ],
+                    },
+                    {
+                        "properties": {"kind": {"const": "stop"}},
+                        "required": ["kind", "rationale"],
+                    },
+                ],
             },
             "messages": [
                 {"role": "system", "content": system},
