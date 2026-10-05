@@ -211,7 +211,8 @@ class Store:
                 method_version TEXT NOT NULL,
                 rationale TEXT NOT NULL,
                 created_at TEXT NOT NULL,
-                schema_version INTEGER NOT NULL
+                schema_version INTEGER NOT NULL,
+                execution_spec TEXT
             );
 
             CREATE TABLE IF NOT EXISTS prediction_evaluations (
@@ -330,6 +331,15 @@ class Store:
         if "error" not in capture_columns:
             self._connection.execute(
                 "ALTER TABLE captured_representations ADD COLUMN error TEXT"
+            )
+
+        proposal_columns = {
+            row["name"]
+            for row in self._connection.execute("PRAGMA table_info(experiment_proposals)")
+        }
+        if "execution_spec" not in proposal_columns:
+            self._connection.execute(
+                "ALTER TABLE experiment_proposals ADD COLUMN execution_spec TEXT"
             )
 
         discovery_columns = {
@@ -953,20 +963,21 @@ class Store:
         self._connection.execute(
             """INSERT INTO experiment_proposals
                (id, prediction_ids, objective, proposed_observation, discrimination_basis, conditions,
-                assumptions, method, method_version, rationale, created_at, schema_version)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                assumptions, method, method_version, rationale, created_at, schema_version, execution_spec)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (proposal.id, canonical_json(list(proposal.prediction_ids)),
              proposal.objective, proposal.proposed_observation, proposal.discrimination_basis, proposal.conditions,
              canonical_json(list(proposal.assumptions)), proposal.method,
              proposal.method_version, proposal.rationale, proposal.created_at,
-             proposal.schema_version),
+             proposal.schema_version,
+             canonical_json(dict(proposal.execution_spec)) if proposal.execution_spec is not None else None),
         )
         self._connection.commit()
 
     def get_experiment_proposal(self, proposal_id: str) -> ExperimentProposal | None:
         row = self._connection.execute(
             """SELECT id, prediction_ids, objective, proposed_observation, discrimination_basis, conditions,
-                      assumptions, method, method_version, rationale, created_at, schema_version
+                      assumptions, method, method_version, rationale, created_at, schema_version, execution_spec
                FROM experiment_proposals WHERE id = ?""", (proposal_id,)
         ).fetchone()
         if row is None:
@@ -978,12 +989,13 @@ class Store:
             "method": row["method"], "method_version": row["method_version"],
             "rationale": row["rationale"], "created_at": row["created_at"],
             "schema_version": row["schema_version"],
+            "execution_spec": json.loads(row["execution_spec"]) if row["execution_spec"] is not None else None,
         })
 
     def iter_experiment_proposals(self) -> Iterator[ExperimentProposal]:
         rows = self._connection.execute(
             """SELECT id, prediction_ids, objective, proposed_observation, discrimination_basis, conditions,
-                      assumptions, method, method_version, rationale, created_at, schema_version
+                      assumptions, method, method_version, rationale, created_at, schema_version, execution_spec
                FROM experiment_proposals ORDER BY created_at, id"""
         )
         for row in rows:
@@ -994,6 +1006,7 @@ class Store:
                 "method": row["method"], "method_version": row["method_version"],
                 "rationale": row["rationale"], "created_at": row["created_at"],
                 "schema_version": row["schema_version"],
+                "execution_spec": json.loads(row["execution_spec"]) if row["execution_spec"] is not None else None,
             })
 
     def put_prediction_evaluation(self, evaluation: PredictionEvaluation) -> None:
