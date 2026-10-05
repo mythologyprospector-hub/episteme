@@ -327,3 +327,88 @@ def test_invalid_action_is_fed_back_to_planner_for_bounded_retry():
         assert planner.calls == 2
         assert planner.feedback_seen
         assert "at least two prediction ids" in planner.feedback_seen[0]
+
+
+def test_execution_spec_rejects_invalid_parameter_shapes():
+    cases = (
+        {
+            "operation": "positional_presence",
+            "position": True,
+            "expected_presence": {},
+        },
+        {
+            "operation": "positional_presence",
+            "position": float("nan"),
+            "expected_presence": {},
+        },
+        {
+            "operation": "positional_presence",
+            "position": 3.0,
+            "position_key": "",
+            "expected_presence": {},
+        },
+        {
+            "operation": "positional_presence",
+            "position": 3.0,
+            "expected_presence": [],
+        },
+        {
+            "operation": "positional_presence",
+            "position": 3.0,
+            "expected_presence": {"prediction-a": "true"},
+        },
+        {
+            "operation": "positional_presence",
+            "position": 3.0,
+            "expected_presence": {1: True},
+        },
+    )
+
+    for spec in cases:
+        action = DiscoveryAction(
+            kind="experiment",
+            target_ids=("prediction-a", "prediction-b"),
+            objective="test",
+            proposed_observation="test",
+            discrimination_basis="test",
+            conditions="test",
+            execution_spec=spec,
+            rationale="Reject invalid executable parameter shapes.",
+        )
+        with Store() as store:
+            try:
+                execute_action(store, action, created_at=CREATED)
+            except PlannerActionError as exc:
+                assert "invalid execution_spec" in str(exc)
+            else:
+                raise AssertionError(f"invalid execution spec was accepted: {spec!r}")
+
+
+def test_execution_spec_rejects_extra_runtime_controls():
+    action = DiscoveryAction(
+        kind="experiment",
+        target_ids=("prediction-a", "prediction-b"),
+        objective="test",
+        proposed_observation="test",
+        discrimination_basis="test",
+        conditions="test",
+        execution_spec={
+            "operation": "positional_presence",
+            "position": 3.0,
+            "expected_presence": {
+                "prediction-a": True,
+                "prediction-b": False,
+            },
+            "command": "echo should-not-run",
+            "url": "https://example.invalid",
+            "evaluator": "arbitrary.evaluator",
+        },
+        rationale="Reject fields that could redirect runtime behavior.",
+    )
+    with Store() as store:
+        try:
+            execute_action(store, action, created_at=CREATED)
+        except PlannerActionError as exc:
+            assert "invalid execution_spec" in str(exc)
+        else:
+            raise AssertionError("runtime-control fields were accepted")
