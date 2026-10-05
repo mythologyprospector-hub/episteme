@@ -25,6 +25,7 @@ class DiscoveryAction:
     target_ids: tuple[str, ...] = ()
     statement: str | None = None
     consequence: str | None = None
+    consequences: tuple[str, ...] = ()
     conditions: str | None = None
     objective: str | None = None
     proposed_observation: str | None = None
@@ -165,10 +166,15 @@ def execute_action(store: Any, action: DiscoveryAction, *, created_at: str) -> t
     if action.kind == "prediction":
         if len(action.target_ids) < 2:
             raise ValueError("prediction action requires at least two hypothesis ids")
-        consequence = _require(action.consequence, "consequence")
         conditions = _require(action.conditions, "conditions")
+        consequences = action.consequences
+        if not consequences:
+            consequence = _require(action.consequence, "consequence")
+            consequences = tuple(consequence for _ in action.target_ids)
+        if len(consequences) != len(action.target_ids):
+            raise ValueError("prediction consequences must match hypothesis targets")
         outputs = []
-        for candidate_id in action.target_ids:
+        for candidate_id, consequence in zip(action.target_ids, consequences):
             prediction = propose_discriminating_prediction(
                 store,
                 candidate_id=candidate_id,
