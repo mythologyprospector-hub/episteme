@@ -422,7 +422,7 @@ def test_grounded_executor_rejects_missing_input_record():
     missing_id = "bbbbbbbb-0001-4aaa-8aaa-bbbbbbbbbbbb"
     proposal = ExperimentProposal(
         id="cccccccc-0001-4aaa-8aaa-cccccccccccc",
-        prediction_ids=("prediction-a", "prediction-b"),
+        prediction_ids=("11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222"),
         objective="test",
         proposed_observation="test",
         discrimination_basis="test",
@@ -435,7 +435,7 @@ def test_grounded_executor_rejects_missing_input_record():
         execution_spec={
             "operation": "positional_presence",
             "position": 3.0,
-            "expected_presence": {"prediction-a": True, "prediction-b": False},
+            "expected_presence": {"11111111-1111-4111-8111-111111111111": True, "22222222-2222-4222-8222-222222222222": False},
         },
     )
     with Store() as store:
