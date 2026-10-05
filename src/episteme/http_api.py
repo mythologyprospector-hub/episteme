@@ -15,8 +15,6 @@ from .public import (
     discovery_trail,
     get_exploration_observation,
     list_exploration_observations,
-    get_exploration_observation,
-    list_exploration_observations,
     get_captured_representation,
     list_captured_representations,
     get_captured_content,
@@ -266,16 +264,6 @@ class _EpistemeHTTPServer(ThreadingHTTPServer):
                 if query:
                     raise _error(400, "unexpected query parameter")
                 return get_record(store, _identifier(parts[1], "record identifier")), "application/json; charset=utf-8"
-
-            if parts == ["exploration-observations"]:
-                _reject_unexpected_query(query, set())
-                return list_exploration_observations(store), "application/json; charset=utf-8"
-            if len(parts) == 2 and parts[0] == "exploration-observations":
-                if query:
-                    raise _error(400, "unexpected query parameter")
-                return get_exploration_observation(
-                    store, _identifier(parts[1], "exploration observation identifier")
-                ), "application/json; charset=utf-8"
 
             if parts == ["exploration-observations"]:
                 _reject_unexpected_query(query, set())
