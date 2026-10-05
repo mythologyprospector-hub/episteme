@@ -73,6 +73,7 @@ class OllamaPlanner:
                     "objective": action.objective,
                     "proposed_observation": action.proposed_observation,
                     "discrimination_basis": action.discrimination_basis,
+                    "execution_spec": dict(action.execution_spec) if action.execution_spec is not None else None,
                     "rationale": action.rationale,
                 }
                 for action in context.actions_taken
@@ -91,7 +92,7 @@ class OllamaPlanner:
             "Return one JSON object only. The JSON field for the action type is named "
             "'kind', never 'action'. The only allowed JSON fields are: kind, target_ids, "
             "statement, consequence, consequences, conditions, objective, "
-            "proposed_observation, discrimination_basis, rationale. Do not invent other "
+            "proposed_observation, discrimination_basis, execution_spec, rationale. Do not invent other "
             "field names. A hypothesis action creates a NEW hypothesis about a finding. "
             "For kind='question' or kind='hypothesis', target_ids MUST contain exactly "
             "one existing GAP or TENSION finding id. NEVER put an existing hypothesis id "
@@ -101,8 +102,11 @@ class OllamaPlanner:
             "hypothesis ids, because a prediction compares hypotheses. For prediction, "
             "conditions plus either consequence or consequences are required. "
             "For kind='experiment', target_ids MUST contain at least two existing "
-            "prediction ids and conditions, objective, proposed_observation, and "
-            "discrimination_basis are required. For kind='stop', rationale is required. "
+            "prediction ids and conditions, objective, proposed_observation, "
+            "discrimination_basis, and execution_spec are required. execution_spec "
+            "must be an object with operation='positional_presence', numeric position, "
+            "optional position_key, and expected_presence mapping prediction ids to booleans. "
+            "Do not name a Python callable, command, URL, or evaluator. For kind='stop', rationale is required. "
             "Always include rationale. If feedback is supplied, it describes a rejected prior action; correct the action instead of repeating the same error."
         )
         return {
@@ -123,6 +127,20 @@ class OllamaPlanner:
                     "objective": {"type": "string"},
                     "proposed_observation": {"type": "string"},
                     "discrimination_basis": {"type": "string"},
+                    "execution_spec": {
+                        "type": "object",
+                        "properties": {
+                            "operation": {"type": "string", "enum": ["positional_presence"]},
+                            "position": {"type": "number"},
+                            "position_key": {"type": "string"},
+                            "expected_presence": {
+                                "type": "object",
+                                "additionalProperties": {"type": "boolean"},
+                            },
+                        },
+                        "required": ["operation", "position", "expected_presence"],
+                        "additionalProperties": False,
+                    },
                     "rationale": {"type": "string"},
                 },
                 "required": ["kind", "rationale"],
@@ -153,6 +171,7 @@ class OllamaPlanner:
                             "objective",
                             "proposed_observation",
                             "discrimination_basis",
+                            "execution_spec",
                             "rationale",
                         ],
                     },
