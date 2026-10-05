@@ -1033,7 +1033,7 @@ class ExperimentProposal:
                 "execution_spec": dict(self.execution_spec) if self.execution_spec is not None else None}
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any])
+    def from_dict(cls, data: Mapping[str, Any]) -> "ExperimentProposal":
         return cls(id=data["id"], prediction_ids=tuple(data["prediction_ids"]),
                    objective=data["objective"], proposed_observation=data["proposed_observation"],
                    discrimination_basis=data["discrimination_basis"], conditions=data["conditions"], assumptions=tuple(data["assumptions"]),
