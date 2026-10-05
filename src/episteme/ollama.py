@@ -61,7 +61,8 @@ class OllamaPlanner:
             "hypotheses": list(context.hypotheses),
             "predictions": list(context.predictions),
             "experiments": list(context.experiments),
-            "feedback": list(context.feedback),\n            "actions_taken": [
+            "feedback": list(context.feedback),
+            "actions_taken": [
                 {
                     "kind": action.kind,
                     "target_ids": list(action.target_ids),
