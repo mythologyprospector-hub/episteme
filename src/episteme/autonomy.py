@@ -182,7 +182,11 @@ def build_context(
 
 
 def _require(value: str | None, field: str) -> str:
-    if value is None or not value.strip():
+    if value is None:
+        raise PlannerActionError(f"{field} is required for this discovery action")
+    if not isinstance(value, str):
+        raise PlannerActionError(f"{field} must be a string")
+    if not value.strip():
         raise PlannerActionError(f"{field} is required for this discovery action")
     return value
 
