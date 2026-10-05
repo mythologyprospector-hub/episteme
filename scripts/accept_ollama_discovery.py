@@ -98,6 +98,17 @@ def main() -> int:
                 print(f"         outputs={list(step.output_ids)}")
 
         kinds = [step.action.kind for step in result.steps]
+
+        experiments = tuple(store.iter_experiment_proposals())
+        evaluations = tuple(store.iter_prediction_evaluations())
+        consequences = tuple(store.iter_knowledge_state_consequences())
+        executable_experiments = tuple(
+            item for item in experiments if item.execution_spec is not None
+        )
+        print(f"persisted experiments: {len(experiments)}")
+        print(f"evaluations: {len(evaluations)}")
+        print(f"knowledge-state consequences: {len(consequences)}")
+
         print(f"action sequence: {kinds}")
 
         required = ("hypothesis", "hypothesis", "prediction", "experiment")
@@ -114,9 +125,32 @@ def main() -> int:
             )
             return 1
 
+        if len(executable_experiments) != 1:
+            print(
+                "ACCEPTANCE: FAIL — the real planner reached an experiment, "
+                "but no single persisted executable experiment was found."
+            )
+            return 1
+        if len(evaluations) != 2 or len(consequences) != 2:
+            print(
+                "ACCEPTANCE: FAIL — the executable experiment did not complete "
+                "the expected two-prediction evaluation/consequence cycle."
+            )
+            return 1
+
+        spec = executable_experiments[0].execution_spec
+        expected_ids = set(executable_experiments[0].prediction_ids)
+        if not isinstance(spec, dict) or spec.get("operation") != "positional_presence":
+            print("ACCEPTANCE: FAIL — persisted execution spec is not the registered operation.")
+            return 1
+        if set(spec.get("expected_presence", {})) != expected_ids:
+            print("ACCEPTANCE: FAIL — persisted executable expectations do not match prediction ids.")
+            return 1
+
         print(
-            "ACCEPTANCE: PASS — the real Ollama planner drove the bounded "
-            "loop through competing hypotheses, prediction, and experiment."
+            "ACCEPTANCE: PASS — the real Ollama planner drove the bounded loop "
+            "through competing hypotheses, prediction, executable experiment, "
+            "deterministic evaluation, and knowledge-state consequences."
         )
         return 0
 
