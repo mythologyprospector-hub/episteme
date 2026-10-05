@@ -133,6 +133,30 @@ def test_invalid_prediction_action_does_not_persist_partial_outputs():
         assert tuple(store.iter_predictions()) == ()
 
 
+
+def test_executable_spec_cannot_select_unregistered_operation():
+    action = DiscoveryAction(
+        kind="experiment",
+        target_ids=("prediction-a", "prediction-b"),
+        objective="test",
+        proposed_observation="test",
+        discrimination_basis="test",
+        conditions="test",
+        execution_spec={
+            "operation": "run_python",
+            "position": 3.0,
+            "expected_presence": {},
+        },
+        rationale="Reject an operation outside the registered vocabulary.",
+    )
+    try:
+        execute_action(Store(), action, created_at=CREATED)
+    except PlannerActionError as exc:
+        assert "unsupported executable experiment operation" in str(exc)
+    else:
+        raise AssertionError("unregistered executable operation was accepted")
+
+
 class AdaptiveFixturePlanner(FixturePlanner):
     def __init__(self):
         super().__init__()
