@@ -20,6 +20,10 @@ from .proposals import (
 )
 
 
+class PlannerActionError(ValueError):
+    """The planner proposed an action that violates the bounded action contract."""
+
+
 @dataclass(frozen=True, slots=True)
 class DiscoveryAction:
     kind: str
@@ -189,27 +193,27 @@ def execute_action(store: Any, action: DiscoveryAction, *, created_at: str) -> t
         return ()
 
     if not action.target_ids:
-        raise ValueError(f"{action.kind} action requires target_ids")
+        raise PlannerActionError(f"{action.kind} action requires target_ids")
 
     if action.kind == "question":
         if len(action.target_ids) != 1:
-            raise ValueError("question action requires exactly one finding")
+            raise PlannerActionError("question action requires exactly one finding")
         finding = store.get_discovery_finding(action.target_ids[0])
         if finding is None:
-            raise ValueError("question target finding does not exist")
+            raise PlannerActionError("question target finding does not exist")
         if finding.kind not in {DiscoveryFindingKind.GAP, DiscoveryFindingKind.TENSION}:
-            raise ValueError("question target must be a gap or tension finding")
+            raise PlannerActionError("question target must be a gap or tension finding")
         question = question_from_finding(finding, created_at)
         store.put_discovery_finding(question)
         return (question.id,)
 
     if action.kind == "hypothesis":
         if len(action.target_ids) != 1:
-            raise ValueError("hypothesis action requires exactly one finding")
+            raise PlannerActionError("hypothesis action requires exactly one finding")
         statement = _require(action.statement, "statement")
         finding = store.get_discovery_finding(action.target_ids[0])
         if finding is None:
-            raise ValueError("hypothesis target finding does not exist")
+            raise PlannerActionError("hypothesis target finding does not exist")
         hypothesis = propose_hypothesis(
             statement=statement,
             finding_ids=(finding.id,),
@@ -224,14 +228,14 @@ def execute_action(store: Any, action: DiscoveryAction, *, created_at: str) -> t
 
     if action.kind == "prediction":
         if len(action.target_ids) < 2:
-            raise ValueError("prediction action requires at least two hypothesis ids")
+            raise PlannerActionError("prediction action requires at least two hypothesis ids")
         conditions = _require(action.conditions, "conditions")
         consequences = action.consequences
         if not consequences:
             consequence = _require(action.consequence, "consequence")
             consequences = tuple(consequence for _ in action.target_ids)
         if len(consequences) != len(action.target_ids):
-            raise ValueError("prediction consequences must match hypothesis targets")
+            raise PlannerActionError("prediction consequences must match hypothesis targets")
         outputs = []
         for candidate_id, consequence in zip(action.target_ids, consequences):
             prediction = propose_discriminating_prediction(
@@ -251,7 +255,7 @@ def execute_action(store: Any, action: DiscoveryAction, *, created_at: str) -> t
 
     if action.kind == "experiment":
         if len(action.target_ids) < 2:
-            raise ValueError("experiment action requires at least two prediction ids")
+            raise PlannerActionError("experiment action requires at least two prediction ids")
         proposal = propose_candidate_discrimination_experiment(
             store,
             prediction_ids=action.target_ids,
@@ -267,7 +271,7 @@ def execute_action(store: Any, action: DiscoveryAction, *, created_at: str) -> t
         store.put_experiment_proposal(proposal)
         return (proposal.id,)
 
-    raise ValueError(f"unsupported discovery action: {action.kind}")
+    raise PlannerActionError(f"unsupported discovery action: {action.kind}")
 
 
 def _execute_experiment_cycle(
@@ -387,30 +391,40 @@ def run_autonomous_discovery(
 
             try:
                 action = planner.choose(context)
-                feedback.clear()
                 if not isinstance(action, DiscoveryAction):
-                    raise TypeError("planner must return DiscoveryAction")
+                    raise PlannerActionError("planner must return DiscoveryAction")
                 if action.kind == "stop":
                     return DiscoveryRun(
                         status="stopped",
                         steps=tuple(steps),
                         stop_reason=action.rationale,
                     )
-
                 output_ids = execute_action(store, action, created_at=started_at)
-                if action.kind == "experiment" and experiment_runtime is not None:
-                    proposal = store.get_experiment_proposal(output_ids[0])
-                    if proposal is None:
-                        raise ValueError("experiment action did not persist its proposal")
-                    output_ids = _execute_experiment_cycle(
-                        store,
-                        proposal,
-                        grounded_input_ids=grounded_input_ids,
-                        runtime=experiment_runtime,
-                        created_at=started_at,
+            except PlannerActionError as exc:
+                if attempt >= max_retries_per_step:
+                    return DiscoveryRun(
+                        status="failed",
+                        steps=tuple(steps),
+                        stop_reason=f"planner action failed after {attempt + 1} attempts: {exc}",
                     )
+                feedback.append(
+                    f"The previous proposed action was rejected: {exc}. "
+                    "Choose a corrected action that satisfies the supplied action contract."
+                )
+                continue
 
-            except (TypeError, ValueError) as exc:
+            feedback.clear()
+            if action.kind == "experiment" and experiment_runtime is not None:
+                proposal = store.get_experiment_proposal(output_ids[0])
+                if proposal is None:
+                    raise RuntimeError("experiment action did not persist its proposal")
+                output_ids = _execute_experiment_cycle(
+                    store,
+                    proposal,
+                    grounded_input_ids=grounded_input_ids,
+                    runtime=experiment_runtime,
+                    created_at=started_at,
+                )
                 if attempt >= max_retries_per_step:
                     return DiscoveryRun(
                         status="failed",
