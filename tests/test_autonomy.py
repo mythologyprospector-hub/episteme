@@ -121,3 +121,63 @@ def test_experiment_is_executed_evaluated_and_returned_to_planner():
         assert len(tuple(store.iter_prediction_evaluations())) == 2
         assert len(tuple(store.iter_knowledge_state_consequences())) == 2
         assert len(result.steps[3].output_ids) == 1 + 1 + 2 + 2
+
+class RecoveringPlanner:
+    def __init__(self):
+        self.calls = 0
+        self.feedback_seen = ()
+
+    def choose(self, context: DiscoveryContext) -> DiscoveryAction:
+        self.calls += 1
+        self.feedback_seen = context.feedback
+        if self.calls == 1:
+            return DiscoveryAction(
+                kind="experiment",
+                target_ids=("not-a-prediction",),
+                objective="Invalid first attempt.",
+                proposed_observation="Invalid first attempt.",
+                discrimination_basis="Invalid first attempt.",
+                conditions="Invalid first attempt.",
+                rationale="This intentionally violates the experiment target contract.",
+            )
+        gap = next(item for item in context.findings if item["kind"] == "gap")
+        return DiscoveryAction(
+            kind="hypothesis",
+            target_ids=(gap["id"],),
+            statement="The missing occupant is at position 3.0.",
+            rationale="The retry feedback identified an invalid experiment target, so propose a valid hypothesis.",
+        )
+
+
+def test_invalid_action_is_fed_back_to_planner_for_bounded_retry():
+    records = _records()
+    with Store() as store:
+        for record in records:
+            store.put_record(record)
+
+        gap = detect_positional_gap(
+            store,
+            record_ids=tuple(record.id for record in records),
+            position_key="position",
+            step=1.0,
+            created_at=CREATED,
+        )
+        assert gap is not None
+        store.put_discovery_finding(gap)
+
+        planner = RecoveringPlanner()
+        result = run_autonomous_discovery(
+            store,
+            planner,
+            grounded_input_ids=tuple(record.id for record in records),
+            started_at=CREATED,
+            max_steps=1,
+            max_retries_per_step=1,
+        )
+
+        assert result.status == "budget_exhausted"
+        assert len(result.steps) == 1
+        assert result.steps[0].action.kind == "hypothesis"
+        assert planner.calls == 2
+        assert planner.feedback_seen
+        assert "at least two prediction ids" in planner.feedback_seen[0]
