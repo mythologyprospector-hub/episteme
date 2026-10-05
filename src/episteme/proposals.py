@@ -207,6 +207,7 @@ def propose_experiment(
         rationale=rationale,
         created_at=created_at,
         schema_version=SCHEMA_VERSION,
+        execution_spec=execution_spec,
     )
 
 
