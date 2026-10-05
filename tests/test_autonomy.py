@@ -116,9 +116,6 @@ def test_experiment_is_executed_evaluated_and_returned_to_planner():
         assert result.status == "stopped"
         assert len(result.steps) == 4
         assert planner.calls == 5
-        assert len(result.steps[3].output_ids) == 6
-        assert len(store.list_prediction_evaluations()) == 2
-        assert len(store.list_knowledge_state_consequences()) == 2
+        assert len(tuple(store.iter_prediction_evaluations())) == 2
+        assert len(tuple(store.iter_knowledge_state_consequences())) == 2
         assert len(result.steps[3].output_ids) == 1 + 1 + 2 + 2
-        assert len(result.steps[3].output_ids) > 0
-        assert len(result.steps[3].output_ids) == 6
