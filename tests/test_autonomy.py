@@ -1,4 +1,4 @@
-from episteme.autonomy import DiscoveryAction, DiscoveryContext, ExperimentRuntime, run_autonomous_discovery
+from episteme.autonomy import DiscoveryAction, DiscoveryContext, ExperimentRuntime, PlannerActionError, execute_action, run_autonomous_discovery
 from episteme.discovery import detect_positional_gap
 from episteme.evaluator import PositionalPredictionEvaluator
 from episteme.executor import PositionalObservationExecutor
@@ -68,6 +68,56 @@ def test_planner_drives_the_loop_without_a_declared_workflow():
         assert [item.action.kind for item in result.steps] == ["hypothesis", "hypothesis", "prediction", "experiment"]
         assert result.steps[3].output_ids
         assert store.get_experiment_proposal(result.steps[3].output_ids[0]) is not None
+
+def test_invalid_prediction_action_does_not_persist_partial_outputs():
+    records = _records()
+    with Store() as store:
+        for record in records:
+            store.put_record(record)
+
+        gap = detect_positional_gap(
+            store,
+            record_ids=tuple(record.id for record in records),
+            position_key="position",
+            step=1.0,
+            created_at=CREATED,
+        )
+        assert gap is not None
+        store.put_discovery_finding(gap)
+
+        from episteme.proposals import propose_hypothesis
+
+        hypotheses = []
+        for statement in ("The missing occupant is at position 3.0.", "The missing occupant is absent."):
+            hypothesis = propose_hypothesis(
+                statement=statement,
+                finding_ids=(gap.id,),
+                input_ids=tuple(record.id for record in records),
+                method="fixture",
+                method_version="1",
+                rationale="fixture",
+                created_at=CREATED,
+            )
+            store.put_hypothesis(hypothesis)
+            hypotheses.append(hypothesis)
+
+        action = DiscoveryAction(
+            kind="prediction",
+            target_ids=(hypotheses[0].id, "missing-hypothesis"),
+            consequence="The measured occupant is present.",
+            conditions="Same bounded test conditions.",
+            rationale="Intentionally invalid second target.",
+        )
+
+        try:
+            execute_action(store, action, created_at=CREATED)
+        except PlannerActionError as exc:
+            assert "missing candidate" in str(exc)
+        else:
+            raise AssertionError("invalid prediction action was accepted")
+
+        assert tuple(store.iter_predictions()) == ()
+
 
 class ExecutingFixturePlanner(FixturePlanner):
     def choose(self, context: DiscoveryContext) -> DiscoveryAction:
