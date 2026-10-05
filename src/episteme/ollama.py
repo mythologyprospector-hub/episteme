@@ -11,7 +11,7 @@ import json
 from typing import Any, Callable
 from urllib.request import Request, urlopen
 
-from .autonomy import DiscoveryAction, DiscoveryContext
+from .autonomy import DiscoveryAction, DiscoveryContext, PlannerActionError
 
 
 Transport = Callable[[dict[str, Any]], dict[str, Any]]
@@ -42,17 +42,17 @@ class OllamaPlanner:
         response = self._transport(payload) if self._transport is not None else self._request(payload)
         content = response.get("message", {}).get("content")
         if not isinstance(content, str) or not content.strip():
-            raise ValueError("Ollama planner returned no message content")
+            raise PlannerActionError("Ollama planner returned no message content")
         try:
             action_data = json.loads(content)
         except json.JSONDecodeError as exc:
-            raise ValueError("Ollama planner returned invalid JSON") from exc
+            raise PlannerActionError("Ollama planner returned invalid JSON") from exc
         if not isinstance(action_data, dict):
-            raise ValueError("Ollama planner JSON must be an object")
+            raise PlannerActionError("Ollama planner JSON must be an object")
         try:
             return DiscoveryAction(**action_data)
         except (TypeError, ValueError) as exc:
-            raise ValueError("Ollama planner returned an invalid DiscoveryAction") from exc
+            raise PlannerActionError("Ollama planner returned an invalid DiscoveryAction") from exc
 
     def _request_payload(self, context: DiscoveryContext) -> dict[str, Any]:
         context_data = {
