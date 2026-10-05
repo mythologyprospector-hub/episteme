@@ -1,7 +1,5 @@
-from episteme.autonomy import DiscoveryAction, DiscoveryContext, ExperimentRuntime, PlannerActionError, execute_action, run_autonomous_discovery
+from episteme.autonomy import DiscoveryAction, DiscoveryContext, PlannerActionError, execute_action, run_autonomous_discovery
 from episteme.discovery import detect_positional_gap
-from episteme.evaluator import PositionalPredictionEvaluator
-from episteme.executor import PositionalObservationExecutor
 from episteme.model import Provenance, Record, RecordKind
 from episteme.store import Store
 
