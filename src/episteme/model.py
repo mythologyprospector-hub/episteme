@@ -999,9 +999,12 @@ class ExperimentProposal:
     rationale: str
     created_at: str
     schema_version: int = SCHEMA_VERSION
+    execution_spec: Mapping[str, Any] | None = None
 
     def __post_init__(self) -> None:
         _require_uuid(self.id, "id")
+        if self.execution_spec is not None and not isinstance(self.execution_spec, Mapping):
+            raise ValueError("execution_spec must be a mapping when supplied")
         if not self.prediction_ids:
             raise ValueError("experiment proposal requires at least one prediction")
         for value in self.prediction_ids:
@@ -1026,16 +1029,18 @@ class ExperimentProposal:
                 "conditions": self.conditions, "assumptions": list(self.assumptions),
                 "method": self.method, "method_version": self.method_version,
                 "rationale": self.rationale, "created_at": self.created_at,
-                "schema_version": self.schema_version}
+                "schema_version": self.schema_version,
+                "execution_spec": dict(self.execution_spec) if self.execution_spec is not None else None}
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> "ExperimentProposal":
+    def from_dict(cls, data: Mapping[str, Any])
         return cls(id=data["id"], prediction_ids=tuple(data["prediction_ids"]),
                    objective=data["objective"], proposed_observation=data["proposed_observation"],
                    discrimination_basis=data["discrimination_basis"], conditions=data["conditions"], assumptions=tuple(data["assumptions"]),
                    method=data["method"], method_version=data["method_version"],
                    rationale=data["rationale"], created_at=data["created_at"],
-                   schema_version=data.get("schema_version", SCHEMA_VERSION))
+                   schema_version=data.get("schema_version", SCHEMA_VERSION),
+                   execution_spec=data.get("execution_spec"))
 
 @dataclass(frozen=True, slots=True)
 class PredictionEvaluation:
