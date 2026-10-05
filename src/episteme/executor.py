@@ -9,11 +9,66 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Callable, Mapping, Protocol
 from uuid import uuid4
 
 from .model import ExperimentProposal, Provenance, Record, RecordKind, SCHEMA_VERSION
 from .store import Store
+
+
+@dataclass(frozen=True, slots=True)
+class ExecutableExperimentSpec:
+    """A small, machine-readable experiment vocabulary owned by Episteme.
+
+    This is deliberately not a Python callable, module path, shell command,
+    URL, or arbitrary evaluator configuration. Model-generated plans may name
+    only operations registered by host code and may supply only the typed
+    parameters defined by that operation.
+    """
+
+    operation: str
+    position: float
+    position_key: str = "position"
+    expected_presence: Mapping[str, bool] = ()
+
+    def __post_init__(self) -> None:
+        if self.operation != "positional_presence":
+            raise ValueError(f"unsupported executable experiment operation: {self.operation}")
+        if isinstance(self.position, bool) or not isinstance(self.position, (int, float)):
+            raise ValueError("position must be numeric")
+        if not math.isfinite(float(self.position)):
+            raise ValueError("position must be finite")
+        if not isinstance(self.position_key, str) or not self.position_key.strip():
+            raise ValueError("position_key must be a non-empty string")
+        if not isinstance(self.expected_presence, Mapping):
+            raise ValueError("expected_presence must be a mapping")
+        for prediction_id, expected in self.expected_presence.items():
+            if not isinstance(prediction_id, str) or not prediction_id.strip():
+                raise ValueError("expected_presence keys must be non-empty strings")
+            if not isinstance(expected, bool):
+                raise ValueError("expected_presence values must be booleans")
+
+
+def build_registered_experiment_runtime(
+    spec: ExecutableExperimentSpec,
+) -> tuple["PositionalObservationExecutor", Callable[..., object]]:
+    """Resolve one allowlisted operation to host-owned executable semantics.
+
+    The planner supplies data; this function supplies the code. No planner
+    field can select a callable or alter the executor/evaluator implementation.
+    """
+
+    if spec.operation != "positional_presence":
+        raise ValueError(f"unsupported executable experiment operation: {spec.operation}")
+
+    from .evaluator import PositionalPredictionEvaluator
+
+    executor = PositionalObservationExecutor(position_key=spec.position_key)
+    evaluator_factory = lambda proposal, predictions: PositionalPredictionEvaluator(
+        position=float(spec.position),
+        expected_presence=dict(spec.expected_presence),
+    )
+    return executor, evaluator_factory
 
 
 class ExperimentExecutor(Protocol):
