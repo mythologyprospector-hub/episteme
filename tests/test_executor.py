@@ -1,6 +1,12 @@
 from episteme.executor import PositionalObservationExecutor
-from episteme.model import Provenance, Record, RecordKind
-from episteme.proposals import propose_experiment, predict, propose_hypothesis
+from episteme.model import (
+    DiscoveryFinding,
+    DiscoveryFindingKind,
+    Provenance,
+    Record,
+    RecordKind,
+)
+from episteme.proposals import predict, propose_experiment, propose_hypothesis
 from episteme.store import Store
 
 CREATED = "2026-10-05T00:00:00Z"
@@ -31,42 +37,8 @@ def test_positional_executor_records_a_real_result():
         for record in records:
             store.put_record(record)
 
-        hypothesis_ids = []
-        for statement in ("position 3.0 is occupied", "position 3.0 is absent"):
-            hypothesis = propose_hypothesis(
-                statement=statement,
-                finding_ids=(),
-                input_ids=tuple(record.id for record in records),
-                method="fixture",
-                method_version="1",
-                rationale="fixture",
-                created_at=CREATED,
-            )
-            # Hypothesis requires a finding; this test only needs real proposal
-            # persistence, so the executor test creates the hypotheses elsewhere.
-            hypothesis_ids.append(hypothesis)
-
-        # Use the model constructors directly for this focused executor test.
-        from episteme.model import Hypothesis
-        hypotheses = tuple(
-            Hypothesis(
-                id=item.id,
-                statement=item.statement,
-                finding_ids=(str(__import__("uuid").uuid4()),),
-                input_ids=item.input_ids,
-                method=item.method,
-                method_version=item.method_version,
-                rationale=item.rationale,
-                assumptions=item.assumptions,
-                created_at=item.created_at,
-            )
-            for item in hypothesis_ids
-        )
-        # The executor only needs a persisted experiment proposal. Seed its
-        # dependency tables with minimal valid objects.
-        from episteme.model import DiscoveryFinding, DiscoveryFindingKind
         finding = DiscoveryFinding(
-            id=hypotheses[0].finding_ids[0],
+            id="cccccccc-0001-4aaa-8aaa-cccccccccccc",
             kind=DiscoveryFindingKind.GAP,
             title="fixture gap",
             description="fixture gap",
@@ -78,8 +50,20 @@ def test_positional_executor_records_a_real_result():
             created_at=CREATED,
         )
         store.put_discovery_finding(finding)
-        for hypothesis in hypotheses:
+
+        hypotheses = []
+        for statement in ("position 3.0 is occupied", "position 3.0 is absent"):
+            hypothesis = propose_hypothesis(
+                statement=statement,
+                finding_ids=(finding.id,),
+                input_ids=tuple(record.id for record in records),
+                method="fixture",
+                method_version="1",
+                rationale="fixture",
+                created_at=CREATED,
+            )
             store.put_hypothesis(hypothesis)
+            hypotheses.append(hypothesis)
 
         predictions = []
         for hypothesis in hypotheses:
