@@ -119,18 +119,26 @@ def test_invalid_prediction_action_does_not_persist_partial_outputs():
         assert tuple(store.iter_predictions()) == ()
 
 
-class ExecutingFixturePlanner(FixturePlanner):
+class AdaptiveFixturePlanner(FixturePlanner):
+    def __init__(self):
+        super().__init__()
+        self.state_observed = False
+
     def choose(self, context: DiscoveryContext) -> DiscoveryAction:
         action = super().choose(context)
-        if context.evaluations:
-            return DiscoveryAction(
-                kind="stop",
-                rationale="The experiment ran and the resulting evaluation is now visible to the planner.",
-            )
+        if context.evaluations and context.consequences:
+            outcomes = {item["outcome"] for item in context.evaluations}
+            consequence_kinds = {item["consequence"] for item in context.consequences}
+            if outcomes == {"consistent", "inconsistent"} and consequence_kinds == {"supports", "contradicts"}:
+                self.state_observed = True
+                return DiscoveryAction(
+                    kind="stop",
+                    rationale="The changing knowledge state now contains one supported and one contradicted prediction; further action requires new grounded evidence.",
+                )
         return action
 
 
-def test_experiment_is_executed_evaluated_and_returned_to_planner():
+def test_experiment_is_executed_evaluated_and_changes_planner_knowledge_state():
     records = _records()
     with Store() as store:
         for record in records:
@@ -146,7 +154,7 @@ def test_experiment_is_executed_evaluated_and_returned_to_planner():
         assert gap is not None
         store.put_discovery_finding(gap)
 
-        planner = ExecutingFixturePlanner()
+        planner = AdaptiveFixturePlanner()
         result = run_autonomous_discovery(
             store,
             planner,
@@ -171,6 +179,8 @@ def test_experiment_is_executed_evaluated_and_returned_to_planner():
         assert len(tuple(store.iter_prediction_evaluations())) == 2
         assert len(tuple(store.iter_knowledge_state_consequences())) == 2
         assert len(result.steps[3].output_ids) == 1 + 1 + 2 + 2
+        assert planner.state_observed is True
+        assert result.stop_reason is not None
 
 class RecoveringPlanner:
     def __init__(self):
