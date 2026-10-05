@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Mapping, Protocol
 
 from .discovery import question_from_finding
+from .executor import ExecutableExperimentSpec
 from .model import (DiscoveryFindingKind, ExperimentProposal, KnowledgeStateConsequence, KnowledgeStateConsequenceKind, KnowledgeStateTargetKind, Prediction, PredictionEvaluation)
 from uuid import uuid4
 from .proposals import (
@@ -35,6 +36,7 @@ class DiscoveryAction:
     objective: str | None = None
     proposed_observation: str | None = None
     discrimination_basis: str | None = None
+    execution_spec: Mapping[str, Any] | None = None
     rationale: str = ""
 
     def __post_init__(self) -> None:
@@ -191,6 +193,26 @@ def _require(value: str | None, field: str) -> str:
     return value
 
 
+
+def _validate_execution_spec(
+    raw: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    if raw is None:
+        raise PlannerActionError("experiment action requires execution_spec")
+    if not isinstance(raw, Mapping):
+        raise PlannerActionError("execution_spec must be an object")
+    try:
+        spec = ExecutableExperimentSpec(**dict(raw))
+    except (TypeError, ValueError) as exc:
+        raise PlannerActionError(f"invalid execution_spec: {exc}") from exc
+    return {
+        "operation": spec.operation,
+        "position": float(spec.position),
+        "position_key": spec.position_key,
+        "expected_presence": dict(spec.expected_presence),
+    }
+
+
 def execute_action(store: Any, action: DiscoveryAction, *, created_at: str) -> tuple[str, ...]:
     """Validate and execute one action using existing Episteme primitives."""
     if action.kind == "stop":
@@ -273,6 +295,7 @@ def execute_action(store: Any, action: DiscoveryAction, *, created_at: str) -> t
             proposed_observation=_require(action.proposed_observation, "proposed_observation"),
             discrimination_basis=_require(action.discrimination_basis, "discrimination_basis"),
             conditions=_require(action.conditions, "conditions"),
+            execution_spec=_validate_execution_spec(action.execution_spec),
             method="planner-driven-experiment",
             method_version="1",
             rationale=action.rationale,
