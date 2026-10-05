@@ -425,18 +425,6 @@ def run_autonomous_discovery(
                     runtime=experiment_runtime,
                     created_at=started_at,
                 )
-                if attempt >= max_retries_per_step:
-                    return DiscoveryRun(
-                        status="failed",
-                        steps=tuple(steps),
-                        stop_reason=f"planner action failed after {attempt + 1} attempts: {exc}",
-                    )
-                feedback.append(
-                    f"The previous proposed action was rejected: {exc}. "
-                    "Choose a corrected action that satisfies the supplied action contract."
-                )
-                continue
-
             steps.append(DiscoveryStep(action=action, output_ids=output_ids))
             actions.append(action)
             break
