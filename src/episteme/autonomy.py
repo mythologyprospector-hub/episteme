@@ -161,6 +161,7 @@ def _experiment_view(item: Any) -> dict[str, Any]:
         "objective": item.objective,
         "proposed_observation": item.proposed_observation,
         "discrimination_basis": item.discrimination_basis,
+        "execution_spec": dict(item.execution_spec) if item.execution_spec is not None else None,
     }
 
 
