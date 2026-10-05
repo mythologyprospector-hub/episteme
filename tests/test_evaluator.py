@@ -1,3 +1,4 @@
+from episteme.autonomy import record_prediction_consequences
 from episteme.evaluator import PositionalPredictionEvaluator
 from episteme.executor import PositionalObservationExecutor
 from episteme.model import (
@@ -110,5 +111,32 @@ def test_positional_evaluator_refuses_missing_executable_expectation():
             assert "missing executable expectation" in str(exc)
         else:
             raise AssertionError("expected missing executable expectation to fail")
+    finally:
+        store.close()
+
+
+def test_prediction_evaluations_become_explicit_knowledge_consequences():
+    store, proposal, predictions, result = _setup()
+    try:
+        evaluations = PositionalPredictionEvaluator(
+            position=3.0,
+            expected_presence={predictions[0].id: True, predictions[1].id: False},
+        ).evaluate(
+            store, result, proposal, predictions,
+            comparison_conditions="same observations", created_at=CREATED)
+
+        consequence_ids = record_prediction_consequences(
+            store, evaluations, created_at=CREATED
+        )
+
+        assert len(consequence_ids) == 2
+        consequences = tuple(
+            store.get_knowledge_state_consequence(item_id)
+            for item_id in consequence_ids
+        )
+        assert all(item is not None for item in consequences)
+        assert {item.consequence.value for item in consequences if item is not None} == {
+            "supports", "contradicts"
+        }
     finally:
         store.close()
