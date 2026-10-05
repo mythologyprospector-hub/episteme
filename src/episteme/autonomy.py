@@ -449,15 +449,26 @@ def run_autonomous_discovery(
                 continue
 
             feedback.clear()
-            if action.kind == "experiment" and experiment_runtime is not None:
+            if action.kind == "experiment":
                 proposal = store.get_experiment_proposal(output_ids[0])
                 if proposal is None:
                     raise RuntimeError("experiment action did not persist its proposal")
+                active_runtime = experiment_runtime
+                if active_runtime is None:
+                    if proposal.execution_spec is None:
+                        raise RuntimeError("experiment proposal has no executable specification")
+                    spec = ExecutableExperimentSpec(**dict(proposal.execution_spec))
+                    executor, evaluator_factory = build_registered_experiment_runtime(spec)
+                    active_runtime = ExperimentRuntime(
+                        executor=executor,
+                        evaluator_factory=evaluator_factory,
+                        comparison_conditions=proposal.conditions,
+                    )
                 output_ids = _execute_experiment_cycle(
                     store,
                     proposal,
                     grounded_input_ids=grounded_input_ids,
-                    runtime=experiment_runtime,
+                    runtime=active_runtime,
                     created_at=started_at,
                 )
             steps.append(DiscoveryStep(action=action, output_ids=output_ids))
