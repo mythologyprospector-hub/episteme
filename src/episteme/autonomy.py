@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Mapping, Protocol
 
 from .discovery import question_from_finding
-from .executor import ExecutableExperimentSpec
+from .executor import ExecutableExperimentSpec, build_registered_experiment_runtime
 from .model import (DiscoveryFindingKind, ExperimentProposal, KnowledgeStateConsequence, KnowledgeStateConsequenceKind, KnowledgeStateTargetKind, Prediction, PredictionEvaluation)
 from uuid import uuid4
 from .proposals import (
