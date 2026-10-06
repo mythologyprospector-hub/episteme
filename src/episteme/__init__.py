@@ -86,7 +86,7 @@ from .html import render_discovery_report_html
 from .public_import import import_crossref_works
 from .praxis_import import import_praxis_evidence_handoff
 from .orchestration import WorkflowDefinition, WorkflowExecution, WorkflowStep, WorkflowStepResult, run_workflow
-from .autonomy import DiscoveryAction, DiscoveryContext, DiscoveryRun, DiscoveryStep, ExperimentRuntime, ExplorationRuntime, ExplorationAssessmentRuntime, ExplorationAdmissionRuntime, ExplorationAssessmentRuntimeProtocol, ExplorationAdmissionRuntimeProtocol, PositionalExplorationRuntime, Planner, run_autonomous_discovery
+from .autonomy import DiscoveryAction, DiscoveryContext, DiscoveryRun, DiscoveryStep, ExperimentRuntime, ExplorationRuntime, ExplorationAssessmentRuntime, ExplorationAdmissionRuntime, ExplorationAssessmentRuntimeProtocol, ExplorationAdmissionRuntimeProtocol, PositionalExplorationRuntime, StructuralDiscoveryRuntime, PositionalGapDiscoveryRuntime, Planner, run_autonomous_discovery
 from .ollama import OllamaPlanner
 from .executor import ExperimentExecutor, PositionalObservationExecutor
 from .evaluator import PositionalPredictionEvaluator
@@ -213,6 +213,8 @@ __all__ = [
     "ExplorationAssessmentRuntime",
     "ExplorationAdmissionRuntime",
     "PositionalExplorationRuntime",
+    "StructuralDiscoveryRuntime",
+    "PositionalGapDiscoveryRuntime",
     "run_autonomous_discovery",
     "OllamaPlanner",
     "ExperimentExecutor",
