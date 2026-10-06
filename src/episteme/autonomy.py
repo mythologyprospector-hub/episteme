@@ -369,6 +369,7 @@ def _validate_action_state(
     *,
     enforce_exploration_policy: bool,
     actions_taken: tuple[DiscoveryAction, ...] = (),
+    evidence_request_completed: bool = False,
 ) -> None:
     """Enforce bounded discovery transitions at the host boundary.
 
@@ -449,7 +450,9 @@ def _validate_action_state(
     if action.kind == "stop":
         # A request_evidence action is appended only after the host-owned
         # runtime returns successfully, so it is a bounded terminal transition.
-        if any(item.kind == "request_evidence" for item in actions_taken):
+        if evidence_request_completed or any(
+            item.kind == "request_evidence" for item in actions_taken
+        ):
             return
         # A completed and evaluated bounded experiment is also a legal terminal
         # transition. The planner's stop remains blocked before that boundary.
@@ -750,6 +753,7 @@ def run_autonomous_discovery(
     actions: list[DiscoveryAction] = []
     steps: list[DiscoveryStep] = []
     feedback: list[str] = []
+    evidence_request_completed = False
 
     for _ in range(max_steps):
         for attempt in range(max_retries_per_step + 1):
@@ -772,6 +776,7 @@ def run_autonomous_discovery(
                         or exploration_admission_runtime is not None
                     ),
                     actions_taken=tuple(actions),
+                    evidence_request_completed=evidence_request_completed,
                 )
                 if action.kind == "stop":
                     return DiscoveryRun(
@@ -831,6 +836,7 @@ def run_autonomous_discovery(
                     result = evidence_request_runtime.request_evidence(
                         store, request, created_at=started_at
                     )
+                    evidence_request_completed = True
                     output_ids = (result.id,)
                 else:
                     output_ids = execute_action(store, action, created_at=started_at)
