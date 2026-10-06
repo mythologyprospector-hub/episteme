@@ -1,7 +1,6 @@
 """Phase 28 contract tests for bounded autonomous evidence requests.
 
-These tests intentionally describe the host-owned boundary before runtime
-implementation.  They are expected to fail until the Phase 28 contract exists.
+These tests lock the host-owned Phase 28 boundary as executable behavior.
 """
 
 import pytest
