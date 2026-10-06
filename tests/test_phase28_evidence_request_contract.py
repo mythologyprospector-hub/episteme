@@ -251,6 +251,23 @@ def test_crossref_capability_bounds_parameter_values():
     assert request.request_parameters == {"rows": 10, "query.title": "example"}
 
 
+def test_evidence_request_copies_parameter_mapping_at_construction():
+    from episteme.evidence_request import EvidenceRequest
+
+    parameters = {"rows": 3}
+    request = EvidenceRequest(
+        capability="crossref_works",
+        parameters=parameters,
+        rationale="Discriminate the current candidate hypotheses.",
+        requested_representation="application/json",
+        motivation_ids=("99999999-9999-4999-8999-999999999999",),
+    )
+
+    parameters["rows"] = 999
+
+    assert request.parameters["rows"] == 3
+
+
 def test_evidence_request_requires_requested_representation():
     from episteme.evidence_request import EvidenceRequest
 
