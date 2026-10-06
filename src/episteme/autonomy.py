@@ -448,11 +448,12 @@ def _validate_action_state(
     )
 
     if action.kind == "stop":
-        # A request_evidence action is appended only after the host-owned
-        # runtime returns successfully, so it is a bounded terminal transition.
-        if evidence_request_completed or any(
-            item.kind == "request_evidence" for item in actions_taken
-        ):
+        # A request_evidence action enters actions_taken only after its
+        # host-owned runtime returns successfully.  Treat that immediately
+        # preceding completed action as the terminal transition marker.
+        if evidence_request_completed:
+            return
+        if actions_taken and actions_taken[-1].kind == "request_evidence":
             return
         # A completed and evaluated bounded experiment is also a legal terminal
         # transition. The planner's stop remains blocked before that boundary.
