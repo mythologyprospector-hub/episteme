@@ -1,67 +1,119 @@
 # Autonomous Discovery Driver
 
-**Status:** Experimental — Phase 27 implementation boundary
-**Version:** 0.1
+**Status:** Experimental — Phase 27 implementation boundary  
+**Version:** 0.2
 
 ## Why this exists
 
-Phases 1–26 established a substantial discovery substrate and a finite workflow runner. The missing capability is a control loop that can observe represented state, decide what bounded investigation step should happen next, execute only an allowed operation, inspect the resulting state, and decide whether to continue or stop.
+Phases 1–26 established the discovery substrate, finite workflow runner, external acquisition boundaries, public inspection surfaces, and Praxis evidence handoff. Phase 27 adds a bounded control loop that can observe represented state, select the next allowed investigation step, execute that step through host-owned capabilities, inspect the resulting state, and decide whether to continue or stop.
 
 This is deliberately different from claiming that Episteme is already an autonomous scientist.
 
-The driver is an instrument controller. A planner may propose the next bounded action. Episteme validates the action, executes it through declared adapters, and returns the resulting state to the planner.
+The driver is an instrument controller. A planner may propose the next bounded action. Episteme validates the action, executes it through declared host-owned runtimes, and returns the resulting state to the planner.
 
 ## Boundary
 
-represented state → planner → validated action → declared Episteme operation → new represented state → planner
+**represented state → planner → validated action → host-owned Episteme operation → new represented state → planner**
 
-The planner does not receive authority to execute arbitrary Python, mutate the store directly, promote evidence, or bypass the epistemic boundary.
+The planner does not receive authority to execute arbitrary Python, mutate the store directly, promote evidence, choose host runtime controls, or bypass the epistemic boundary.
 
-The planner may only select from the driver's explicit action vocabulary.
+## Action vocabulary
 
-## First action vocabulary
+The Phase 27 driver permits exactly these actions:
 
-- question — turn an existing gap or tension into an unresolved question;
+- scout — request one host-owned bounded exploration operation;
+- assess_exploration — request host-owned assessment of an exploration observation;
+- admit_exploration — request host-owned admission of an accepted exploration observation;
+- discover_gap — request host-owned structural-gap discovery;
+- question — turn an existing finding into an unresolved question;
 - hypothesis — create a generated hypothesis downstream of an existing finding;
 - prediction — create a discriminating prediction from existing competing hypotheses;
-- experiment — propose a discriminating experiment from existing predictions;
-- stop — terminate the investigation with an explicit reason.
+- experiment — create and execute a bounded registered experiment through host-owned execution semantics;
+- stop — terminate the bounded investigation with an explicit reason.
 
-Grounded result ingestion and external acquisition remain separate capability boundaries. The driver may stop at an experiment proposal rather than pretending that an observation occurred.
+The exploration and structural-discovery actions are deliberately host-owned. The planner identifies what stage should happen next; it does not supply the grounded inputs, detector, position field, step, executor, admission policy, or other runtime controls.
+
+## Exploration and structural discovery
+
+The implemented Phase 27 exploration path is:
+
+**scout → assess_exploration → admit_exploration → discover_gap**
+
+The host binds these actions to bounded runtimes. The initial structural-discovery runtime uses the deterministic positional-gap detector.
+
+A missing structural gap is a bounded failure. The planner cannot invent a gap merely because it wants to continue.
+
+Generated exploration observations remain generated. Admission creates an explicit discovery finding representing the accepted observation; it does not convert the observation into grounded evidence.
+
+The canonical structural-discovery boundary is documented in docs/autonomous-structural-discovery.md.
 
 ## Planner contract
 
-A planner receives a compact, deterministic context containing grounded input identifiers, current findings, current hypotheses, current predictions, current experiment proposals, and actions already taken in this run.
+A planner receives a compact, deterministic context containing grounded input identifiers, current findings, hypotheses, predictions, experiment proposals, evaluations, knowledge-state consequences, exploration observations and assessments, actions already taken, and bounded feedback from rejected actions.
 
 It returns exactly one structured action.
 
-A model-backed planner can therefore be added without embedding a model provider into Episteme's epistemic core. A deterministic planner can be used for tests and reproducibility.
+A deterministic planner proves the control boundary and reproducibility. The Ollama planner provides a separate real-model acceptance layer.
 
-## Safety and epistemic rules
+## Validation and bounded correction
 
-The driver must:
+Every planner action is validated before execution.
 
-1. reject unknown action kinds;
-2. require referenced objects to exist;
-3. permit only the declared action vocabulary;
-4. preserve generated-versus-grounded distinctions;
-5. preserve the planner's rationale and method/version;
-6. reject malformed planner output and, when retry budget remains, feed the rejection back to the planner for bounded correction;
-7. enforce a finite step budget;
-8. never treat planner text as evidence;
-9. never execute arbitrary code supplied by a planner;
-10. preserve every completed action and its outputs in the execution trace.
+Invalid or malformed actions are rejected explicitly. When retry budget remains, the rejection is returned to the planner as bounded feedback so it may correct the action.
+
+The driver enforces:
+
+1. a closed action vocabulary;
+2. existence and semantic validity of referenced objects;
+3. required rationale on every action;
+4. host ownership of substantive runtime controls;
+5. generated-versus-grounded separation;
+6. finite step budgets;
+7. bounded retry counts;
+8. durable action/output traceability;
+9. explicit termination.
 
 The planner is steering, not authority.
 
-## What counts as success
+## Experiment boundary
 
-This phase is successful only when an injected planner can drive a complete bounded investigation without a human selecting each intermediate step.
+The planner may propose a bounded experiment, but execution remains host-owned.
 
-The first acceptance test should use a small scientific fixture where the starting evidence establishes a bounded gap, the planner receives the gap rather than a pre-written workflow, the planner chooses the next action, the driver validates and executes it, the resulting state is returned to the planner, and the loop reaches an experiment proposal.
+The initial registered experiment runtime performs only declared operations. The Phase 27 acceptance path uses a positional-presence experiment over host-selected records and evaluates the resulting observation against the declared prediction boundary.
 
-A real model-backed run is a separate acceptance layer. A passing fake-planner test proves the control boundary; it does not prove scientific autonomy.
+An experiment result is a result. Its evaluation remains generated interpretation and does not silently become a universal verdict.
+
+## Acceptance
+
+Phase 27 has two distinct acceptance layers.
+
+### Deterministic control-boundary proof
+
+A deterministic injected planner demonstrates that Episteme can complete a bounded investigation without a human selecting every intermediate action.
+
+### Real-model acceptance
+
+scripts/accept_ollama_full_chain.py exercises the same boundary with a real Ollama model. The acceptance requires the model-backed run to complete cleanly with a final experiment followed by bounded termination.
+
+A passing model-backed run demonstrates that the concrete planner can operate inside the boundary. It does not demonstrate general scientific intelligence.
 
 ## Explicit non-claims
 
-This phase does not claim general scientific intelligence, autonomous truth discovery, unrestricted research, automatic laboratory control, unbounded web research, scientific importance ranking, automatic truth adjudication, or that a language model's output is evidence.
+Phase 27 does not claim:
+
+- general scientific intelligence;
+- autonomous truth discovery;
+- unrestricted research;
+- unbounded web research or crawling;
+- automatic laboratory control;
+- scientific importance ranking;
+- automatic truth adjudication;
+- that a language model's output is evidence;
+- that generated exploration becomes grounded evidence;
+- that a successful bounded run proves the scientific correctness of its hypotheses.
+
+## Architectural invariant
+
+> **The planner may choose among declared bounded operations, but only host-owned Episteme capabilities determine what those operations actually do.**
+
+The control loop is therefore an orchestration boundary, not a new epistemic authority.
