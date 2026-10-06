@@ -373,6 +373,8 @@ class Store:
             self._connection.execute(
                 "ALTER TABLE discovery_findings ADD COLUMN expectation TEXT"
             )
+
+        self._ensure_prediction_expectation_column()
         self._connection.commit()
 
     def put_record(self, record: Record) -> None:
@@ -1116,7 +1118,9 @@ class Store:
                 "assumptions": json.loads(row["assumptions"]), "method": row["method"],
                 "method_version": row["method_version"], "rationale": row["rationale"],
                 "comparison_hypothesis_ids": json.loads(row["comparison_hypothesis_ids"]),
-                "created_at": row["created_at"], "schema_version": row["schema_version"],
+                "created_at": row["created_at"],
+                "expected_presence": None if row["expected_presence"] is None else bool(row["expected_presence"]),
+                "schema_version": row["schema_version"],
             })
 
 
