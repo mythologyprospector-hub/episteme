@@ -138,6 +138,7 @@ class DiscoveryContext:
     consequences: tuple[Mapping[str, Any], ...] = ()
     feedback: tuple[str, ...] = ()
     exploration_observations: tuple[Mapping[str, Any], ...] = ()
+    exploration_assessments: tuple[Mapping[str, Any], ...] = ()
 
 
 class Planner(Protocol):
@@ -222,6 +223,10 @@ def _exploration_observation_view(item: Any) -> dict[str, Any]:
     return {"id": item.id, "observation": item.observation, "input_ids": tuple(item.input_ids), "evidence": tuple(item.evidence), "method": item.method, "method_version": item.method_version, "uncertainty": item.uncertainty, "parameters": dict(item.parameters) if item.parameters is not None else None}
 
 
+def _exploration_assessment_view(item: Any) -> dict[str, Any]:
+    return {"id": item.id, "observation_id": item.observation_id, "accepted": item.accepted, "method": item.method, "method_version": item.method_version, "rationale": item.rationale}
+
+
 def _hypothesis_view(item: Any) -> dict[str, Any]:
     return {
         "id": item.id,
@@ -270,6 +275,7 @@ def build_context(
         grounded_input_ids=tuple(grounded_input_ids),
         findings=tuple(_finding_view(item) for item in store.iter_discovery_findings()),
         exploration_observations=tuple(_exploration_observation_view(item) for item in store.iter_exploration_observations()),
+        exploration_assessments=tuple(_exploration_assessment_view(item) for item in store.iter_exploration_observation_assessments()),
         hypotheses=tuple(_hypothesis_view(item) for item in store.iter_hypotheses()),
         predictions=tuple(_prediction_view(item) for item in store.iter_predictions()),
         experiments=tuple(_experiment_view(item) for item in store.iter_experiment_proposals()),
