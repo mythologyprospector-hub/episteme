@@ -179,6 +179,7 @@ def propose_discriminating_prediction(
         method_version=method_version,
         rationale=rationale,
         comparison_hypothesis_ids=candidate_ids,
+        expected_presence=expected_presence,
         created_at=created_at,
     )
 
