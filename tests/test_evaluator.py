@@ -61,6 +61,7 @@ def _setup():
             conditions="same observations", method="fixture", method_version="1",
             rationale="fixture",
             comparison_hypothesis_ids=tuple(item.id for item in hypotheses),
+            expected_presence=(hypothesis.statement == "position 3.0 is occupied"),
             created_at=CREATED)
         store.put_prediction(prediction)
         predictions.append(prediction)
@@ -83,10 +84,7 @@ def _setup():
 def test_positional_evaluator_records_consistent_and_inconsistent_results():
     store, proposal, predictions, result = _setup()
     try:
-        evaluations = PositionalPredictionEvaluator(
-            position=3.0,
-            expected_presence={predictions[0].id: True, predictions[1].id: False},
-        ).evaluate(store, result, proposal, predictions,
+        evaluations = PositionalPredictionEvaluator(position=3.0).evaluate(store, result, proposal, predictions,
                    comparison_conditions="same observations", created_at=CREATED)
 
         assert [item.outcome for item in evaluations] == [
@@ -104,7 +102,7 @@ def test_positional_evaluator_refuses_missing_executable_expectation():
     store, proposal, predictions, result = _setup()
     try:
         try:
-            PositionalPredictionEvaluator(position=3.0, expected_presence={}).evaluate(
+            PositionalPredictionEvaluator(position=3.0).evaluate(
                 store, result, proposal, predictions,
                 comparison_conditions="same observations", created_at=CREATED)
         except ValueError as exc:
