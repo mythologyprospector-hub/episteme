@@ -3,8 +3,20 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from types import MappingProxyType
 from typing import Any, Callable, Mapping
 from uuid import uuid4
+
+
+def _freeze_parameters(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        return MappingProxyType({key: _freeze_parameters(item) for key, item in value.items()})
+    if isinstance(value, list):
+        return tuple(_freeze_parameters(item) for item in value)
+    if isinstance(value, tuple):
+        return tuple(_freeze_parameters(item) for item in value)
+    return value
+
 
 from .capture import CaptureOutcome, CapturedRepresentation
 from .model import canonical_json
@@ -27,6 +39,7 @@ class AcquisitionRequest:
         if not self.acquisition_method.strip() or not self.acquisition_method_version.strip():
             raise ValueError("acquisition method and version must be non-empty")
         canonical_json(self.request_parameters)
+        object.__setattr__(self, "request_parameters", _freeze_parameters(self.request_parameters))
 
 
 @dataclass(frozen=True, slots=True)

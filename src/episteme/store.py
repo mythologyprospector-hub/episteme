@@ -1819,6 +1819,10 @@ class Store:
         """Return whether an identifier resolves to a persisted workflow resource."""
         return self._workflow_artifact_exists(artifact_id)
 
+    def epistemic_object_exists(self, object_id: str) -> bool:
+        """Return whether an identifier resolves to a persisted epistemic object."""
+        return self._object_exists(object_id)
+
     def put_workflow_execution(self, execution: "WorkflowExecution") -> None:
         from .orchestration import WorkflowExecution
 
