@@ -671,9 +671,9 @@ class CrossrefEvidenceRuntime:
         )
 
 
-def test_autonomous_discovery_can_request_evidence_only_through_host_runtime():
+def test_autonomous_discovery_can_request_evidence_only_through_host_runtime(tmp_path):
     records = _records()
-    with Store() as store:
+    with Store(capture_root=tmp_path / "captures") as store:
         for record in records:
             store.put_record(record)
 
