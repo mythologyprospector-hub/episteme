@@ -617,3 +617,29 @@ def test_unknown_capability_is_rejected_before_motivation_lookup(tmp_path):
             provider=lambda _request: pytest.fail("provider must not run"),
             captured_at=CAPTURED_AT,
         )
+
+
+def test_invalid_capability_parameters_are_rejected_before_motivation_lookup(tmp_path):
+    from episteme.evidence_request import EvidenceRequest, execute_evidence_request
+
+    request = EvidenceRequest(
+        capability="crossref_works",
+        parameters={"rows": 1001},
+        rationale="Discriminate the current candidate hypotheses.",
+        requested_representation="application/json",
+        motivation_ids=("eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",),
+    )
+
+    class ExplodingStore:
+        def epistemic_object_exists(self, _object_id):
+            raise AssertionError(
+                "motivation lookup must not occur before capability request validation"
+            )
+
+    with pytest.raises(ValueError, match="rows"):
+        execute_evidence_request(
+            request,
+            ExplodingStore(),
+            provider=lambda _request: pytest.fail("provider must not run"),
+            captured_at=CAPTURED_AT,
+        )
