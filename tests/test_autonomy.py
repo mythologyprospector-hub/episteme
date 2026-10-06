@@ -89,7 +89,10 @@ class FixturePlanner:
             return DiscoveryAction(kind="hypothesis", target_ids=(gap["id"],), statement="The missing occupant is not at position 3.0.", rationale="Preserve a competing explanation before testing.")
 
         if not predictions:
-            return DiscoveryAction(kind="prediction", target_ids=tuple(item["id"] for item in hypotheses), consequence="The measured occupant is at position 3.0.", conditions="Same bounded test conditions.", expected_presences={item["id"]: (index == 0) for index, item in enumerate(hypotheses)}, rationale="The competing hypotheses require a discriminating observation.")
+            return DiscoveryAction(kind="prediction", target_ids=tuple(item["id"] for item in hypotheses), consequence="The measured occupant is at position 3.0.", conditions="Same bounded test conditions.", expected_presences={
+                    item["id"]: item["statement"] == "The missing occupant is at position 3.0."
+                    for item in hypotheses
+                }, rationale="The competing hypotheses require a discriminating observation.")
 
         if len(predictions) == 2 and not context.experiments:
             return DiscoveryAction(
