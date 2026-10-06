@@ -361,7 +361,6 @@ def _validate_execution_spec(
         "operation": spec.operation,
         "position": float(spec.position),
         "position_key": spec.position_key,
-        "expected_presence": dict(spec.expected_presence),
     }
 
 
