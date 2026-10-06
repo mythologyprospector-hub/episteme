@@ -8,6 +8,7 @@ import sqlite3
 from typing import Iterator
 
 from .candidate_assessment import CandidateConstraintAssessment
+from .exploration_assessment import ExplorationObservationAssessment
 from .capture import CapturedRepresentation
 from .model import (
     AssessmentTargetKind,
@@ -136,6 +137,19 @@ class Store:
                 evidence TEXT NOT NULL, method TEXT NOT NULL, method_version TEXT NOT NULL,
                 uncertainty TEXT NOT NULL, parameters TEXT, created_at TEXT NOT NULL,
                 schema_version INTEGER NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS exploration_observation_assessments (
+                id TEXT PRIMARY KEY,
+                observation_id TEXT NOT NULL,
+                accepted INTEGER NOT NULL,
+                method TEXT NOT NULL,
+                method_version TEXT NOT NULL,
+                rationale TEXT NOT NULL,
+                provenance TEXT NOT NULL,
+                assessed_at TEXT NOT NULL,
+                schema_version INTEGER NOT NULL,
+                FOREIGN KEY(observation_id) REFERENCES exploration_observations(id)
             );
 
             CREATE TABLE IF NOT EXISTS knowledge_state_consequences (
@@ -556,6 +570,8 @@ class Store:
             if self.get_prediction_evaluation(context_id) is None
             and self.get_knowledge_state_consequence(context_id) is None
             and self.get_prediction(context_id) is None
+            and self.get_exploration_observation(context_id) is None
+            and self.get_exploration_observation_assessment(context_id) is None
         ]
         if missing_context:
             raise ValueError(
@@ -709,6 +725,98 @@ class Store:
                 "uncertainty": row["uncertainty"],
                 "parameters": json.loads(row["parameters"]) if row["parameters"] is not None else None,
                 "created_at": row["created_at"], "schema_version": row["schema_version"],
+            })
+
+
+    def put_exploration_observation_assessment(
+        self, assessment: ExplorationObservationAssessment
+    ) -> None:
+        if self.get_exploration_observation(assessment.observation_id) is None:
+            raise ValueError(
+                "exploration observation assessment references missing observation: "
+                + assessment.observation_id
+            )
+        self._connection.execute(
+            """
+            INSERT INTO exploration_observation_assessments
+                (id, observation_id, accepted, method, method_version, rationale,
+                 provenance, assessed_at, schema_version)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                assessment.id,
+                assessment.observation_id,
+                1 if assessment.accepted else 0,
+                assessment.method,
+                assessment.method_version,
+                assessment.rationale,
+                canonical_json([item.to_dict() for item in assessment.provenance]),
+                assessment.assessed_at,
+                assessment.schema_version,
+            ),
+        )
+        self._connection.commit()
+
+    def get_exploration_observation_assessment(
+        self, assessment_id: str
+    ) -> ExplorationObservationAssessment | None:
+        row = self._connection.execute(
+            """
+            SELECT id, observation_id, accepted, method, method_version, rationale,
+                   provenance, assessed_at, schema_version
+            FROM exploration_observation_assessments
+            WHERE id = ?
+            """,
+            (assessment_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        return ExplorationObservationAssessment.from_dict({
+            "id": row["id"],
+            "observation_id": row["observation_id"],
+            "accepted": bool(row["accepted"]),
+            "method": row["method"],
+            "method_version": row["method_version"],
+            "rationale": row["rationale"],
+            "provenance": json.loads(row["provenance"]),
+            "assessed_at": row["assessed_at"],
+            "schema_version": row["schema_version"],
+        })
+
+    def iter_exploration_observation_assessments(
+        self, observation_id: str | None = None
+    ) -> Iterator[ExplorationObservationAssessment]:
+        if observation_id is None:
+            rows = self._connection.execute(
+                """
+                SELECT id, observation_id, accepted, method, method_version, rationale,
+                       provenance, assessed_at, schema_version
+                FROM exploration_observation_assessments
+                ORDER BY assessed_at, id
+                """
+            )
+        else:
+            rows = self._connection.execute(
+                """
+                SELECT id, observation_id, accepted, method, method_version, rationale,
+                       provenance, assessed_at, schema_version
+                FROM exploration_observation_assessments
+                WHERE observation_id = ?
+                ORDER BY assessed_at, id
+                """,
+                (observation_id,),
+            )
+        for row in rows:
+            yield ExplorationObservationAssessment.from_dict({
+                "id": row["id"],
+                "observation_id": row["observation_id"],
+                "accepted": bool(row["accepted"]),
+                "method": row["method"],
+                "method_version": row["method_version"],
+                "rationale": row["rationale"],
+                "provenance": json.loads(row["provenance"]),
+                "assessed_at": row["assessed_at"],
+                "schema_version": row["schema_version"],
             })
 
     def put_hypothesis(self, hypothesis: Hypothesis) -> None:
