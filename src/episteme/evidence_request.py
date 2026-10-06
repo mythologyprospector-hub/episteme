@@ -132,6 +132,9 @@ def execute_evidence_request(
     """Execute an admitted request through the existing acquisition pipeline."""
     capability = resolve_evidence_capability(request.capability)
 
+    capability.validate_representation(request.requested_representation)
+    acquisition_request = capability.build_request(request.parameters)
+
     missing_motivations = [
         motivation_id
         for motivation_id in request.motivation_ids
@@ -142,8 +145,6 @@ def execute_evidence_request(
             "evidence request motivation not found: "
             + ", ".join(missing_motivations)
         )
-    capability.validate_representation(request.requested_representation)
-    acquisition_request = capability.build_request(request.parameters)
 
     def bounded_provider(acquisition: AcquisitionRequest):
         response = provider(acquisition)
