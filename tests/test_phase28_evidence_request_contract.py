@@ -714,3 +714,37 @@ def test_host_acquisition_parameters_cannot_be_mutated_by_provider(tmp_path):
         )
 
         assert result.request_parameters == {"rows": 1}
+
+
+def test_captured_representation_request_parameters_cannot_be_mutated(tmp_path):
+    from episteme.evidence_request import EvidenceRequest, execute_evidence_request
+
+    motivation_id = "cececece-cece-4ece-8ece-cececececece"
+    request = EvidenceRequest(
+        capability="crossref_works",
+        parameters={"rows": 1},
+        rationale="Preserve immutable acquisition provenance after capture.",
+        requested_representation="application/json",
+        motivation_ids=(motivation_id,),
+    )
+
+    with Store(tmp_path / "phase28.sqlite", capture_root=tmp_path / "captures") as store:
+        _seed_motivation(store, motivation_id)
+        result = execute_evidence_request(
+            request,
+            store,
+            provider=lambda _request: AcquisitionResponse(
+                status=200,
+                media_type="application/json",
+                source_version="v1",
+                content=CONTENT,
+                outcome=CaptureOutcome.COMPLETE,
+            ),
+            captured_at=CAPTURED_AT,
+            capture_id="capture-phase28-frozen-capture-params",
+        )
+
+        with pytest.raises(TypeError):
+            result.request_parameters["rows"] = 999
+
+        assert result.request_parameters == {"rows": 1}
