@@ -237,6 +237,61 @@ def test_evidence_request_requires_requested_representation():
     )
     assert request.requested_representation == "application/json"
 
+def test_unresolved_question_is_a_valid_evidence_request_motivation(tmp_path):
+    from episteme.discovery import question_from_finding
+    from episteme.evidence_request import EvidenceRequest, execute_evidence_request
+    from episteme.model import DiscoveryFinding, DiscoveryFindingKind
+
+    finding_id = "55555555-5555-4555-8555-555555555555"
+    request_id = "66666666-6666-4666-8666-666666666666"
+
+    def provider(_request):
+        return AcquisitionResponse(
+            status=200,
+            media_type="application/json",
+            source_version="v1",
+            content=CONTENT,
+            outcome=CaptureOutcome.COMPLETE,
+        )
+
+    with Store(tmp_path / "phase28.sqlite", capture_root=tmp_path / "captures") as store:
+        _seed_motivation(store, request_id)
+        tension = DiscoveryFinding(
+            id=finding_id,
+            kind=DiscoveryFindingKind.TENSION,
+            title="Phase 28 test tension",
+            description="Two represented observations remain in tension.",
+            input_ids=(request_id,),
+            method="phase28-test",
+            method_version="1",
+            rationale="Create a bounded unresolved question for the evidence-request contract.",
+            measures=(),
+            created_at=CAPTURED_AT,
+        )
+        store.put_discovery_finding(tension)
+
+        question = question_from_finding(tension, CAPTURED_AT)
+        store.put_discovery_finding(question)
+
+        request = EvidenceRequest(
+            capability="crossref_works",
+            parameters={"rows": 1},
+            rationale="Acquire evidence to address the unresolved question.",
+            requested_representation="application/json",
+            motivation_ids=(question.id,),
+        )
+        result = execute_evidence_request(
+            request,
+            store,
+            provider=provider,
+            captured_at=CAPTURED_AT,
+            capture_id="capture-phase28-question-motivation",
+        )
+
+        assert result.outcome is CaptureOutcome.COMPLETE
+        assert result.id == "capture-phase28-question-motivation"
+
+
 def test_evidence_request_requires_a_discriminating_rationale():
     from episteme.evidence_request import EvidenceRequest
     with pytest.raises(ValueError, match="rationale"):
