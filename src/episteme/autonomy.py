@@ -448,8 +448,8 @@ def _validate_action_state(
     )
 
     if action.kind == "stop":
-        # A request_evidence action enters actions_taken only after its
-        # host-owned runtime returns successfully.  Treat that immediately
+        # A successful request_evidence action enters actions_taken only
+        # after its host-owned runtime returns successfully. Treat that immediately
         # preceding completed action as the terminal transition marker.
         if evidence_request_completed:
             return
