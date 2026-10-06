@@ -117,9 +117,7 @@ def test_planner_cannot_supply_assessment_acceptance_policy():
                 return DiscoveryAction(
                     kind="assess_exploration",
                     target_ids=(context.exploration_observations[0]["id"],),
-                    accepted=True,
-                    method="attacker",
-                    rationale="Try to inject assessment policy.",
+                    rationale="Try to influence the host assessment policy.",
                 )
 
         runtime = ExplorationAssessmentRuntime(
