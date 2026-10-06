@@ -274,6 +274,37 @@ def test_evidence_request_rejects_mismatched_provider_media_type(tmp_path):
     assert "media type" in (capture.error or "")
     assert capture.content_digest is None
 
+def test_unsupported_evidence_representation_is_rejected_before_provider(tmp_path):
+    from episteme.evidence_request import EvidenceRequest, execute_evidence_request
+
+    motivation_id = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+    request = EvidenceRequest(
+        capability="crossref_works",
+        parameters={"rows": 1},
+        rationale="Discriminate the current candidate hypotheses.",
+        requested_representation="text/html",
+        motivation_ids=(motivation_id,),
+    )
+
+    calls = []
+
+    def provider(_request):
+        calls.append(True)
+        raise AssertionError("provider must not run for rejected representation")
+
+    with Store(tmp_path / "phase28.sqlite") as store:
+        _seed_motivation(store, motivation_id)
+        with pytest.raises(ValueError, match="unsupported evidence request representation"):
+            execute_evidence_request(
+                request,
+                store,
+                provider=provider,
+                captured_at=CAPTURED_AT,
+            )
+
+    assert calls == []
+
+
 def test_evidence_request_representation_must_be_supported_by_capability():
     from episteme.evidence_request import EvidenceRequest, resolve_evidence_capability
 
