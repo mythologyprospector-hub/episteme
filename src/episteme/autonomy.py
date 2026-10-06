@@ -10,7 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Callable, Mapping, Protocol
 
-from .discovery import question_from_finding
+from .discovery import detect_positional_gap, question_from_finding
 from .exploration import scout_positional_records
 from .exploration_bridge import admit_exploration_observation, assess_exploration_observation
 from .model import Provenance
@@ -29,6 +29,35 @@ class ExplorationRuntime(Protocol):
 
     def scout(self, store: Any, *, created_at: str) -> Any:
         """Run one preconfigured bounded scout operation."""
+
+
+class StructuralDiscoveryRuntime(Protocol):
+    """Host-owned binding for one bounded structural discovery operation."""
+
+    def discover(self, store: Any, *, created_at: str) -> Any:
+        """Run one preconfigured structural discovery operation."""
+
+
+@dataclass(frozen=True, slots=True)
+class PositionalGapDiscoveryRuntime:
+    """Host-owned configuration for bounded positional gap discovery."""
+
+    input_ids: tuple[str, ...]
+    position_key: str
+    step: float
+
+    def discover(self, store: Any, *, created_at: str) -> Any:
+        finding = detect_positional_gap(
+            store,
+            self.input_ids,
+            self.position_key,
+            self.step,
+            created_at,
+        )
+        if finding is None:
+            raise PlannerActionError("bounded structural discovery found no gap")
+        store.put_discovery_finding(finding)
+        return finding
 
 
 @dataclass(frozen=True, slots=True)
@@ -120,7 +149,7 @@ class DiscoveryAction:
     rationale: str = ""
 
     def __post_init__(self) -> None:
-        if self.kind not in {"scout", "assess_exploration", "admit_exploration", "question", "hypothesis", "prediction", "experiment", "stop"}:
+        if self.kind not in {"scout", "assess_exploration", "admit_exploration", "discover_gap", "question", "hypothesis", "prediction", "experiment", "stop"}:
             raise PlannerActionError(f"unknown discovery action: {self.kind}")
         if not self.rationale.strip():
             raise PlannerActionError("discovery action requires a rationale")
@@ -324,6 +353,9 @@ def execute_action(store: Any, action: DiscoveryAction, *, created_at: str) -> t
     if action.kind == "scout":
         raise PlannerActionError("scout action requires the host-owned exploration runtime")
 
+    if action.kind == "discover_gap":
+        raise PlannerActionError("discover_gap action requires the host-owned structural discovery runtime")
+
     if not action.target_ids:
         raise PlannerActionError(f"{action.kind} action requires target_ids")
 
@@ -511,6 +543,7 @@ def run_autonomous_discovery(
     max_steps: int = 12,
     experiment_runtime: ExperimentRuntime | None = None,
     exploration_runtime: ExplorationRuntime | None = None,
+    structural_discovery_runtime: StructuralDiscoveryRuntime | None = None,
     exploration_assessment_runtime: ExplorationAssessmentRuntimeProtocol | None = None,
     exploration_admission_runtime: ExplorationAdmissionRuntimeProtocol | None = None,
     max_retries_per_step: int = 2,
@@ -553,6 +586,11 @@ def run_autonomous_discovery(
                         raise PlannerActionError("scout action is unavailable without a host-owned exploration runtime")
                     observation = exploration_runtime.scout(store, created_at=started_at)
                     output_ids = (observation.id,)
+                elif action.kind == "discover_gap":
+                    if structural_discovery_runtime is None:
+                        raise PlannerActionError("structural discovery is unavailable without a host-owned structural discovery runtime")
+                    finding = structural_discovery_runtime.discover(store, created_at=started_at)
+                    output_ids = (finding.id,)
                 elif action.kind == "assess_exploration":
                     if exploration_assessment_runtime is None:
                         raise PlannerActionError("exploration assessment is unavailable without a host-owned assessment runtime")
