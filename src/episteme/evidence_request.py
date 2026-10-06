@@ -15,6 +15,11 @@ from .acquisition import AcquisitionProvider, AcquisitionRequest, _freeze_parame
 from .store import Store
 
 
+class EvidenceRequestRejected(ValueError):
+    """Host policy rejected an evidence request before acquisition."""
+
+
+
 @dataclass(frozen=True, slots=True)
 class EvidenceCapability:
     """A host-registered acquisition capability."""
