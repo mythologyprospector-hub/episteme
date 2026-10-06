@@ -64,12 +64,15 @@ class EvidenceRequest:
     parameters: Mapping[str, Any]
     rationale: str
     motivation_ids: tuple[str, ...] = ()
+    requested_representation: str = ""
 
     def __post_init__(self) -> None:
         if not self.capability.strip():
             raise ValueError("evidence request capability must be non-empty")
         if not self.rationale.strip():
             raise ValueError("evidence request rationale must be non-empty")
+        if not self.requested_representation.strip():
+            raise ValueError("evidence request representation must be non-empty")
         if not self.motivation_ids:
             raise ValueError("evidence request requires at least one motivation")
         for motivation_id in self.motivation_ids:
