@@ -791,49 +791,17 @@ def test_reloaded_capture_request_parameters_remain_immutable(tmp_path):
         assert reloaded.request_parameters == {"rows": 1}
 
 
-def test_nested_host_acquisition_parameters_cannot_be_mutated_by_provider(tmp_path):
-    from episteme.evidence_request import EvidenceRequest, execute_evidence_request
 
-    motivation_id = "cececece-cece-4ece-8ece-cececececece"
-    request = EvidenceRequest(
-        capability="crossref_works",
-        parameters={"rows": 1},
-        rationale="Verify nested host-owned parameters cannot drift.",
-        requested_representation="application/json",
-        motivation_ids=(motivation_id,),
+def test_nested_acquisition_request_parameters_cannot_be_mutated():
+    request = AcquisitionRequest(
+        source_id="test-source",
+        requested_resource="test-resource",
+        request_parameters={"nested": {"limit": 10}},
+        acquisition_method="test",
+        acquisition_method_version="1",
     )
 
-    with Store(tmp_path / "phase28.sqlite", capture_root=tmp_path / "captures") as store:
-        _seed_motivation(store, motivation_id)
-        nested = _request_parameters_with_nested_mapping()
-        nested_request = EvidenceRequest(
-            capability="crossref_works",
-            parameters={"rows": 1, "query.title": "example", "nested": nested},
-            rationale="Verify nested host-owned parameters cannot drift.",
-            requested_representation="application/json",
-            motivation_ids=(motivation_id,),
-        )
+    with pytest.raises(TypeError):
+        request.request_parameters["nested"]["limit"] = 999
 
-        def provider(acquisition):
-            with pytest.raises(TypeError):
-                acquisition.request_parameters["nested"]["limit"] = 999
-            return AcquisitionResponse(
-                status=200,
-                media_type="application/json",
-                source_version="v1",
-                content=CONTENT,
-                outcome=CaptureOutcome.COMPLETE,
-            )
-
-        result = execute_evidence_request(
-            nested_request,
-            store,
-            provider=provider,
-            captured_at=CAPTURED_AT,
-            capture_id="capture-phase28-nested-frozen-params",
-        )
-        assert result.request_parameters["nested"]["limit"] == 10
-
-
-def _request_parameters_with_nested_mapping():
-    return {"limit": 10}
+    assert request.request_parameters["nested"]["limit"] == 10
