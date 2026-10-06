@@ -2,7 +2,7 @@
 
 **Status:** Canonical planning document  
 **Version:** 2.0  
-**Last updated:** 2026-10-03
+**Last updated:** 2026-10-06
 
 ## Mission
 
@@ -649,11 +649,11 @@ Target capabilities:
 
 **Exit condition:** Episteme can drive a bounded investigation from represented state through planner-selected, host-validated operations and back into represented state without human selection of each intermediate step, while preserving epistemic boundaries, finite execution, traceability, and host ownership of all substantive operations.
 
-**Status:** Implementation boundary established; deterministic acceptance is green and real-model Ollama acceptance is available as a separate acceptance layer. Phase 27 does not claim general scientific autonomy.
+**Status:** Complete.
 
 ### Phase 27 Exit Audit
 
-The current implementation satisfies the Phase 27 implementation boundary:
+The implemented Phase 27 behavior satisfies the Phase 27 exit condition:
 
 - the planner selects actions but cannot execute arbitrary code, mutate the store directly, promote evidence, or bypass declared Episteme operations;
 - malformed or invalid planner actions are rejected and can receive bounded corrective feedback;
@@ -662,7 +662,7 @@ The current implementation satisfies the Phase 27 implementation boundary:
 - structural gaps are established by deterministic structural rules and grounded inputs rather than invented by the planner;
 - generated exploration observations remain distinct from grounded evidence;
 - autonomous structural discovery preserves original grounded input identifiers and records generated discovery state explicitly;
-- real Ollama acceptance exercises the model-backed boundary separately from deterministic tests;
+- real Ollama acceptance exercises the model-backed boundary separately from deterministic tests and now completes with a clean stopped run;
 - the repository's GitHub Actions validation for the merged Phase 27 work completed successfully.
 
 **Status:** Complete.
