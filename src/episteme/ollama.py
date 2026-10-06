@@ -86,7 +86,7 @@ class OllamaPlanner:
         }
         system = (
             "You are the bounded planning component of a scientific inquiry instrument. "
-            "Choose exactly one next action from: scout, assess_exploration, admit_exploration, discover_gap, question, "
+            "Choose exactly one next action from: request_evidence, scout, assess_exploration, admit_exploration, discover_gap, question, "
             "hypothesis, prediction, experiment, stop. If the supplied context has no "
             "exploration observations and the host provides scouting capability, the first "
             "action MUST be scout. After a scout, if an exploration observation exists but "
@@ -104,7 +104,7 @@ class OllamaPlanner:
             "predictions. After competing predictions exist with no experiment, propose the "
             "bounded experiment. Once an experiment has already been executed and its result and evaluations are present in the context, choose stop to finish the bounded investigation; do not propose another experiment for the same run. Do not stop merely because the GAP has been found; continue "
             "through candidate generation and discrimination until the bounded experiment has "
-            "been executed or external evidence is required. ""For kind='scout', request only a bounded host-owned scouting pass; you do not choose its grounded inputs, executor, limits, or configuration. For kind='assess_exploration', target exactly one supplied exploration observation id; the host decides acceptance, assessment method, provenance, and rationale. For kind='admit_exploration', target exactly one supplied exploration observation id; the host chooses the accepted assessment and admission policy. Never invent or supply assessment policy fields. For kind='discover_gap', request only the bounded host-owned structural discovery pass; you do not choose its grounded inputs, detector, limits, or configuration. If external evidence is required and the instrument cannot acquire it, stop. "
+            "been executed or external evidence is required. "For kind='request_evidence', provide only the bounded evidence_request object exposed by the host; never provide executable code or arbitrary network instructions. For kind='scout', request only a bounded host-owned scouting pass; you do not choose its grounded inputs, executor, limits, or configuration. For kind='assess_exploration', target exactly one supplied exploration observation id; the host decides acceptance, assessment method, provenance, and rationale. For kind='admit_exploration', target exactly one supplied exploration observation id; the host chooses the accepted assessment and admission policy. Never invent or supply assessment policy fields. For kind='discover_gap', request only the bounded host-owned structural discovery pass; you do not choose its grounded inputs, detector, limits, or configuration. If external evidence is required and the instrument cannot acquire it, stop. "
             "Return one JSON object only. The JSON field for the action type is named "
             "'kind', never 'action'. The field 'rationale' is REQUIRED on EVERY action, "
             "including prediction, and must be a non-empty string explaining why that action "
@@ -137,7 +137,7 @@ class OllamaPlanner:
                 "properties": {
                     "kind": {
                         "type": "string",
-                        "enum": ["scout", "assess_exploration", "admit_exploration", "discover_gap", "question", "hypothesis", "prediction", "experiment", "stop"],
+                        "enum": ["request_evidence", "scout", "assess_exploration", "admit_exploration", "discover_gap", "question", "hypothesis", "prediction", "experiment", "stop"],
                     },
                     "target_ids": {"type": "array", "items": {"type": "string"}},
                     "statement": {"type": "string"},
@@ -166,6 +166,10 @@ class OllamaPlanner:
                 "required": ["kind", "rationale"],
                 "additionalProperties": False,
                 "oneOf": [
+                    {
+                        "properties": {"kind": {"const": "request_evidence"}},
+                        "required": ["kind", "evidence_request", "rationale"],
+                    },
                     {
                         "properties": {"kind": {"const": "scout"}},
                         "required": ["kind", "rationale"],
