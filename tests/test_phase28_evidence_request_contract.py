@@ -151,6 +151,24 @@ def test_partial_capture_remains_partial(tmp_path):
         assert store.read_captured_content(result.id) == CONTENT
 
 
+
+def test_crossref_capability_bounds_parameter_values():
+    from episteme.evidence_request import resolve_evidence_capability
+
+    capability = resolve_evidence_capability("crossref_works")
+
+    with pytest.raises(ValueError, match="rows"):
+        capability.build_request({"rows": 0})
+
+    with pytest.raises(ValueError, match="rows"):
+        capability.build_request({"rows": 1001})
+
+    with pytest.raises(ValueError, match="query.title"):
+        capability.build_request({"query.title": ""})
+
+    request = capability.build_request({"rows": 10, "query.title": "example"})
+    assert request.request_parameters == {"rows": 10, "query.title": "example"}
+
 def test_evidence_request_requires_a_discriminating_rationale():
     from episteme.evidence_request import EvidenceRequest
     with pytest.raises(ValueError, match="rationale"):
