@@ -237,6 +237,40 @@ def test_evidence_request_requires_requested_representation():
     )
     assert request.requested_representation == "application/json"
 
+def test_evidence_request_rejects_mismatched_provider_media_type(tmp_path):
+    from episteme.acquisition import AcquisitionResponse
+    from episteme.capture import CaptureOutcome
+    from episteme.evidence_request import EvidenceRequest, execute_evidence_request
+
+    store = Store(tmp_path / "episteme.db")
+    motivation_id = _seed_motivation(store)
+
+    request = EvidenceRequest(
+        capability="crossref_works",
+        parameters={"rows": 1},
+        rationale="Discriminate the current candidate hypotheses.",
+        requested_representation="application/json",
+        motivation_ids=(motivation_id,),
+    )
+
+    def provider(_request):
+        return AcquisitionResponse(
+            status=200,
+            media_type="text/html",
+            source_version=None,
+            content=b"<html>not json</html>",
+            outcome=CaptureOutcome.COMPLETE,
+        )
+
+    with pytest.raises(ValueError, match="media type"):
+        execute_evidence_request(
+            request,
+            store,
+            provider=provider,
+            captured_at="2026-10-06T00:00:00+00:00",
+        )
+
+
 def test_evidence_request_representation_must_be_supported_by_capability():
     from episteme.evidence_request import EvidenceRequest, resolve_evidence_capability
 
