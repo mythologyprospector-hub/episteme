@@ -93,6 +93,7 @@ class EvidenceRequest:
         object.__setattr__(self, "parameters", MappingProxyType(dict(self.parameters)))
         if not self.motivation_ids:
             raise ValueError("evidence request requires at least one motivation")
+        object.__setattr__(self, "motivation_ids", tuple(self.motivation_ids))
         for motivation_id in self.motivation_ids:
             if not isinstance(motivation_id, str) or not motivation_id.strip():
                 raise ValueError("evidence request motivation ids must be non-empty strings")
