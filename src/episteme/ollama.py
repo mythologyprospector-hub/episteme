@@ -79,6 +79,7 @@ class OllamaPlanner:
                     "proposed_observation": action.proposed_observation,
                     "discrimination_basis": action.discrimination_basis,
                     "execution_spec": dict(action.execution_spec) if action.execution_spec is not None else None,
+                    "evidence_request": dict(action.evidence_request) if action.evidence_request is not None else None,
                     "rationale": action.rationale,
                 }
                 for action in context.actions_taken
@@ -104,7 +105,7 @@ class OllamaPlanner:
             "predictions. After competing predictions exist with no experiment, propose the "
             "bounded experiment. Once an experiment has already been executed and its result and evaluations are present in the context, choose stop to finish the bounded investigation; do not propose another experiment for the same run. Do not stop merely because the GAP has been found; continue "
             "through candidate generation and discrimination until the bounded experiment has "
-            "been executed or external evidence is required. "For kind='request_evidence', provide only the bounded evidence_request object exposed by the host; never provide executable code or arbitrary network instructions. For kind='scout', request only a bounded host-owned scouting pass; you do not choose its grounded inputs, executor, limits, or configuration. For kind='assess_exploration', target exactly one supplied exploration observation id; the host decides acceptance, assessment method, provenance, and rationale. For kind='admit_exploration', target exactly one supplied exploration observation id; the host chooses the accepted assessment and admission policy. Never invent or supply assessment policy fields. For kind='discover_gap', request only the bounded host-owned structural discovery pass; you do not choose its grounded inputs, detector, limits, or configuration. If external evidence is required and the instrument cannot acquire it, stop. "
+            "been executed or external evidence is required. For kind='request_evidence', provide only the bounded evidence_request object exposed by the host; never provide executable code or arbitrary network instructions. For kind='scout', request only a bounded host-owned scouting pass; you do not choose its grounded inputs, executor, limits, or configuration. For kind='assess_exploration', target exactly one supplied exploration observation id; the host decides acceptance, assessment method, provenance, and rationale. For kind='admit_exploration', target exactly one supplied exploration observation id; the host chooses the accepted assessment and admission policy. Never invent or supply assessment policy fields. For kind='discover_gap', request only the bounded host-owned structural discovery pass; you do not choose its grounded inputs, detector, limits, or configuration. If external evidence is required and the instrument cannot acquire it, stop. "
             "Return one JSON object only. The JSON field for the action type is named "
             "'kind', never 'action'. The field 'rationale' is REQUIRED on EVERY action, "
             "including prediction, and must be a non-empty string explaining why that action "
@@ -147,6 +148,7 @@ class OllamaPlanner:
                     "objective": {"type": "string"},
                     "proposed_observation": {"type": "string"},
                     "discrimination_basis": {"type": "string"},
+                    "evidence_request": {"type": "object"},
                     "execution_spec": {
                         "type": "object",
                         "properties": {
