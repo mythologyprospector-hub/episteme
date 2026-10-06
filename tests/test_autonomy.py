@@ -671,6 +671,107 @@ class CrossrefEvidenceRuntime:
         )
 
 
+
+
+class FailedEvidenceRuntime:
+    def request_evidence(self, store, request, *, created_at):
+        from episteme.acquisition import AcquisitionResponse
+        from episteme.capture import CaptureOutcome
+        from episteme.evidence_request import execute_evidence_request
+        return execute_evidence_request(
+            request, store,
+            provider=lambda _request: AcquisitionResponse(
+                status=None, media_type=None, source_version="fixture-crossref-v1",
+                content=None, outcome=CaptureOutcome.FAILED, error="fixture acquisition failed",
+            ),
+            captured_at=created_at, capture_id="capture-autonomous-evidence-failed",
+        )
+
+
+class PartialEvidenceRuntime:
+    def request_evidence(self, store, request, *, created_at):
+        from episteme.acquisition import AcquisitionResponse
+        from episteme.capture import CaptureOutcome
+        from episteme.evidence_request import execute_evidence_request
+        return execute_evidence_request(
+            request, store,
+            provider=lambda _request: AcquisitionResponse(
+                status=206, media_type="application/json", source_version="fixture-crossref-v1",
+                content=b'{"message":{"items":[]}}', outcome=CaptureOutcome.PARTIAL,
+            ),
+            captured_at=created_at, capture_id="capture-autonomous-evidence-partial",
+        )
+
+
+class UnsupportedMediaEvidenceRuntime:
+    def request_evidence(self, store, request, *, created_at):
+        from episteme.acquisition import AcquisitionResponse
+        from episteme.capture import CaptureOutcome
+        from episteme.evidence_request import execute_evidence_request
+        return execute_evidence_request(
+            request, store,
+            provider=lambda _request: AcquisitionResponse(
+                status=200, media_type="text/html", source_version="fixture-crossref-v1",
+                content=b"<html>not the registered representation</html>",
+                outcome=CaptureOutcome.COMPLETE,
+            ),
+            captured_at=created_at, capture_id="capture-autonomous-evidence-media-mismatch",
+        )
+
+
+def _run_autonomous_evidence_fixture(tmp_path, runtime):
+    records = _records()
+    with Store(capture_root=tmp_path / "captures") as store:
+        for record in records:
+            store.put_record(record)
+        gap = detect_positional_gap(
+            store, record_ids=tuple(record.id for record in records),
+            position_key="position", step=1.0, created_at=CREATED,
+        )
+        assert gap is not None
+        store.put_discovery_finding(gap)
+        result = run_autonomous_discovery(
+            store, EvidenceRequestPlanner(),
+            grounded_input_ids=tuple(record.id for record in records),
+            started_at=CREATED, evidence_request_runtime=runtime, max_steps=6,
+        )
+        return result, store
+
+
+def test_autonomous_evidence_failure_is_not_reported_as_success(tmp_path):
+    result, store = _run_autonomous_evidence_fixture(tmp_path, FailedEvidenceRuntime())
+    assert result.status == "failed", result.stop_reason
+    assert "failed" in result.stop_reason
+    capture_id = result.steps[-1].output_ids[0]
+    capture = store.get_captured_representation(capture_id)
+    assert capture is not None
+    assert capture.outcome.value == "failed"
+    assert store.get_record(capture_id) is None
+
+
+def test_autonomous_partial_evidence_is_not_reported_as_complete(tmp_path):
+    result, store = _run_autonomous_evidence_fixture(tmp_path, PartialEvidenceRuntime())
+    assert result.status == "failed", result.stop_reason
+    assert "partial capture" in result.stop_reason
+    capture_id = result.steps[-1].output_ids[0]
+    capture = store.get_captured_representation(capture_id)
+    assert capture is not None
+    assert capture.outcome.value == "partial"
+    assert store.get_record(capture_id) is None
+
+
+def test_autonomous_evidence_media_mismatch_is_not_reported_as_success(tmp_path):
+    result, store = _run_autonomous_evidence_fixture(
+        tmp_path, UnsupportedMediaEvidenceRuntime()
+    )
+    assert result.status == "failed", result.stop_reason
+    capture_id = result.steps[-1].output_ids[0]
+    capture = store.get_captured_representation(capture_id)
+    assert capture is not None
+    assert capture.outcome.value == "failed"
+    assert "media type" in (capture.error or "")
+    assert store.get_record(capture_id) is None
+
 def test_autonomous_discovery_can_request_evidence_only_through_host_runtime(tmp_path):
     records = _records()
     with Store(capture_root=tmp_path / "captures") as store:
