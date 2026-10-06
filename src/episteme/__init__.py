@@ -2,6 +2,7 @@
 
 from .candidate_assessment import CandidateConstraintAssessment, CandidateConstraintStatus
 from .acquisition import AcquisitionRequest, AcquisitionResponse, acquire
+from .evidence_request import EvidenceCapability, EvidenceRequest, execute_evidence_request, resolve_evidence_capability
 from .capture import CaptureOutcome, CapturedRepresentation
 from .ingest import ingest_jsonl, ingest_jsonl_file
 from .model import (
@@ -99,6 +100,10 @@ __all__ = [
     "AcquisitionRequest",
     "AcquisitionResponse",
     "acquire",
+    "EvidenceCapability",
+    "EvidenceRequest",
+    "execute_evidence_request",
+    "resolve_evidence_capability",
     "CaptureOutcome",
     "CapturedRepresentation",
     "CandidateConstraintStatus",
