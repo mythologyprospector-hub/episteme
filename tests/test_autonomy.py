@@ -374,7 +374,7 @@ def test_invalid_action_is_fed_back_to_planner_for_bounded_retry():
         assert result.steps[0].action.kind == "hypothesis"
         assert planner.calls == 2
         assert planner.feedback_seen
-        assert "at least two prediction ids" in planner.feedback_seen[0]
+        assert "initial hypothesis before predictions" in planner.feedback_seen[0]
 
 
 def test_execution_spec_rejects_invalid_parameter_shapes():
@@ -537,3 +537,93 @@ def test_grounded_executor_rejects_non_observation_input():
             assert "requires observation records" in str(exc)
         else:
             raise AssertionError("non-observation grounded input was accepted")
+
+
+class PrematurePredictionPlanner:
+    def choose(self, context: DiscoveryContext) -> DiscoveryAction:
+        hypotheses = context.hypotheses
+        target_ids = tuple(item["id"] for item in hypotheses)
+        if len(target_ids) >= 2:
+            return DiscoveryAction(
+                kind="prediction",
+                target_ids=target_ids,
+                consequence="The measured occupant is present.",
+                conditions="Same bounded test conditions.",
+                rationale="Test the competing hypotheses.",
+            )
+        return DiscoveryAction(
+            kind="prediction",
+            target_ids=target_ids,
+            consequence="The measured occupant is present.",
+            conditions="Same bounded test conditions.",
+            rationale="Intentionally attempt prediction before the host state permits it.",
+        )
+
+
+def test_host_state_machine_rejects_prediction_before_competing_hypotheses():
+    records = _records()
+    with Store() as store:
+        for record in records:
+            store.put_record(record)
+
+        gap = detect_positional_gap(
+            store,
+            record_ids=tuple(record.id for record in records),
+            position_key="position",
+            step=1.0,
+            created_at=CREATED,
+        )
+        assert gap is not None
+        store.put_discovery_finding(gap)
+
+        result = run_autonomous_discovery(
+            store,
+            PrematurePredictionPlanner(),
+            grounded_input_ids=tuple(record.id for record in records),
+            started_at=CREATED,
+            max_steps=1,
+            max_retries_per_step=0,
+        )
+
+        assert result.status == "failed"
+        assert result.stop_reason is not None
+        assert "GAP or TENSION" in result.stop_reason
+        assert tuple(store.iter_predictions()) == ()
+
+
+class PrematureStopPlanner:
+    def choose(self, context: DiscoveryContext) -> DiscoveryAction:
+        return DiscoveryAction(
+            kind="stop",
+            rationale="Intentionally attempt termination before an experiment.",
+        )
+
+
+def test_host_state_machine_rejects_stop_before_experiment():
+    records = _records()
+    with Store() as store:
+        for record in records:
+            store.put_record(record)
+
+        gap = detect_positional_gap(
+            store,
+            record_ids=tuple(record.id for record in records),
+            position_key="position",
+            step=1.0,
+            created_at=CREATED,
+        )
+        assert gap is not None
+        store.put_discovery_finding(gap)
+
+        result = run_autonomous_discovery(
+            store,
+            PrematureStopPlanner(),
+            grounded_input_ids=tuple(record.id for record in records),
+            started_at=CREATED,
+            max_steps=1,
+            max_retries_per_step=0,
+        )
+
+        assert result.status == "failed"
+        assert result.stop_reason is not None
+        assert "before a bounded experiment" in result.stop_reason
