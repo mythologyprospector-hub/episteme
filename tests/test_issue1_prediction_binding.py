@@ -2,7 +2,7 @@
 
 from collections import Counter
 
-from test_autonomy import AdaptiveFixturePlanner, CREATED, _records
+from test_autonomy import AdaptiveFixturePlanner, CREATED, _held_out_record, _records
 from episteme.autonomy import run_autonomous_discovery
 from episteme.discovery import detect_positional_gap
 from episteme.store import Store
@@ -14,8 +14,9 @@ def test_positional_verdicts_follow_prediction_hypothesis_not_prediction_order()
     tally = Counter()
     for _ in range(30):
         records = _records()
+        held_out = _held_out_record()
         with Store() as store:
-            for record in records:
+            for record in (*records, held_out):
                 store.put_record(record)
 
             gap = detect_positional_gap(
@@ -32,6 +33,7 @@ def test_positional_verdicts_follow_prediction_hypothesis_not_prediction_order()
                 store,
                 AdaptiveFixturePlanner(),
                 grounded_input_ids=tuple(record.id for record in records),
+                experiment_input_ids=(held_out.id,),
                 started_at=CREATED,
             )
             assert result.status == "stopped", result.stop_reason
