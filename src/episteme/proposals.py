@@ -96,6 +96,7 @@ def represent_model(
         hypothesis_ids=hypothesis_ids,
         input_ids=input_ids,
         assumptions=assumptions,
+        expected_presence=expected_presence,
         method=method,
         method_version=method_version,
         rationale=rationale,
@@ -114,6 +115,7 @@ def predict(
     method_version: str,
     rationale: str,
     comparison_hypothesis_ids: tuple[str, ...] = (),
+    expected_presence: bool | None = None,
     created_at: str,
 ) -> Prediction:
     """Construct a bounded prediction from an explicitly supplied source."""
@@ -127,6 +129,7 @@ def predict(
         method_version=method_version,
         rationale=rationale,
         comparison_hypothesis_ids=comparison_hypothesis_ids,
+        expected_presence=expected_presence,
         created_at=created_at,
         schema_version=SCHEMA_VERSION,
     )
@@ -143,6 +146,7 @@ def propose_discriminating_prediction(
     method_version: str,
     rationale: str,
     assumptions: tuple[str, ...] = (),
+    expected_presence: bool | None = None,
     created_at: str,
 ) -> Prediction:
     """Construct a prediction that explicitly discriminates candidate hypotheses.
