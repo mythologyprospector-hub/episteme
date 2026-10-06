@@ -642,10 +642,12 @@ class EvidenceRequestPlanner(AdaptiveFixturePlanner):
                 requested_representation="application/json",
                 rationale="The evaluated experiment leaves an external evidence question that should be answered through a host-approved capability.",
             )
-        return DiscoveryAction(
-            kind="stop",
-            rationale="The bounded evidence request has completed; stop without treating the capture as grounded truth.",
-        )
+        if any(action.kind == "request_evidence" for action in context.actions_taken):
+            return DiscoveryAction(
+                kind="stop",
+                rationale="The bounded evidence request has completed; stop without treating the capture as grounded truth.",
+            )
+        return super().choose(context)
 
 
 class CrossrefEvidenceRuntime:
