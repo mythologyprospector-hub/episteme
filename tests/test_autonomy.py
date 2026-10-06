@@ -499,7 +499,6 @@ def test_grounded_executor_rejects_non_observation_input():
             execution_spec={
                 "operation": "positional_presence",
                 "position": 3.0,
-                "expected_presence": {predictions[0].id: True, predictions[1].id: False},
             },
         )
         store.put_record(result_record)
@@ -522,6 +521,7 @@ class PrematurePredictionPlanner:
                 target_ids=target_ids,
                 consequence="The measured occupant is present.",
                 conditions="Same bounded test conditions.",
+                expected_presences={target_ids[0]: True, target_ids[1]: False},
                 rationale="Test the competing hypotheses.",
             )
         return DiscoveryAction(
@@ -529,6 +529,7 @@ class PrematurePredictionPlanner:
             target_ids=target_ids,
             consequence="The measured occupant is present.",
             conditions="Same bounded test conditions.",
+            expected_presences={item: True for item in target_ids},
             rationale="Intentionally attempt prediction before the host state permits it.",
         )
 
