@@ -277,7 +277,7 @@ def test_invalid_bounded_parameters_do_not_create_capture(tmp_path):
                 capture_id="should-not-exist",
             )
 
-        assert not store.captured_representation_exists("should-not-exist")
+        assert store.get_captured_representation("should-not-exist") is None
 
 
 def test_invalid_bounded_parameters_are_rejected_before_provider(tmp_path):
