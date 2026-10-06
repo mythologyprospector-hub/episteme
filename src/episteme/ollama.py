@@ -113,7 +113,7 @@ class OllamaPlanner:
             "must include kind, target_ids, conditions, consequence or consequences, and "
             "rationale. The only allowed JSON fields are: kind, target_ids, "
             "statement, consequence, consequences, conditions, objective, "
-            "proposed_observation, discrimination_basis, execution_spec, rationale. Do not invent other "
+            "proposed_observation, discrimination_basis, evidence_request, execution_spec, rationale. Do not invent other "
             "field names. A hypothesis action creates a NEW hypothesis about a finding. "
             "For kind='question' or kind='hypothesis', target_ids MUST contain exactly "
             "one existing GAP or TENSION finding id. NEVER put an existing hypothesis id "
