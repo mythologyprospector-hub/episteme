@@ -251,6 +251,25 @@ def test_crossref_capability_bounds_parameter_values():
     assert request.request_parameters == {"rows": 10, "query.title": "example"}
 
 
+def test_evidence_request_copies_motivation_ids_at_construction():
+    from episteme.evidence_request import EvidenceRequest
+
+    motivation_ids = ["99999999-9999-4999-8999-999999999999"]
+    request = EvidenceRequest(
+        capability="crossref_works",
+        parameters={"rows": 3},
+        rationale="Discriminate the current candidate hypotheses.",
+        requested_representation="application/json",
+        motivation_ids=motivation_ids,
+    )
+
+    motivation_ids.append("88888888-8888-4888-8888-888888888888")
+
+    assert request.motivation_ids == (
+        "99999999-9999-4999-8999-999999999999",
+    )
+
+
 def test_evidence_request_copies_parameter_mapping_at_construction():
     from episteme.evidence_request import EvidenceRequest
 
