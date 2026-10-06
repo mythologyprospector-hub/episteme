@@ -807,8 +807,9 @@ def test_autonomous_evidence_media_mismatch_is_not_reported_as_success(tmp_path)
 
 def test_autonomous_discovery_can_request_evidence_only_through_host_runtime(tmp_path):
     records = _records()
+    held_out = _held_out_record()
     with Store(capture_root=tmp_path / "captures") as store:
-        for record in records:
+        for record in (*records, held_out):
             store.put_record(record)
 
         gap = detect_positional_gap(
