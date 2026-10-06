@@ -7,6 +7,7 @@ from episteme.autonomy import (
 )
 from episteme.capture import CaptureOutcome
 from episteme.store import Store
+from episteme.public import get_captured_content
 
 
 def test_evidence_request_uses_host_owned_provider_and_existing_capture(tmp_path):
@@ -60,7 +61,7 @@ def test_evidence_request_uses_host_owned_provider_and_existing_capture(tmp_path
     captures = tuple(store.iter_captured_representations())
     assert len(captures) == 1
     assert captures[0].outcome is CaptureOutcome.COMPLETE
-    assert store.get_captured_content(captures[0].id) == b"grounded-looking text is still only captured"
+    assert get_captured_content(store, captures[0].id) == b"grounded-looking text is still only captured"
 
 
 def test_evidence_request_cannot_select_an_unapproved_source(tmp_path):
