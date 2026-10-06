@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Mapping, Protocol
 
 from .discovery import question_from_finding
+from .exploration import scout_positional_records
 from .executor import ExecutableExperimentSpec, build_registered_experiment_runtime
 from .model import (DiscoveryFindingKind, ExperimentProposal, KnowledgeStateConsequence, KnowledgeStateConsequenceKind, KnowledgeStateTargetKind, Prediction, PredictionEvaluation)
 from uuid import uuid4
@@ -19,6 +20,31 @@ from .proposals import (
     propose_discriminating_prediction,
     propose_hypothesis,
 )
+
+
+class ExplorationRuntime(Protocol):
+    """Host-owned binding for bounded exploration."""
+
+    def scout(self, store: Any, *, created_at: str) -> Any:
+        """Run one preconfigured bounded scout operation."""
+
+
+@dataclass(frozen=True, slots=True)
+class PositionalExplorationRuntime:
+    """Host-owned configuration for the bounded positional scout."""
+
+    input_ids: tuple[str, ...]
+    position_key: str
+    max_records: int
+
+    def scout(self, store: Any, *, created_at: str) -> Any:
+        return scout_positional_records(
+            store,
+            self.input_ids,
+            self.position_key,
+            max_records=self.max_records,
+            created_at=created_at,
+        )
 
 
 class PlannerActionError(ValueError):
@@ -40,7 +66,7 @@ class DiscoveryAction:
     rationale: str = ""
 
     def __post_init__(self) -> None:
-        if self.kind not in {"question", "hypothesis", "prediction", "experiment", "stop"}:
+        if self.kind not in {"scout", "question", "hypothesis", "prediction", "experiment", "stop"}:
             raise PlannerActionError(f"unknown discovery action: {self.kind}")
         if not self.rationale.strip():
             raise PlannerActionError("discovery action requires a rationale")
@@ -57,6 +83,7 @@ class DiscoveryContext:
     evaluations: tuple[Mapping[str, Any], ...] = ()
     consequences: tuple[Mapping[str, Any], ...] = ()
     feedback: tuple[str, ...] = ()
+    exploration_observations: tuple[Mapping[str, Any], ...] = ()
 
 
 class Planner(Protocol):
@@ -127,6 +154,10 @@ def _finding_view(finding: Any) -> dict[str, Any]:
     }
 
 
+def _exploration_observation_view(item: Any) -> dict[str, Any]:
+    return {"id": item.id, "observation": item.observation, "input_ids": tuple(item.input_ids), "evidence": tuple(item.evidence), "method": item.method, "method_version": item.method_version, "uncertainty": item.uncertainty, "parameters": dict(item.parameters) if item.parameters is not None else None}
+
+
 def _hypothesis_view(item: Any) -> dict[str, Any]:
     return {
         "id": item.id,
@@ -174,6 +205,7 @@ def build_context(
     return DiscoveryContext(
         grounded_input_ids=tuple(grounded_input_ids),
         findings=tuple(_finding_view(item) for item in store.iter_discovery_findings()),
+        exploration_observations=tuple(_exploration_observation_view(item) for item in store.iter_exploration_observations()),
         hypotheses=tuple(_hypothesis_view(item) for item in store.iter_hypotheses()),
         predictions=tuple(_prediction_view(item) for item in store.iter_predictions()),
         experiments=tuple(_experiment_view(item) for item in store.iter_experiment_proposals()),
@@ -218,6 +250,9 @@ def execute_action(store: Any, action: DiscoveryAction, *, created_at: str) -> t
     """Validate and execute one action using existing Episteme primitives."""
     if action.kind == "stop":
         return ()
+
+    if action.kind == "scout":
+        raise PlannerActionError("scout action requires the host-owned exploration runtime")
 
     if not action.target_ids:
         raise PlannerActionError(f"{action.kind} action requires target_ids")
@@ -405,6 +440,7 @@ def run_autonomous_discovery(
     started_at: str,
     max_steps: int = 12,
     experiment_runtime: ExperimentRuntime | None = None,
+    exploration_runtime: ExplorationRuntime | None = None,
     max_retries_per_step: int = 2,
 ) -> DiscoveryRun:
     """Run a finite planner-steered investigation until stop or a hard budget.
@@ -440,7 +476,13 @@ def run_autonomous_discovery(
                         steps=tuple(steps),
                         stop_reason=action.rationale,
                     )
-                output_ids = execute_action(store, action, created_at=started_at)
+                if action.kind == "scout":
+                    if exploration_runtime is None:
+                        raise PlannerActionError("scout action is unavailable without a host-owned exploration runtime")
+                    observation = exploration_runtime.scout(store, created_at=started_at)
+                    output_ids = (observation.id,)
+                else:
+                    output_ids = execute_action(store, action, created_at=started_at)
             except PlannerActionError as exc:
                 if attempt >= max_retries_per_step:
                     return DiscoveryRun(

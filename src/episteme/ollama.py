@@ -88,7 +88,7 @@ class OllamaPlanner:
             "When a GAP or TENSION finding has one hypothesis but no genuinely competing "
             "hypothesis, prefer proposing a distinct competing hypothesis grounded in that "
             "finding before stopping, when the finding permits one. "
-            "If external evidence is required and the instrument cannot acquire it, stop. "
+            "For kind='scout', request only a bounded host-owned scouting pass; you do not choose its grounded inputs, executor, limits, or configuration. If external evidence is required and the instrument cannot acquire it, stop. "
             "Return one JSON object only. The JSON field for the action type is named "
             "'kind', never 'action'. The only allowed JSON fields are: kind, target_ids, "
             "statement, consequence, consequences, conditions, objective, "
@@ -117,7 +117,7 @@ class OllamaPlanner:
                 "properties": {
                     "kind": {
                         "type": "string",
-                        "enum": ["question", "hypothesis", "prediction", "experiment", "stop"],
+                        "enum": ["scout", "question", "hypothesis", "prediction", "experiment", "stop"],
                     },
                     "target_ids": {"type": "array", "items": {"type": "string"}},
                     "statement": {"type": "string"},
@@ -146,6 +146,10 @@ class OllamaPlanner:
                 "required": ["kind", "rationale"],
                 "additionalProperties": False,
                 "oneOf": [
+                    {
+                        "properties": {"kind": {"const": "scout"}},
+                        "required": ["kind", "rationale"],
+                    },
                     {
                         "properties": {"kind": {"const": "question"}},
                         "required": ["kind", "target_ids", "rationale"],
