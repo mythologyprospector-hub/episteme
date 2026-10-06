@@ -25,6 +25,3 @@ scout -> assess_exploration -> admit_exploration -> discover_gap
 ```
 
 The acceptance also verifies that the original grounded input IDs survive into both discovery findings and that the generated exploration observation is not stored as a grounded record.
-
-
-<!-- CI trigger probe: no functional change. -->
