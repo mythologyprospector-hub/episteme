@@ -86,6 +86,7 @@ def main() -> int:
 
         print("model:", model)
         print("status:", result.status)
+        print("stop_reason:", result.stop_reason)
         print("actions:", actions)
         print("hypotheses:", len(hypotheses))
         print("predictions:", len(predictions))
