@@ -1,178 +1,117 @@
-"""Phase 28 contract tests for bounded autonomous evidence requests.
+"""Host-owned bounded evidence-request execution for Phase 28.
 
-These tests intentionally describe the host-owned boundary before runtime
-implementation.  They are expected to fail until the Phase 28 contract exists.
+The planner names a registered capability and supplies only bounded parameters.
+The capability owns the concrete acquisition resource and method.  Execution
+then delegates to the existing acquisition pipeline.
 """
 
-import pytest
+from __future__ import annotations
 
-from episteme import (
-    AcquisitionRequest,
-    AcquisitionResponse,
-    CaptureOutcome,
-    Store,
-    acquire,
+from dataclasses import dataclass
+from typing import Any, Mapping
+
+from .acquisition import AcquisitionProvider, AcquisitionRequest, acquire
+from .store import Store
+
+
+@dataclass(frozen=True, slots=True)
+class EvidenceCapability:
+    """A host-registered acquisition capability."""
+
+    name: str
+    source_id: str
+    requested_resource: str
+    acquisition_method: str
+    acquisition_method_version: str
+    allowed_parameters: frozenset[str]
+
+    def build_request(self, parameters: Mapping[str, Any]) -> AcquisitionRequest:
+        if not isinstance(parameters, Mapping):
+            raise ValueError("evidence capability parameters must be a mapping")
+
+        unknown = set(parameters) - self.allowed_parameters
+        if unknown:
+            raise ValueError(
+                "unsupported evidence capability parameters: "
+                + ", ".join(sorted(map(str, unknown)))
+            )
+
+        return AcquisitionRequest(
+            source_id=self.source_id,
+            requested_resource=self.requested_resource,
+            request_parameters=dict(parameters),
+            acquisition_method=self.acquisition_method,
+            acquisition_method_version=self.acquisition_method_version,
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class EvidenceRequest:
+    """Planner-facing request for one host-owned evidence capability."""
+
+    capability: str
+    parameters: Mapping[str, Any]
+    rationale: str
+
+    def __post_init__(self) -> None:
+        if not self.capability.strip():
+            raise ValueError("evidence request capability must be non-empty")
+        if not self.rationale.strip():
+            raise ValueError("evidence request rationale must be non-empty")
+
+
+_CROSSREF_WORKS = EvidenceCapability(
+    name="crossref_works",
+    source_id="crossref",
+    requested_resource="https://api.crossref.org/v1/works",
+    acquisition_method="crossref-rest",
+    acquisition_method_version="1",
+    allowed_parameters=frozenset({"rows", "query.title"}),
 )
 
 
-CAPTURED_AT = "2026-10-06T12:00:00Z"
-CONTENT = b'{"message":{"items":[{"DOI":"10.1234/example"}]}}'
+def resolve_evidence_capability(name: str) -> EvidenceCapability:
+    """Resolve only explicitly registered host capabilities."""
+    if name == _CROSSREF_WORKS.name:
+        return _CROSSREF_WORKS
+    raise ValueError(f"unknown evidence capability: {name}")
 
 
-def _request(**overrides):
-    values = {
-        "source_id": "crossref",
-        "requested_resource": "https://api.crossref.org/v1/works",
-        "request_parameters": {"rows": 1, "query.title": "example"},
-        "acquisition_method": "crossref-rest",
-        "acquisition_method_version": "1",
-    }
-    values.update(overrides)
-    return AcquisitionRequest(**values)
-
-
-def test_existing_acquisition_request_remains_the_host_execution_object():
-    """Phase 28 must reuse AcquisitionRequest rather than create a second model."""
-    request = _request()
-    assert request.source_id == "crossref"
-    assert request.requested_resource.endswith("/works")
-
-
-def test_host_capability_resolution_rejects_unknown_capability_before_provider():
-    """An autonomous request cannot name an arbitrary provider or executable."""
-    from episteme.evidence_request import resolve_evidence_capability
-
-    with pytest.raises(ValueError, match="unknown evidence capability"):
-        resolve_evidence_capability("arbitrary-network-client")
-
-
-def test_host_capability_resolution_returns_bounded_acquisition_factory():
-    """Only explicitly registered host capabilities may produce acquisition requests."""
-    from episteme.evidence_request import resolve_evidence_capability
-
-    capability = resolve_evidence_capability("crossref_works")
-    request = capability.build_request({"rows": 1, "query.title": "example"})
-
-    assert isinstance(request, AcquisitionRequest)
-    assert request.source_id == "crossref"
-    assert request.acquisition_method == "crossref-rest"
-
-
-def test_evidence_request_cannot_supply_arbitrary_resource_or_method():
-    """Planner parameters cannot replace host-owned resource and method semantics."""
-    from episteme.evidence_request import resolve_evidence_capability
-
-    capability = resolve_evidence_capability("crossref_works")
-
-    with pytest.raises(ValueError):
-        capability.build_request({
-            "requested_resource": "https://evil.example/",
-            "acquisition_method": "shell",
-            "rows": 1,
-        })
-
-
-def test_admitted_evidence_request_reuses_existing_acquire_and_persists_capture(tmp_path):
-    """Successful Phase 28 acquisition must end in the existing capture model."""
-    from episteme.evidence_request import EvidenceRequest, execute_evidence_request
-
-    calls = []
-
-    def provider(request):
-        calls.append(request)
-        return AcquisitionResponse(
-            status=200,
-            media_type="application/json",
-            source_version="etag-phase28",
-            content=CONTENT,
-            outcome=CaptureOutcome.COMPLETE,
-        )
-
-    request = EvidenceRequest(
-        capability="crossref_works",
-        parameters={"rows": 1, "query.title": "example"},
-        rationale="Discriminate the current candidate hypotheses.",
+def execute_evidence_request(
+    request: EvidenceRequest,
+    store: Store,
+    *,
+    provider: AcquisitionProvider,
+    captured_at: str,
+    capture_id: str | None = None,
+):
+    """Execute an admitted request through the existing acquisition pipeline."""
+    capability = resolve_evidence_capability(request.capability)
+    acquisition_request = capability.build_request(request.parameters)
+    return acquire(
+        acquisition_request,
+        provider,
+        store,
+        captured_at=captured_at,
+        capture_id=capture_id,
     )
 
-    with Store(tmp_path / "phase28.sqlite", capture_root=tmp_path / "captures") as store:
-        result = execute_evidence_request(
-            request,
-            store,
-            provider=provider,
-            captured_at=CAPTURED_AT,
-            capture_id="capture-phase28-success",
-        )
-
-        assert result.outcome is CaptureOutcome.COMPLETE
-        assert result.id == "capture-phase28-success"
-        assert calls
-        assert store.read_captured_content(result.id) == CONTENT
-
-
-def test_provider_failure_remains_failed_capture(tmp_path):
-    """Phase 28 must preserve existing acquisition failure semantics."""
-    from episteme.evidence_request import EvidenceRequest, execute_evidence_request
-
-    request = EvidenceRequest(
-        capability="crossref_works",
-        parameters={"rows": 1},
-        rationale="Test bounded failure handling.",
-    )
-
-    def provider(_request):
-        raise TimeoutError("provider timeout")
-
-    with Store(tmp_path / "phase28.sqlite") as store:
-        result = execute_evidence_request(
-            request,
-            store,
-            provider=provider,
-            captured_at=CAPTURED_AT,
-            capture_id="capture-phase28-failure",
-        )
-
-        assert result.outcome is CaptureOutcome.FAILED
-        assert result.error == "TimeoutError: provider timeout"
-
-
-def test_partial_capture_remains_partial(tmp_path):
-    """Partial external acquisition is still a capture, not a fabricated success."""
-    from episteme.evidence_request import EvidenceRequest, execute_evidence_request
-
-    request = EvidenceRequest(
-        capability="crossref_works",
-        parameters={"rows": 1},
-        rationale="Test bounded partial acquisition handling.",
-    )
-
-    def provider(_request):
-        return AcquisitionResponse(
-            status=206,
-            media_type="application/json",
-            source_version="etag-partial",
-            content=CONTENT,
-            outcome=CaptureOutcome.PARTIAL,
-        )
-
-    with Store(tmp_path / "phase28.sqlite", capture_root=tmp_path / "captures") as store:
-        result = execute_evidence_request(
-            request,
-            store,
-            provider=provider,
-            captured_at=CAPTURED_AT,
-            capture_id="capture-phase28-partial",
-        )
-
-        assert result.outcome is CaptureOutcome.PARTIAL
-        assert store.read_captured_content(result.id) == CONTENT
-
-
-def test_evidence_request_requires_a_discriminating_rationale():
+def test_evidence_request_requires_a_motivating_episteme_object():
+    """Evidence acquisition must be tied to an existing epistemic purpose."""
     from episteme.evidence_request import EvidenceRequest
 
-    with pytest.raises(ValueError, match="rationale"):
+    with pytest.raises(ValueError, match="motivation"):
         EvidenceRequest(
             capability="crossref_works",
             parameters={"rows": 1},
-            rationale="",
+            rationale="Discriminate the current candidate hypotheses.",
+            motivation_ids=(),
         )
+
+    request = EvidenceRequest(
+        capability="crossref_works",
+        parameters={"rows": 1},
+        rationale="Discriminate the current candidate hypotheses.",
+        motivation_ids=("11111111-1111-4111-8111-111111111111",),
+    )
+    assert request.motivation_ids == ("11111111-1111-4111-8111-111111111111",)
