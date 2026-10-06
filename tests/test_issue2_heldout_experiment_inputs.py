@@ -53,6 +53,7 @@ def test_experiment_can_use_host_supplied_held_out_observation():
             AdaptiveFixturePlanner(),
             grounded_input_ids=tuple(record.id for record in discovery_records),
             started_at=CREATED,
+            experiment_input_ids=(held_out.id,),
         )
         assert result.status == "stopped", result.stop_reason
 
@@ -62,3 +63,34 @@ def test_experiment_can_use_host_supplied_held_out_observation():
         experiment_result = store.get_record(experiment_step.output_ids[1])
         assert experiment_result is not None
         assert experiment_result.payload["observed_positions"] == [1.0, 2.0, 3.0, 4.0]
+
+
+def test_experiment_input_scope_cannot_overlap_discovery_inputs():
+    discovery_records = _records()
+    with Store() as store:
+        for record in discovery_records:
+            store.put_record(record)
+
+        gap = detect_positional_gap(
+            store,
+            record_ids=tuple(record.id for record in discovery_records),
+            position_key="position",
+            step=1.0,
+            created_at=CREATED,
+        )
+        assert gap is not None
+        store.put_discovery_finding(gap)
+
+        import pytest
+
+        with pytest.raises(
+            RuntimeError,
+            match="must be disjoint from discovery inputs",
+        ):
+            run_autonomous_discovery(
+                store,
+                AdaptiveFixturePlanner(),
+                grounded_input_ids=tuple(record.id for record in discovery_records),
+                started_at=CREATED,
+                experiment_input_ids=(discovery_records[0].id,),
+            )
