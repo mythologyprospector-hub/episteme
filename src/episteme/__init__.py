@@ -42,6 +42,7 @@ from .discovery import detect_accounting_gap, detect_constraint_gap, detect_posi
 from .store import Store
 from .exploration_assessment import ExplorationObservationAssessment
 from .exploration_bridge import admit_exploration_observation, assess_exploration_observation
+from .exploration import scout_positional_records
 from .trail import DiscoveryTrail, TrailEntry, build_discovery_trail
 from .proposals import complete_structural_gap, predict, propose_candidate_discrimination_experiment, propose_discriminating_prediction, propose_experiment, propose_hypothesis, represent_model
 from .public import (
@@ -133,6 +134,7 @@ __all__ = [
     "Store",
     "assess_exploration_observation",
     "admit_exploration_observation",
+    "scout_positional_records",
     "DiscoveryTrail",
     "TrailEntry",
     "build_discovery_trail",
