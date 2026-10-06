@@ -8,12 +8,12 @@ import sqlite3
 from typing import Iterator
 
 from .candidate_assessment import CandidateConstraintAssessment
+from .exploration_assessment import ExplorationObservationAssessment
 from .capture import CapturedRepresentation
 from .model import (
     AssessmentTargetKind,
     DiscoveryFinding,
     ExplorationObservation,
-    ExplorationObservationAssessment,
     Hypothesis,
     Model,
     Prediction,
