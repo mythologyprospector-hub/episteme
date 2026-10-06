@@ -18,6 +18,7 @@ from episteme.autonomy import (
     ExplorationAdmissionRuntime,
     ExplorationAssessmentRuntime,
     PositionalExplorationRuntime,
+    PositionalGapDiscoveryRuntime,
     run_autonomous_discovery,
 )
 from episteme.model import Provenance, Record, RecordKind
@@ -79,6 +80,11 @@ def main() -> int:
                 position_key="position",
                 max_records=3,
             ),
+            structural_discovery_runtime=PositionalGapDiscoveryRuntime(
+                input_ids=input_ids,
+                position_key="position",
+                step=1.0,
+            ),
             exploration_assessment_runtime=ExplorationAssessmentRuntime(
                 allowed_input_ids=input_ids,
                 accepted=True,
@@ -105,7 +111,7 @@ def main() -> int:
         print(f"assessments: {len(assessments)}")
         print(f"discovery findings: {len(findings)}")
 
-        required = ("scout", "assess_exploration", "admit_exploration")
+        required = ("scout", "assess_exploration", "admit_exploration", "discover_gap")
         position = 0
         for kind in kinds:
             if position < len(required) and kind == required[position]:
@@ -118,19 +124,20 @@ def main() -> int:
             )
             return 1
 
-        if len(observations) != 1 or len(assessments) != 1 or len(findings) != 1:
+        if len(observations) != 1 or len(assessments) != 1 or len(findings) != 2:
             print("ACCEPTANCE: FAIL — expected exactly one observation, assessment, and finding.")
             return 1
 
         observation = observations[0]
         assessment = assessments[0]
-        finding = findings[0]
+        finding = next(item for item in findings if item.kind.value == "exploration_observation")
+        gap = next(item for item in findings if item.kind.value == "gap")
 
         if not assessment.accepted:
             print("ACCEPTANCE: FAIL — host acceptance policy was not persisted as accepted.")
             return 1
-        if finding.input_ids != input_ids:
-            print("ACCEPTANCE: FAIL — finding lost the original grounded input lineage.")
+        if finding.input_ids != input_ids or gap.input_ids != input_ids:
+            print("ACCEPTANCE: FAIL — discovery findings lost the original grounded input lineage.")
             return 1
         if observation.id not in finding.context_ids or assessment.id not in finding.context_ids:
             print("ACCEPTANCE: FAIL — finding does not preserve generated observation/assessment context.")

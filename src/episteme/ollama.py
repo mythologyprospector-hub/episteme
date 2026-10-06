@@ -83,7 +83,7 @@ class OllamaPlanner:
         }
         system = (
             "You are the bounded planning component of a scientific inquiry instrument. "
-            "Choose exactly one next action from: scout, assess_exploration, admit_exploration, question, "
+            "Choose exactly one next action from: scout, assess_exploration, admit_exploration, discover_gap, question, "
             "hypothesis, prediction, experiment, stop. If the supplied context has no "
             "exploration observations and the host provides scouting capability, the first "
             "action MUST be scout. After a scout, if an exploration observation exists but "
@@ -97,7 +97,7 @@ class OllamaPlanner:
             "When a GAP or TENSION finding has one hypothesis but no genuinely competing "
             "hypothesis, prefer proposing a distinct competing hypothesis grounded in that "
             "finding before stopping, when the finding permits one. "
-            "For kind='scout', request only a bounded host-owned scouting pass; you do not choose its grounded inputs, executor, limits, or configuration. For kind='assess_exploration', target exactly one supplied exploration observation id; the host decides acceptance, assessment method, provenance, and rationale. For kind='admit_exploration', target exactly one supplied exploration observation id; the host chooses the accepted assessment and admission policy. Never invent or supply assessment policy fields. If external evidence is required and the instrument cannot acquire it, stop. "
+            "For kind='scout', request only a bounded host-owned scouting pass; you do not choose its grounded inputs, executor, limits, or configuration. For kind='assess_exploration', target exactly one supplied exploration observation id; the host decides acceptance, assessment method, provenance, and rationale. For kind='admit_exploration', target exactly one supplied exploration observation id; the host chooses the accepted assessment and admission policy. Never invent or supply assessment policy fields. For kind='discover_gap', request only the bounded host-owned structural discovery pass; you do not choose its grounded inputs, detector, limits, or configuration. If external evidence is required and the instrument cannot acquire it, stop. "
             "Return one JSON object only. The JSON field for the action type is named "
             "'kind', never 'action'. The only allowed JSON fields are: kind, target_ids, "
             "statement, consequence, consequences, conditions, objective, "
@@ -126,7 +126,7 @@ class OllamaPlanner:
                 "properties": {
                     "kind": {
                         "type": "string",
-                        "enum": ["scout", "assess_exploration", "admit_exploration", "question", "hypothesis", "prediction", "experiment", "stop"],
+                        "enum": ["scout", "assess_exploration", "admit_exploration", "discover_gap", "question", "hypothesis", "prediction", "experiment", "stop"],
                     },
                     "target_ids": {"type": "array", "items": {"type": "string"}},
                     "statement": {"type": "string"},
@@ -166,6 +166,10 @@ class OllamaPlanner:
                     {
                         "properties": {"kind": {"const": "admit_exploration"}},
                         "required": ["kind", "target_ids", "rationale"],
+                    },
+                    {
+                        "properties": {"kind": {"const": "discover_gap"}},
+                        "required": ["kind", "rationale"],
                     },
                     {
                         "properties": {"kind": {"const": "question"}},
