@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
+from types import MappingProxyType
 from typing import Any, Mapping
 
 
@@ -36,6 +37,7 @@ class CapturedRepresentation:
     schema_version: int = 2
 
     def __post_init__(self) -> None:
+        object.__setattr__(self, "request_parameters", MappingProxyType(dict(self.request_parameters)))
         if not self.id:
             raise ValueError("capture id must be non-empty")
         if not self.source_id:
