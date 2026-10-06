@@ -446,17 +446,9 @@ def _validate_action_state(
         if finding.kind in {DiscoveryFindingKind.GAP, DiscoveryFindingKind.TENSION}
     )
 
-    if experiments:
-        evaluations = tuple(store.iter_prediction_evaluations())
-        if not evaluations:
-            raise PlannerActionError("the bounded investigation requires experiment evaluation before another action")
-        if action.kind not in {"stop", "request_evidence"}:
-            raise PlannerActionError(
-                "the bounded investigation permits stop or a bounded evidence request after experiment evaluation"
-            )
-        return
-
     if action.kind == "stop":
+        # A request_evidence action is appended only after the host-owned
+        # runtime returns successfully, so it is a bounded terminal transition.
         if any(item.kind == "request_evidence" for item in actions_taken):
             return
         # Stopping before a GAP is a valid bounded exploration termination.
@@ -464,6 +456,16 @@ def _validate_action_state(
         # bounded experiment and its deterministic evaluation.
         if candidate_findings:
             raise PlannerActionError("stop is unavailable before a bounded experiment")
+        return
+
+    if experiments:
+        evaluations = tuple(store.iter_prediction_evaluations())
+        if not evaluations:
+            raise PlannerActionError("the bounded investigation requires experiment evaluation before another action")
+        if action.kind != "request_evidence":
+            raise PlannerActionError(
+                "the bounded investigation permits a bounded evidence request after experiment evaluation"
+            )
         return
 
     if not candidate_findings:
