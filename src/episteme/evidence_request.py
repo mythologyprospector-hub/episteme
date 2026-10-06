@@ -25,6 +25,13 @@ class EvidenceCapability:
     acquisition_method: str
     acquisition_method_version: str
     allowed_parameters: frozenset[str]
+    supported_media_types: frozenset[str]
+
+    def validate_representation(self, representation: str) -> None:
+        if representation not in self.supported_media_types:
+            raise ValueError(
+                "unsupported evidence request representation: " + representation
+            )
 
     def build_request(self, parameters: Mapping[str, Any]) -> AcquisitionRequest:
         if not isinstance(parameters, Mapping):
@@ -91,6 +98,7 @@ _CROSSREF_WORKS = EvidenceCapability(
     acquisition_method="crossref-rest",
     acquisition_method_version="1",
     allowed_parameters=frozenset({"rows", "query.title"}),
+    supported_media_types=frozenset({"application/json"}),
 )
 
 
@@ -122,6 +130,7 @@ def execute_evidence_request(
         )
 
     capability = resolve_evidence_capability(request.capability)
+    capability.validate_representation(request.requested_representation)
     acquisition_request = capability.build_request(request.parameters)
     return acquire(
         acquisition_request,
