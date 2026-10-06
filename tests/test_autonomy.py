@@ -124,7 +124,7 @@ def test_planner_drives_the_loop_without_a_declared_workflow():
         planner = FixturePlanner()
         result = run_autonomous_discovery(store, planner, grounded_input_ids=tuple(record.id for record in records), started_at=CREATED)
 
-        assert result.status == "stopped"
+        assert result.status == "stopped", result.stop_reason
         assert len(result.steps) == 4
         assert planner.calls == 5
         assert [item.action.kind for item in result.steps] == ["hypothesis", "hypothesis", "prediction", "experiment"]
