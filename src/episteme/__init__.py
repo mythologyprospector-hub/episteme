@@ -11,7 +11,6 @@ from .model import (
     DiscoveryFinding,
     DiscoveryFindingKind,
     ExplorationObservation,
-    ExplorationObservationAssessment,
     DiscoveryMeasure,
     StructuralPressureComponent,
     KnowledgeStateConsequence,
@@ -41,6 +40,7 @@ from .model import (
 )
 from .discovery import detect_accounting_gap, detect_constraint_gap, detect_positional_gap, detect_expected_gap, detect_structural_payload_sequence_gap, detect_structural_sequence_gap, discover_competing_prediction_opportunities, discover_evaluation_tensions, discover_explicit_contradictions, question_from_finding
 from .store import Store
+from .exploration_assessment import ExplorationObservationAssessment
 from .exploration_bridge import admit_exploration_observation, assess_exploration_observation
 from .trail import DiscoveryTrail, TrailEntry, build_discovery_trail
 from .proposals import complete_structural_gap, predict, propose_candidate_discrimination_experiment, propose_discriminating_prediction, propose_experiment, propose_hypothesis, represent_model
