@@ -70,6 +70,7 @@ class DiscoveryFindingKind(StrEnum):
     TENSION = "tension"
     CONTRADICTION = "contradiction"
     UNRESOLVED_QUESTION = "unresolved_question"
+    EXPLORATION_OBSERVATION = "exploration_observation"
 
 
 def _require_text(value: str, field: str) -> None:
