@@ -104,6 +104,41 @@ def test_admitted_evidence_request_reuses_existing_acquire_and_persists_capture(
         assert store.read_captured_content(result.id) == CONTENT
 
 
+def test_admitted_request_capture_preserves_host_owned_acquisition_metadata(tmp_path):
+    from episteme.evidence_request import EvidenceRequest, execute_evidence_request
+
+    motivation_id = "12121212-1212-4121-8121-121212121212"
+    request = EvidenceRequest(
+        capability="crossref_works",
+        parameters={"rows": 7, "query.title": "bounded discovery"},
+        rationale="Discriminate the current candidate hypotheses.",
+        requested_representation="application/json",
+        motivation_ids=(motivation_id,),
+    )
+
+    with Store(tmp_path / "phase28.sqlite", capture_root=tmp_path / "captures") as store:
+        _seed_motivation(store, motivation_id)
+        result = execute_evidence_request(
+            request,
+            store,
+            provider=lambda _request: AcquisitionResponse(
+                status=200,
+                media_type="application/json",
+                source_version="etag-phase28",
+                content=CONTENT,
+                outcome=CaptureOutcome.COMPLETE,
+            ),
+            captured_at=CAPTURED_AT,
+            capture_id="capture-phase28-host-metadata",
+        )
+
+        assert result.source_id == "crossref"
+        assert result.requested_resource == "https://api.crossref.org/v1/works"
+        assert result.request_parameters == request.parameters
+        assert result.acquisition_method == "crossref-rest"
+        assert result.acquisition_method_version == "1"
+
+
 def test_provider_failure_remains_failed_capture(tmp_path):
     from episteme.evidence_request import EvidenceRequest, execute_evidence_request
     request = EvidenceRequest(
