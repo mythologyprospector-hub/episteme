@@ -88,7 +88,7 @@ class FixturePlanner:
             return DiscoveryAction(kind="hypothesis", target_ids=(gap["id"],), statement="The missing occupant is not at position 3.0.", rationale="Preserve a competing explanation before testing.")
 
         if not predictions:
-            return DiscoveryAction(kind="prediction", target_ids=tuple(item["id"] for item in hypotheses), consequence="The measured occupant is at position 3.0.", conditions="Same bounded test conditions.", rationale="The competing hypotheses require a discriminating observation.")
+            return DiscoveryAction(kind="prediction", target_ids=tuple(item["id"] for item in hypotheses), consequence="The measured occupant is at position 3.0.", conditions="Same bounded test conditions.", expected_presences={item["id"]: (index == 0) for index, item in enumerate(hypotheses)}, rationale="The competing hypotheses require a discriminating observation.")
 
         if len(predictions) == 2 and not context.experiments:
             return DiscoveryAction(
@@ -98,13 +98,13 @@ class FixturePlanner:
                 proposed_observation="Measure the missing position.",
                 discrimination_basis="The hypotheses imply different outcomes.",
                 conditions="Same bounded test conditions.",
+                expected_presences={
+                    predictions[0]["id"]: True,
+                    predictions[1]["id"]: False,
+                },
                 execution_spec={
                     "operation": "positional_presence",
                     "position": 3.0,
-                    "expected_presence": {
-                        predictions[0]["id"]: True,
-                        predictions[1]["id"]: False,
-                    },
                 },
                 rationale="A direct measurement can discriminate the candidates.",
             )
