@@ -721,7 +721,8 @@ class UnsupportedMediaEvidenceRuntime:
 
 def _run_autonomous_evidence_fixture(tmp_path, runtime):
     records = _records()
-    with Store(capture_root=tmp_path / "captures") as store:
+    db_path = tmp_path / "phase28-autonomous.sqlite"
+    with Store(db_path, capture_root=tmp_path / "captures") as store:
         for record in records:
             store.put_record(record)
         gap = detect_positional_gap(
@@ -735,42 +736,45 @@ def _run_autonomous_evidence_fixture(tmp_path, runtime):
             grounded_input_ids=tuple(record.id for record in records),
             started_at=CREATED, evidence_request_runtime=runtime, max_steps=6,
         )
-        return result, store
+        return result, db_path
 
 
 def test_autonomous_evidence_failure_is_not_reported_as_success(tmp_path):
-    result, store = _run_autonomous_evidence_fixture(tmp_path, FailedEvidenceRuntime())
+    result, db_path = _run_autonomous_evidence_fixture(tmp_path, FailedEvidenceRuntime())
     assert result.status == "failed", result.stop_reason
     assert "failed" in result.stop_reason
     capture_id = result.steps[-1].output_ids[0]
-    capture = store.get_captured_representation(capture_id)
-    assert capture is not None
-    assert capture.outcome.value == "failed"
-    assert store.get_record(capture_id) is None
+    with Store(db_path, capture_root=tmp_path / "captures") as store:
+        capture = store.get_captured_representation(capture_id)
+        assert capture is not None
+        assert capture.outcome.value == "failed"
+        assert store.get_record(capture_id) is None
 
 
 def test_autonomous_partial_evidence_is_not_reported_as_complete(tmp_path):
-    result, store = _run_autonomous_evidence_fixture(tmp_path, PartialEvidenceRuntime())
+    result, db_path = _run_autonomous_evidence_fixture(tmp_path, PartialEvidenceRuntime())
     assert result.status == "failed", result.stop_reason
     assert "partial capture" in result.stop_reason
     capture_id = result.steps[-1].output_ids[0]
-    capture = store.get_captured_representation(capture_id)
-    assert capture is not None
-    assert capture.outcome.value == "partial"
-    assert store.get_record(capture_id) is None
+    with Store(db_path, capture_root=tmp_path / "captures") as store:
+        capture = store.get_captured_representation(capture_id)
+        assert capture is not None
+        assert capture.outcome.value == "partial"
+        assert store.get_record(capture_id) is None
 
 
 def test_autonomous_evidence_media_mismatch_is_not_reported_as_success(tmp_path):
-    result, store = _run_autonomous_evidence_fixture(
+    result, db_path = _run_autonomous_evidence_fixture(
         tmp_path, UnsupportedMediaEvidenceRuntime()
     )
     assert result.status == "failed", result.stop_reason
     capture_id = result.steps[-1].output_ids[0]
-    capture = store.get_captured_representation(capture_id)
-    assert capture is not None
-    assert capture.outcome.value == "failed"
-    assert "media type" in (capture.error or "")
-    assert store.get_record(capture_id) is None
+    with Store(db_path, capture_root=tmp_path / "captures") as store:
+        capture = store.get_captured_representation(capture_id)
+        assert capture is not None
+        assert capture.outcome.value == "failed"
+        assert "media type" in (capture.error or "")
+        assert store.get_record(capture_id) is None
 
 def test_autonomous_discovery_can_request_evidence_only_through_host_runtime(tmp_path):
     records = _records()
