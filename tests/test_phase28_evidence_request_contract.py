@@ -601,7 +601,7 @@ def test_unknown_capability_is_rejected_before_motivation_lookup(tmp_path):
         parameters={},
         rationale="Discriminate the current candidate hypotheses.",
         requested_representation="application/json",
-        motivation_ids=("not-a-real-motivation",),
+        motivation_ids=("dddddddd-dddd-4ddd-8ddd-dddddddddddd",),
     )
 
     class ExplodingStore:
