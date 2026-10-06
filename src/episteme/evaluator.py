@@ -19,6 +19,7 @@ from .model import (
     Record,
     RecordKind,
 )
+from .numeric import numerically_equal
 from .store import Store
 
 
@@ -62,7 +63,7 @@ class PositionalPredictionEvaluator:
         if not isinstance(observed, list) or not all(isinstance(value, (int, float)) for value in observed):
             raise ValueError("result does not contain numeric observed_positions")
 
-        actual_presence = any(float(value) == float(self.position) for value in observed)
+        actual_presence = any(numerically_equal(float(value), float(self.position)) for value in observed)
         evaluations: list[PredictionEvaluation] = []
 
         for prediction in predictions:
