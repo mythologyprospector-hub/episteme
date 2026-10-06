@@ -605,6 +605,19 @@ def run_autonomous_discovery(
                 elif action.kind == "discover_gap":
                     if structural_discovery_runtime is None:
                         raise PlannerActionError("structural discovery is unavailable without a host-owned structural discovery runtime")
+                    pending_admission = any(
+                        item.accepted
+                        and not any(
+                            finding.kind is DiscoveryFindingKind.EXPLORATION_OBSERVATION
+                            and item.observation_id in finding.context_ids
+                            for finding in store.iter_discovery_findings()
+                        )
+                        for item in store.iter_exploration_observation_assessments()
+                    )
+                    if pending_admission:
+                        raise PlannerActionError(
+                            "accepted exploration observation must be admitted before structural discovery"
+                        )
                     finding = structural_discovery_runtime.discover(store, created_at=started_at)
                     output_ids = (finding.id,)
                 elif action.kind == "assess_exploration":
