@@ -117,7 +117,7 @@ class OllamaPlanner:
                 "properties": {
                     "kind": {
                         "type": "string",
-                        "enum": ["scout", "question", "hypothesis", "prediction", "experiment", "stop"],
+                        "enum": ["scout", "assess_exploration", "admit_exploration", "question", "hypothesis", "prediction", "experiment", "stop"],
                     },
                     "target_ids": {"type": "array", "items": {"type": "string"}},
                     "statement": {"type": "string"},
