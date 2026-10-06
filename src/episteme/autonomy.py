@@ -837,14 +837,41 @@ def run_autonomous_discovery(
                     result = evidence_request_runtime.request_evidence(
                         store, request, created_at=started_at
                     )
-                    evidence_request_completed = True
+                    if not hasattr(result, "outcome") or not hasattr(result, "id"):
+                        raise RuntimeError(
+                            "host evidence runtime returned an invalid capture result"
+                        )
                     output_ids = (result.id,)
                     steps.append(DiscoveryStep(action=action, output_ids=output_ids))
                     actions.append(action)
-                    return DiscoveryRun(
-                        status="stopped",
-                        steps=tuple(steps),
-                        stop_reason="bounded evidence request completed through the host-owned runtime",
+                    if result.outcome.value == "complete":
+                        evidence_request_completed = True
+                        return DiscoveryRun(
+                            status="stopped",
+                            steps=tuple(steps),
+                            stop_reason="bounded evidence request completed through the host-owned runtime",
+                        )
+                    outcome = result.outcome.value
+                    if outcome == "partial":
+                        return DiscoveryRun(
+                            status="failed",
+                            steps=tuple(steps),
+                            stop_reason=(
+                                "bounded evidence request returned a partial capture; "
+                                "no complete evidence was established"
+                            ),
+                        )
+                    if outcome == "failed":
+                        return DiscoveryRun(
+                            status="failed",
+                            steps=tuple(steps),
+                            stop_reason=(
+                                "bounded evidence request failed through the host-owned runtime; "
+                                "no evidence success was established"
+                            ),
+                        )
+                    raise RuntimeError(
+                        "host evidence runtime returned an unsupported capture outcome"
                     )
                 else:
                     output_ids = execute_action(store, action, created_at=started_at)
