@@ -678,3 +678,39 @@ def test_completed_evidence_capture_does_not_create_grounded_record(tmp_path):
         assert list(store.iter_records()) == [
             store.get_record(motivation_id)
         ]
+
+
+def test_host_acquisition_parameters_cannot_be_mutated_by_provider(tmp_path):
+    from episteme.evidence_request import EvidenceRequest, execute_evidence_request
+
+    motivation_id = "cdcdcdcd-cdcd-4cdc-8cdc-cdcdcdcdcdcd"
+    request = EvidenceRequest(
+        capability="crossref_works",
+        parameters={"rows": 1},
+        rationale="Keep host-owned acquisition parameters stable through execution.",
+        requested_representation="application/json",
+        motivation_ids=(motivation_id,),
+    )
+
+    def provider(acquisition):
+        with pytest.raises(TypeError):
+            acquisition.request_parameters["rows"] = 999
+        return AcquisitionResponse(
+            status=200,
+            media_type="application/json",
+            source_version="v1",
+            content=CONTENT,
+            outcome=CaptureOutcome.COMPLETE,
+        )
+
+    with Store(tmp_path / "phase28.sqlite", capture_root=tmp_path / "captures") as store:
+        _seed_motivation(store, motivation_id)
+        result = execute_evidence_request(
+            request,
+            store,
+            provider=provider,
+            captured_at=CAPTURED_AT,
+            capture_id="capture-phase28-frozen-acquisition-params",
+        )
+
+        assert result.request_parameters == {"rows": 1}
