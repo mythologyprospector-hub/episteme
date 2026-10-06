@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from types import MappingProxyType
 from typing import Any, Callable, Mapping
+from uuid import uuid4
 
 
 def _freeze_parameters(value: Any) -> Any:
@@ -15,7 +16,7 @@ def _freeze_parameters(value: Any) -> Any:
     if isinstance(value, tuple):
         return tuple(_freeze_parameters(item) for item in value)
     return value
-from uuid import uuid4
+
 
 from .capture import CaptureOutcome, CapturedRepresentation
 from .model import canonical_json
