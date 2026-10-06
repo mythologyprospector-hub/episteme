@@ -288,8 +288,9 @@ class AdaptiveFixturePlanner(FixturePlanner):
 
 def test_experiment_is_executed_evaluated_and_changes_planner_knowledge_state():
     records = _records()
+    held_out = _held_out_record()
     with Store() as store:
-        for record in records:
+        for record in (*records, held_out):
             store.put_record(record)
 
         gap = detect_positional_gap(
@@ -307,8 +308,9 @@ def test_experiment_is_executed_evaluated_and_changes_planner_knowledge_state():
             store,
             planner,
             grounded_input_ids=tuple(record.id for record in records),
+            experiment_input_ids=(held_out.id,),
             started_at=CREATED,
-       )
+        )
 
         assert result.status == "stopped"
         assert len(result.steps) == 4
@@ -824,6 +826,7 @@ def test_autonomous_discovery_can_request_evidence_only_through_host_runtime(tmp
             store,
             planner,
             grounded_input_ids=tuple(record.id for record in records),
+            experiment_input_ids=(held_out.id,),
             started_at=CREATED,
             evidence_request_runtime=CrossrefEvidenceRuntime(),
             max_steps=6,
