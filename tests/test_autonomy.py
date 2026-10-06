@@ -788,19 +788,15 @@ def test_autonomous_partial_evidence_is_not_reported_as_complete(tmp_path):
 
 
 def test_autonomous_malformed_evidence_outcome_is_rejected(tmp_path):
-    result, db_path = _run_autonomous_evidence_fixture(
-        tmp_path, MalformedOutcomeEvidenceRuntime()
-    )
-    assert result.status == "failed"
-    assert "invalid capture outcome" in result.stop_reason
-    assert tuple(step.action.kind for step in result.steps) == (
-        "hypothesis",
-        "hypothesis",
-        "prediction",
-        "experiment",
-    )
-    with Store(db_path, capture_root=tmp_path / "captures") as store:
-        assert tuple(store.iter_captured_representations()) == ()
+    import pytest
+
+    with pytest.raises(
+        RuntimeError,
+        match="invalid capture outcome",
+    ):
+        _run_autonomous_evidence_fixture(
+            tmp_path, MalformedOutcomeEvidenceRuntime()
+        )
 
 
 def test_autonomous_evidence_media_mismatch_is_not_reported_as_success(tmp_path):
