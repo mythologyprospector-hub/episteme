@@ -59,6 +59,6 @@ def test_experiment_can_use_host_supplied_held_out_observation():
         experiment_step = next(
             step for step in result.steps if step.action.kind == "experiment"
         )
-        experiment_result = store.get_record(experiment_step.output_ids[0])
+        experiment_result = store.get_record(experiment_step.output_ids[1])
         assert experiment_result is not None
         assert experiment_result.payload["observed_positions"] == [1.0, 2.0, 3.0, 4.0]
