@@ -374,7 +374,7 @@ def test_invalid_action_is_fed_back_to_planner_for_bounded_retry():
         assert result.steps[0].action.kind == "hypothesis"
         assert planner.calls == 2
         assert planner.feedback_seen
-        assert "requires a GAP or TENSION finding" in planner.feedback_seen[0]
+        assert "at least two prediction ids" in planner.feedback_seen[0]
 
 
 def test_execution_spec_rejects_invalid_parameter_shapes():
