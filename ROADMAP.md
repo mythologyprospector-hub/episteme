@@ -625,6 +625,49 @@ Target capabilities:
 
 **Status:** Complete.
 
+
+## Phase 27 — Bounded Autonomous Discovery
+
+**Goal:** Establish a bounded planner-driven control loop that can inspect represented Episteme state, select one allowed investigation action, execute that action through host-owned runtimes, return the resulting represented state to the planner, and terminate or continue within a finite budget without granting the planner epistemic or execution authority.
+
+The canonical Phase 27 boundary is defined in AUTONOMOUS_DISCOVERY.md. The implemented structural-discovery extension is documented in docs/autonomous-structural-discovery.md.
+
+Target capabilities:
+
+- [x] bounded planner-driven discovery loop;
+- [x] deterministic structured planner contract;
+- [x] explicit action validation and bounded retry feedback;
+- [x] preservation of grounded-versus-generated distinctions throughout the loop;
+- [x] durable execution trace of planner actions and outputs;
+- [x] bounded experiment proposal and host-owned executable experiment handling;
+- [x] deterministic experiment execution and result evaluation within the declared boundary;
+- [x] structural-gap discovery through a host-owned runtime rather than planner-generated gaps;
+- [x] bounded autonomous hypothesis completion downstream of an established GAP;
+- [x] real Ollama planner acceptance harness exercising the bounded boundary;
+- [x] explicit documentation of the difference between deterministic control-boundary proof and real-model acceptance;
+- [x] executable tests covering the autonomous control boundary and structural-discovery integration.
+
+**Exit condition:** Episteme can drive a bounded investigation from represented state through planner-selected, host-validated operations and back into represented state without human selection of each intermediate step, while preserving epistemic boundaries, finite execution, traceability, and host ownership of all substantive operations.
+
+**Status:** Implementation boundary established; deterministic acceptance is green and real-model Ollama acceptance is available as a separate acceptance layer. Phase 27 does not claim general scientific autonomy.
+
+### Phase 27 Exit Audit
+
+The current implementation satisfies the Phase 27 implementation boundary:
+
+- the planner selects actions but cannot execute arbitrary code, mutate the store directly, promote evidence, or bypass declared Episteme operations;
+- malformed or invalid planner actions are rejected and can receive bounded corrective feedback;
+- finite step budgets and explicit stop behavior bound the control loop;
+- experiment execution, evaluation, and structural discovery remain host-owned capabilities;
+- structural gaps are established by deterministic structural rules and grounded inputs rather than invented by the planner;
+- generated exploration observations remain distinct from grounded evidence;
+- autonomous structural discovery preserves original grounded input identifiers and records generated discovery state explicitly;
+- real Ollama acceptance exercises the model-backed boundary separately from deterministic tests;
+- the repository's GitHub Actions validation for the merged Phase 27 work completed successfully.
+
+**Status:** Complete.
+
+
 ## Roadmap Rules/
 
 ### No roadmap-driven architecture
