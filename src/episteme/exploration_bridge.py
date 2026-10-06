@@ -9,11 +9,11 @@ from __future__ import annotations
 
 from uuid import UUID, uuid4
 
+from .exploration_assessment import ExplorationObservationAssessment
 from .model import (
     DiscoveryFinding,
     DiscoveryFindingKind,
     DiscoveryMeasure,
-    ExplorationObservationAssessment,
     Provenance,
 )
 from .store import Store
