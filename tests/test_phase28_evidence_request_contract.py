@@ -805,3 +805,20 @@ def test_nested_acquisition_request_parameters_cannot_be_mutated():
         request.request_parameters["nested"]["limit"] = 999
 
     assert request.request_parameters["nested"]["limit"] == 10
+
+
+def test_nested_evidence_request_parameters_cannot_be_mutated():
+    from episteme.evidence_request import EvidenceRequest
+
+    request = EvidenceRequest(
+        capability="crossref_works",
+        parameters={"nested": {"limit": 10}},
+        rationale="Keep planner-owned request parameters immutable.",
+        requested_representation="application/json",
+        motivation_ids=("ffffffff-ffff-4fff-8fff-ffffffffffff",),
+    )
+
+    with pytest.raises(TypeError):
+        request.parameters["nested"]["limit"] = 999
+
+    assert request.parameters["nested"]["limit"] == 10
