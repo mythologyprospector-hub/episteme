@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from types import MappingProxyType
 from typing import Any, Callable, Mapping
 from uuid import uuid4
 
@@ -27,6 +28,9 @@ class AcquisitionRequest:
         if not self.acquisition_method.strip() or not self.acquisition_method_version.strip():
             raise ValueError("acquisition method and version must be non-empty")
         canonical_json(self.request_parameters)
+        object.__setattr__(
+            self, "request_parameters", MappingProxyType(dict(self.request_parameters))
+        )
 
 
 @dataclass(frozen=True, slots=True)
