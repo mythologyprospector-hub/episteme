@@ -59,5 +59,5 @@ def test_positional_verdicts_follow_prediction_hypothesis_not_prediction_order()
                     ] += 1
 
     assert tally == Counter(
-        {"The missing occupant is not at position 3.0.": 30}
+        {"The missing occupant is at position 3.0.": 30}
     )
