@@ -40,8 +40,7 @@ class TracingOllamaPlanner(OllamaPlanner):
     def _request(self, payload: dict[str, Any]) -> dict[str, Any]:
         response = super()._request(payload)
         content = response.get("message", {}).get("content")
-        print("
---- Ollama response ---")
+        print("\n--- Ollama response ---")
         print(content if isinstance(content, str) else json.dumps(response, indent=2, sort_keys=True))
         print("--- end Ollama response ---")
         return response
