@@ -211,6 +211,28 @@ def test_crossref_capability_bounds_parameter_values():
     request = capability.build_request({"rows": 10, "query.title": "example"})
     assert request.request_parameters == {"rows": 10, "query.title": "example"}
 
+
+def test_evidence_request_requires_requested_representation():
+    from episteme.evidence_request import EvidenceRequest
+
+    with pytest.raises(ValueError, match="representation"):
+        EvidenceRequest(
+            capability="crossref_works",
+            parameters={"rows": 1},
+            rationale="Discriminate the current candidate hypotheses.",
+            motivation_ids=("11111111-1111-4111-8111-111111111111",),
+            requested_representation="",
+        )
+
+    request = EvidenceRequest(
+        capability="crossref_works",
+        parameters={"rows": 1},
+        rationale="Discriminate the current candidate hypotheses.",
+        motivation_ids=("11111111-1111-4111-8111-111111111111",),
+        requested_representation="application/json",
+    )
+    assert request.requested_representation == "application/json"
+
 def test_evidence_request_requires_a_discriminating_rationale():
     from episteme.evidence_request import EvidenceRequest
     with pytest.raises(ValueError, match="rationale"):
