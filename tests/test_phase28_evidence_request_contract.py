@@ -146,6 +146,27 @@ def test_evidence_request_requires_a_discriminating_rationale():
         )
 
 
+def test_evidence_request_rejects_missing_motivation_before_provider(tmp_path):
+    from episteme.evidence_request import EvidenceRequest, execute_evidence_request
+
+    request = EvidenceRequest(
+        capability="crossref_works",
+        parameters={"rows": 1},
+        rationale="Discriminate the current candidate hypotheses.",
+        motivation_ids=("99999999-9999-4999-8999-999999999999",),
+    )
+
+    def provider(_request):
+        raise AssertionError("provider must not run for an unknown motivation")
+
+    with Store(tmp_path / "phase28.sqlite") as store:
+        with pytest.raises(ValueError, match="motivation.*not found"):
+            execute_evidence_request(
+                request, store, provider=provider,
+                captured_at=CAPTURED_AT, capture_id="capture-phase28-invalid-motivation",
+            )
+
+
 def test_evidence_request_requires_a_motivating_episteme_object():
     from episteme.evidence_request import EvidenceRequest
 
