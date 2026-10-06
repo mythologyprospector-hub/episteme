@@ -156,6 +156,7 @@ class DiscoveryAction:
     objective: str | None = None
     proposed_observation: str | None = None
     discrimination_basis: str | None = None
+    expected_presences: Mapping[str, bool] | None = None
     execution_spec: Mapping[str, Any] | None = None
     evidence_capability: str | None = None
     evidence_parameters: Mapping[str, Any] | None = None
@@ -360,7 +361,6 @@ def _validate_execution_spec(
         "operation": spec.operation,
         "position": float(spec.position),
         "position_key": spec.position_key,
-        "expected_presence": dict(spec.expected_presence),
     }
 
 
@@ -593,6 +593,10 @@ def execute_action(store: Any, action: DiscoveryAction, *, created_at: str) -> t
             consequences = tuple(consequence for _ in action.target_ids)
         if len(consequences) != len(action.target_ids):
             raise PlannerActionError("prediction consequences must match hypothesis targets")
+        if not isinstance(action.expected_presences, Mapping) or set(action.expected_presences) != set(action.target_ids):
+            raise PlannerActionError("prediction expected_presences must exactly match hypothesis targets")
+        if any(not isinstance(value, bool) for value in action.expected_presences.values()):
+            raise PlannerActionError("prediction expected_presences values must be booleans")
         predictions = []
         try:
             for candidate_id, consequence in zip(action.target_ids, consequences):
@@ -605,6 +609,7 @@ def execute_action(store: Any, action: DiscoveryAction, *, created_at: str) -> t
                     method="planner-driven-prediction",
                     method_version="1",
                     rationale=action.rationale,
+                    expected_presence=(action.expected_presences or {}).get(candidate_id),
                     created_at=created_at,
                 )
                 predictions.append(prediction)
@@ -619,10 +624,6 @@ def execute_action(store: Any, action: DiscoveryAction, *, created_at: str) -> t
         if len(action.target_ids) < 2:
             raise PlannerActionError("experiment action requires at least two prediction ids")
         execution_spec = _validate_execution_spec(action.execution_spec)
-        if set(execution_spec["expected_presence"]) != set(action.target_ids):
-            raise PlannerActionError(
-                "execution_spec expected_presence must exactly match experiment prediction ids"
-            )
         try:
                 proposal = propose_candidate_discrimination_experiment(
             store,

@@ -62,6 +62,7 @@ def _grounded_test_predictions(store):
             method="fixture",
             method_version="1",
             rationale="fixture",
+            expected_presence=(hypothesis.statement == "candidate one"),
             created_at=CREATED,
         )
         store.put_prediction(prediction)
@@ -88,7 +89,10 @@ class FixturePlanner:
             return DiscoveryAction(kind="hypothesis", target_ids=(gap["id"],), statement="The missing occupant is not at position 3.0.", rationale="Preserve a competing explanation before testing.")
 
         if not predictions:
-            return DiscoveryAction(kind="prediction", target_ids=tuple(item["id"] for item in hypotheses), consequence="The measured occupant is at position 3.0.", conditions="Same bounded test conditions.", rationale="The competing hypotheses require a discriminating observation.")
+            return DiscoveryAction(kind="prediction", target_ids=tuple(item["id"] for item in hypotheses), consequence="The measured occupant is at position 3.0.", conditions="Same bounded test conditions.", expected_presences={
+                    item["id"]: item["statement"] == "The missing occupant is at position 3.0."
+                    for item in hypotheses
+                }, rationale="The competing hypotheses require a discriminating observation.")
 
         if len(predictions) == 2 and not context.experiments:
             return DiscoveryAction(
@@ -98,13 +102,13 @@ class FixturePlanner:
                 proposed_observation="Measure the missing position.",
                 discrimination_basis="The hypotheses imply different outcomes.",
                 conditions="Same bounded test conditions.",
+                expected_presences={
+                    predictions[0]["id"]: True,
+                    predictions[1]["id"]: False,
+                },
                 execution_spec={
                     "operation": "positional_presence",
                     "position": 3.0,
-                    "expected_presence": {
-                        predictions[0]["id"]: True,
-                        predictions[1]["id"]: False,
-                    },
                 },
                 rationale="A direct measurement can discriminate the candidates.",
             )
@@ -169,6 +173,7 @@ def test_invalid_prediction_action_does_not_persist_partial_outputs():
             target_ids=(hypotheses[0].id, "missing-hypothesis"),
             consequence="The measured occupant is present.",
             conditions="Same bounded test conditions.",
+            expected_presences={hypotheses[0].id: True, "missing-hypothesis": False},
             rationale="Intentionally invalid second target.",
         )
 
@@ -194,7 +199,6 @@ def test_executable_spec_cannot_select_unregistered_operation():
         execution_spec={
             "operation": "run_python",
             "position": 3.0,
-            "expected_presence": {},
         },
         rationale="Reject an operation outside the registered vocabulary.",
     )
@@ -208,28 +212,22 @@ def test_executable_spec_cannot_select_unregistered_operation():
 
 
 
-def test_executable_spec_must_match_prediction_ids():
+def test_prediction_expectations_must_match_hypothesis_ids():
     action = DiscoveryAction(
-        kind="experiment",
-        target_ids=("prediction-a", "prediction-b"),
-        objective="test",
-        proposed_observation="test",
-        discrimination_basis="test",
+        kind="prediction",
+        target_ids=("hypothesis-a", "hypothesis-b"),
+        consequence="test",
         conditions="test",
-        execution_spec={
-            "operation": "positional_presence",
-            "position": 3.0,
-            "expected_presence": {"prediction-a": True},
-        },
-        rationale="Reject incomplete executable expectations.",
+        expected_presences={"hypothesis-a": True},
+        rationale="Reject incomplete prediction expectations.",
     )
     with Store() as store:
         try:
             execute_action(store, action, created_at=CREATED)
         except PlannerActionError as exc:
-            assert "expected_presence must exactly match" in str(exc)
+            assert "prediction expected_presences must exactly match hypothesis targets" in str(exc)
         else:
-            raise AssertionError("incomplete executable expectations were accepted")
+            raise AssertionError("incomplete prediction expectations were accepted")
 
 
 def test_executable_spec_rejects_unregistered_control_fields():
@@ -243,10 +241,6 @@ def test_executable_spec_rejects_unregistered_control_fields():
         execution_spec={
             "operation": "positional_presence",
             "position": 3.0,
-            "expected_presence": {
-                "prediction-a": True,
-                "prediction-b": False,
-            },
             "executor": "arbitrary.callable",
         },
         rationale="Reject planner-supplied executable control data.",
@@ -383,33 +377,15 @@ def test_execution_spec_rejects_invalid_parameter_shapes():
         {
             "operation": "positional_presence",
             "position": True,
-            "expected_presence": {},
         },
         {
             "operation": "positional_presence",
             "position": float("nan"),
-            "expected_presence": {},
         },
         {
             "operation": "positional_presence",
             "position": 3.0,
             "position_key": "",
-            "expected_presence": {},
-        },
-        {
-            "operation": "positional_presence",
-            "position": 3.0,
-            "expected_presence": [],
-        },
-        {
-            "operation": "positional_presence",
-            "position": 3.0,
-            "expected_presence": {"prediction-a": "true"},
-        },
-        {
-            "operation": "positional_presence",
-            "position": 3.0,
-            "expected_presence": {1: True},
         },
     )
 
@@ -486,7 +462,6 @@ def test_grounded_executor_rejects_missing_input_record():
             execution_spec={
                 "operation": "positional_presence",
                 "position": 3.0,
-                "expected_presence": {predictions[0].id: True, predictions[1].id: False},
             },
         )
         store.put_experiment_proposal(proposal)
@@ -527,7 +502,6 @@ def test_grounded_executor_rejects_non_observation_input():
             execution_spec={
                 "operation": "positional_presence",
                 "position": 3.0,
-                "expected_presence": {predictions[0].id: True, predictions[1].id: False},
             },
         )
         store.put_record(result_record)
@@ -550,6 +524,7 @@ class PrematurePredictionPlanner:
                 target_ids=target_ids,
                 consequence="The measured occupant is present.",
                 conditions="Same bounded test conditions.",
+                expected_presences={target_ids[0]: True, target_ids[1]: False},
                 rationale="Test the competing hypotheses.",
             )
         return DiscoveryAction(
@@ -557,6 +532,7 @@ class PrematurePredictionPlanner:
             target_ids=target_ids,
             consequence="The measured occupant is present.",
             conditions="Same bounded test conditions.",
+            expected_presences={item: True for item in target_ids},
             rationale="Intentionally attempt prediction before the host state permits it.",
         )
 

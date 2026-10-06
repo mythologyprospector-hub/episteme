@@ -115,6 +115,7 @@ def predict(
     rationale: str,
     comparison_hypothesis_ids: tuple[str, ...] = (),
     created_at: str,
+    expected_presence: bool | None = None,
 ) -> Prediction:
     """Construct a bounded prediction from an explicitly supplied source."""
     return Prediction(
@@ -127,6 +128,7 @@ def predict(
         method_version=method_version,
         rationale=rationale,
         comparison_hypothesis_ids=comparison_hypothesis_ids,
+        expected_presence=expected_presence,
         created_at=created_at,
         schema_version=SCHEMA_VERSION,
     )
@@ -144,6 +146,7 @@ def propose_discriminating_prediction(
     rationale: str,
     assumptions: tuple[str, ...] = (),
     created_at: str,
+    expected_presence: bool | None = None,
 ) -> Prediction:
     """Construct a prediction that explicitly discriminates candidate hypotheses.
 
@@ -175,6 +178,7 @@ def propose_discriminating_prediction(
         method_version=method_version,
         rationale=rationale,
         comparison_hypothesis_ids=candidate_ids,
+        expected_presence=expected_presence,
         created_at=created_at,
     )
 

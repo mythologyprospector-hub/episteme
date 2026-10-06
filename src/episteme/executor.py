@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from typing import Callable, Mapping, Protocol
+from typing import Callable, Protocol
 from uuid import uuid4
 
 from .model import ExperimentProposal, Provenance, Record, RecordKind, SCHEMA_VERSION
@@ -29,7 +29,6 @@ class ExecutableExperimentSpec:
     operation: str
     position: float
     position_key: str = "position"
-    expected_presence: Mapping[str, bool] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if self.operation != "positional_presence":
@@ -40,13 +39,6 @@ class ExecutableExperimentSpec:
             raise ValueError("position must be finite")
         if not isinstance(self.position_key, str) or not self.position_key.strip():
             raise ValueError("position_key must be a non-empty string")
-        if not isinstance(self.expected_presence, Mapping):
-            raise ValueError("expected_presence must be a mapping")
-        for prediction_id, expected in self.expected_presence.items():
-            if not isinstance(prediction_id, str) or not prediction_id.strip():
-                raise ValueError("expected_presence keys must be non-empty strings")
-            if not isinstance(expected, bool):
-                raise ValueError("expected_presence values must be booleans")
 
 
 def build_registered_experiment_runtime(
@@ -66,7 +58,6 @@ def build_registered_experiment_runtime(
     executor = PositionalObservationExecutor(position_key=spec.position_key)
     evaluator_factory = lambda proposal, predictions: PositionalPredictionEvaluator(
         position=float(spec.position),
-        expected_presence=dict(spec.expected_presence),
     )
     return executor, evaluator_factory
 
