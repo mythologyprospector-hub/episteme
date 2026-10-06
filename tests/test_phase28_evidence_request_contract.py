@@ -160,7 +160,7 @@ def test_evidence_request_rejects_non_epistemic_workflow_artifact_as_motivation(
 
     capture_motivation_id = "88888888-8888-4888-8888-888888888888"
 
-    with Store(tmp_path / "phase28.sqlite") as store:
+    with Store(tmp_path / "phase28.sqlite", capture_root=tmp_path / "captures") as store:
         acquire(
             _request(),
             lambda _request: AcquisitionResponse(
