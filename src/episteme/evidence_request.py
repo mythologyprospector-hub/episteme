@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any, Mapping
+from uuid import UUID
 
 from .acquisition import AcquisitionProvider, AcquisitionRequest, acquire
 from .store import Store
@@ -52,12 +53,22 @@ class EvidenceRequest:
     capability: str
     parameters: Mapping[str, Any]
     rationale: str
+    motivation_ids: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if not self.capability.strip():
             raise ValueError("evidence request capability must be non-empty")
         if not self.rationale.strip():
             raise ValueError("evidence request rationale must be non-empty")
+        if not self.motivation_ids:
+            raise ValueError("evidence request requires at least one motivation")
+        for motivation_id in self.motivation_ids:
+            if not isinstance(motivation_id, str) or not motivation_id.strip():
+                raise ValueError("evidence request motivation ids must be non-empty strings")
+            try:
+                UUID(motivation_id)
+            except ValueError as exc:
+                raise ValueError("evidence request motivation ids must be UUID strings") from exc
 
 
 _CROSSREF_WORKS = EvidenceCapability(
