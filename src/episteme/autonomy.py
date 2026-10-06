@@ -10,6 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Callable, Mapping, Protocol
 
+from .acquisition import AcquisitionRequest, AcquisitionProvider, acquire
 from .discovery import detect_positional_gap, question_from_finding
 from .exploration import scout_positional_records
 from .exploration_bridge import admit_exploration_observation, assess_exploration_observation
@@ -130,6 +131,50 @@ class ExplorationAdmissionRuntime:
         return admit_exploration_observation(store, observation_id, assessment.id, created_at)
 
 
+@dataclass(frozen=True, slots=True)
+class EvidenceRequestRuntime:
+    """Host-owned binding for one explicitly approved bounded acquisition capability."""
+
+    provider: AcquisitionProvider
+    allowed_source_ids: tuple[str, ...]
+    allowed_methods: tuple[str, ...]
+    max_resource_length: int = 512
+
+    def request(self, store: Any, raw_request: Mapping[str, Any] | None, *, captured_at: str) -> Any:
+        if not isinstance(raw_request, Mapping):
+            raise PlannerActionError("request_evidence requires evidence_request object")
+        required = ("source_id", "requested_resource", "request_parameters", "acquisition_method", "acquisition_method_version")
+        missing = [field for field in required if field not in raw_request]
+        if missing:
+            raise PlannerActionError("request_evidence evidence_request is missing: " + ", ".join(missing))
+        source_id = raw_request["source_id"]
+        resource = raw_request["requested_resource"]
+        method = raw_request["acquisition_method"]
+        method_version = raw_request["acquisition_method_version"]
+        parameters = raw_request["request_parameters"]
+        if not all(isinstance(value, str) and value.strip() for value in (source_id, resource, method, method_version)):
+            raise PlannerActionError("request_evidence request identifiers must be non-empty strings")
+        if len(resource) > self.max_resource_length:
+            raise PlannerActionError("requested_resource exceeds host-owned length limit")
+        if source_id not in self.allowed_source_ids:
+            raise PlannerActionError("source_id is not allowed by the host-owned evidence runtime")
+        if method not in self.allowed_methods:
+            raise PlannerActionError("acquisition_method is not allowed by the host-owned evidence runtime")
+        if not isinstance(parameters, Mapping):
+            raise PlannerActionError("request_parameters must be an object")
+        try:
+            request = AcquisitionRequest(
+                source_id=source_id,
+                requested_resource=resource,
+                request_parameters=dict(parameters),
+                acquisition_method=method,
+                acquisition_method_version=method_version,
+            )
+        except (TypeError, ValueError) as exc:
+            raise PlannerActionError(f"invalid evidence acquisition request: {exc}") from exc
+        return acquire(request, self.provider, store, captured_at=captured_at)
+
+
 class PlannerActionError(ValueError):
     """The planner proposed an action that violates the bounded action contract."""
 
@@ -146,10 +191,11 @@ class DiscoveryAction:
     proposed_observation: str | None = None
     discrimination_basis: str | None = None
     execution_spec: Mapping[str, Any] | None = None
+    evidence_request: Mapping[str, Any] | None = None
     rationale: str = ""
 
     def __post_init__(self) -> None:
-        if self.kind not in {"scout", "assess_exploration", "admit_exploration", "discover_gap", "question", "hypothesis", "prediction", "experiment", "stop"}:
+        if self.kind not in {"scout", "assess_exploration", "admit_exploration", "discover_gap", "question", "hypothesis", "prediction", "experiment", "stop", "request_evidence"}:
             raise PlannerActionError(f"unknown discovery action: {self.kind}")
         if not self.rationale.strip():
             raise PlannerActionError("discovery action requires a rationale")
@@ -349,6 +395,9 @@ def execute_action(store: Any, action: DiscoveryAction, *, created_at: str) -> t
     """Validate and execute one action using existing Episteme primitives."""
     if action.kind == "stop":
         return ()
+
+    if action.kind == "request_evidence":
+        raise PlannerActionError("request_evidence action requires the host-owned evidence runtime")
 
     if action.kind == "scout":
         raise PlannerActionError("scout action requires the host-owned exploration runtime")
@@ -562,6 +611,7 @@ def run_autonomous_discovery(
     structural_discovery_runtime: StructuralDiscoveryRuntime | None = None,
     exploration_assessment_runtime: ExplorationAssessmentRuntimeProtocol | None = None,
     exploration_admission_runtime: ExplorationAdmissionRuntimeProtocol | None = None,
+    evidence_request_runtime: EvidenceRequestRuntime | None = None,
     max_retries_per_step: int = 2,
 ) -> DiscoveryRun:
     """Run a finite planner-steered investigation until stop or a hard budget.
@@ -597,7 +647,12 @@ def run_autonomous_discovery(
                         steps=tuple(steps),
                         stop_reason=action.rationale,
                     )
-                if action.kind == "scout":
+                if action.kind == "request_evidence":
+                    if evidence_request_runtime is None:
+                        raise PlannerActionError("evidence request is unavailable without a host-owned evidence runtime")
+                    capture = evidence_request_runtime.request(store, action.evidence_request, captured_at=started_at)
+                    output_ids = (capture.id,)
+                elif action.kind == "scout":
                     if exploration_runtime is None:
                         raise PlannerActionError("scout action is unavailable without a host-owned exploration runtime")
                     observation = exploration_runtime.scout(store, created_at=started_at)
