@@ -37,6 +37,16 @@ class EvidenceCapability:
                 + ", ".join(sorted(map(str, unknown)))
             )
 
+        if self.name == "crossref_works":
+            if "rows" in parameters:
+                rows = parameters["rows"]
+                if isinstance(rows, bool) or not isinstance(rows, int) or not 1 <= rows <= 1000:
+                    raise ValueError("evidence capability rows must be an integer from 1 to 1000")
+            if "query.title" in parameters:
+                title = parameters["query.title"]
+                if not isinstance(title, str) or not title.strip():
+                    raise ValueError("evidence capability query.title must be non-empty")
+
         return AcquisitionRequest(
             source_id=self.source_id,
             requested_resource=self.requested_resource,
