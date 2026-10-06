@@ -8,7 +8,6 @@ then delegates to the existing acquisition pipeline.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from types import MappingProxyType
 from typing import Any, Mapping
 from uuid import UUID
 
