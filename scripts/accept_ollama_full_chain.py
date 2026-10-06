@@ -109,13 +109,18 @@ def main() -> int:
                 cursor += 1
 
         if (
-            cursor < len(required)
+            result.status != "stopped"
+            or cursor < len(required)
             or len(hypotheses) < 2
             or len(predictions) < 2
             or len(experiments) != 1
             or len(evaluations) != 2
         ):
             print("ACCEPTANCE: FAIL — complete bounded discovery chain did not finish.")
+            return 1
+
+        if actions[-1] != "experiment":
+            print("ACCEPTANCE: FAIL — bounded chain did not terminate immediately after experiment execution.")
             return 1
 
         if any(item.input_ids != input_ids for item in hypotheses):
