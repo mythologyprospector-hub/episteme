@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Mapping, Protocol
 
 from .discovery import detect_positional_gap, question_from_finding
+from .capture import CaptureOutcome
 from .evidence_request import EvidenceRequest, EvidenceRequestRejected
 from .exploration import scout_positional_records
 from .exploration_bridge import admit_exploration_observation, assess_exploration_observation
@@ -847,6 +848,10 @@ def run_autonomous_discovery(
                     if not hasattr(result, "outcome") or not hasattr(result, "id"):
                         raise RuntimeError(
                             "host evidence runtime returned an invalid capture result"
+                        )
+                    if not isinstance(result.outcome, CaptureOutcome):
+                        raise RuntimeError(
+                            "host evidence runtime returned an invalid capture outcome"
                         )
                     output_ids = (result.id,)
                     steps.append(DiscoveryStep(action=action, output_ids=output_ids))
