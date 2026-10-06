@@ -668,6 +668,22 @@ The implemented Phase 27 behavior satisfies the Phase 27 exit condition:
 **Status:** Complete.
 
 
+## Phase 28 — Autonomous Evidence Request Boundary
+
+**Status:** Design only — not approved for implementation.
+
+**Goal:** Define a bounded bridge from planner-driven discovery to the existing host-owned external acquisition and captured-representation boundaries.
+
+The canonical design is defined in docs/AUTONOMOUS_EVIDENCE_REQUEST.md.
+
+Phase 28 must not introduce a generic browsing or agent subsystem. Its purpose is to let a bounded autonomous investigation request additional evidence through an explicitly exposed acquisition capability while preserving host authority over external access, acquisition policy, exact capture, provenance, and grounded ingestion.
+
+The design must preserve the existing separation:
+
+**planner request → host validation/policy → existing AcquisitionRequest → existing provider → existing capture → optional named grounded ingestion**
+
+Implementation is deferred until the design exit condition can be translated into executable tests without creating a second acquisition, capture, provenance, or epistemic model.
+
 ## Roadmap Rules/
 
 ### No roadmap-driven architecture
