@@ -1271,3 +1271,37 @@ The dependency is:
 Capture-to-execution lookup is derived from existing workflow step input/output identifiers. No reverse-index table or second lineage model is introduced. A capture remains an operational acquisition record and does not become an epistemic artifact because a workflow references it.
 
 The canonical Phase 25 design is defined in CAPTURE_EXECUTION_LINEAGE.md.
+
+## Phase 26 — Praxis Evidence Interoperability
+
+Phase 26 establishes a bounded translation boundary for admitted Praxis evidence. The boundary is:
+
+**admitted Praxis evidence → explicit handoff packet → Episteme-owned translation → grounded Episteme record**
+
+The handoff preserves Praxis evidence identity and human-admission provenance while Episteme owns the resulting record identity, RecordKind, provenance representation, and persistence semantics. The translation layer has no runtime dependency on Praxis and does not create a second epistemic model.
+
+The boundary is interoperability, not epistemic promotion: an admitted handoff packet remains subject to Episteme's own provenance and epistemic rules after translation. The canonical contract is defined in docs/PRAXIS_HANDOFF.md.
+
+## Phase 27 — Bounded Autonomous Discovery
+
+Phase 27 adds a control-plane boundary above the existing discovery substrate:
+
+**represented state → planner → validated action → host-owned operation → represented state**
+
+The planner can select only the explicit bounded action vocabulary. Host-owned runtimes retain authority over grounded inputs, structural detectors, exploration policies, experiment execution, and other substantive controls.
+
+The initial autonomous exploration path is:
+
+**scout → assess_exploration → admit_exploration → discover_gap**
+
+After an established gap, the planner can progress through generated question/hypothesis/prediction structures and a bounded registered experiment. Experiment execution and evaluation remain declared Episteme operations; the planner cannot execute arbitrary code or mutate the store directly.
+
+The loop is finite and traceable. Invalid planner actions receive bounded corrective feedback. Real-model acceptance is deliberately separate from deterministic control-boundary proof. A successful real-model run demonstrates operation inside the declared boundary, not scientific correctness or general autonomy.
+
+The canonical control-plane contract is defined in AUTONOMOUS_DISCOVERY.md, and the structural-discovery extension is defined in docs/autonomous-structural-discovery.md.
+
+### Phase 27 Boundary Invariant
+
+> **The planner may choose among declared bounded operations, but only host-owned Episteme capabilities determine what those operations actually do.**
+
+The autonomous driver is therefore orchestration infrastructure above the epistemic substrate, not a new source of epistemic authority.
