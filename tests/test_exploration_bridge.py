@@ -1,5 +1,5 @@
 from episteme.exploration_bridge import assess_exploration_observation
-from episteme.model import ExplorationObservation
+from episteme.model import ExplorationObservation, Provenance, Record, RecordKind
 from episteme.store import Store
 
 CREATED = "2026-10-05T00:00:00Z"
@@ -17,7 +17,21 @@ def test_assessment_references_observation_without_promoting_it():
         created_at=CREATED,
     )
     with Store() as store:
-        # Exploration observations may reference generated scouting inputs.
+        store.put_record(
+            Record(
+                id=observation.input_ids[0],
+                kind=RecordKind.OBSERVATION,
+                payload={"position": 3.0},
+                provenance=(
+                    Provenance(
+                        source_id="fixture",
+                        captured_at=CREATED,
+                        source_location="https://example.org/fixture",
+                    ),
+                ),
+                created_at=CREATED,
+            )
+        )
         store.put_exploration_observation(observation)
         assessment = assess_exploration_observation(
             store,
