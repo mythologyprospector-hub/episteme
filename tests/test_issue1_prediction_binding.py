@@ -44,6 +44,11 @@ def test_positional_verdicts_follow_prediction_hypothesis_not_prediction_order()
                 prediction.id: prediction.source_id
                 for prediction in store.iter_predictions()
             }
+            prediction_expectations = {
+                prediction.id: prediction.expected_presence
+                for prediction in store.iter_predictions()
+            }
+            assert set(prediction_expectations.values()) == {True, False}
 
             for evaluation in store.iter_prediction_evaluations():
                 if evaluation.outcome.value == "consistent":
