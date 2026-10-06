@@ -53,7 +53,7 @@ class PositionalExplorationRuntime:
 class ExplorationAssessmentRuntime:
     """Host-owned policy for assessing one bounded exploration observation."""
 
-    allowed_observation_ids: tuple[str, ...]
+    allowed_input_ids: tuple[str, ...]
     accepted: bool
     method: str
     method_version: str
@@ -61,8 +61,11 @@ class ExplorationAssessmentRuntime:
     provenance: tuple[Provenance, ...]
 
     def assess(self, store: Any, observation_id: str, *, created_at: str) -> Any:
-        if observation_id not in self.allowed_observation_ids:
-            raise PlannerActionError("observation is outside the host-owned assessment scope")
+        observation = store.get_exploration_observation(observation_id)
+        if observation is None:
+            raise PlannerActionError("exploration observation does not exist")
+        if not set(observation.input_ids).issubset(self.allowed_input_ids):
+            raise PlannerActionError("observation inputs are outside the host-owned assessment scope")
         return assess_exploration_observation(
             store,
             observation_id,
@@ -79,11 +82,14 @@ class ExplorationAssessmentRuntime:
 class ExplorationAdmissionRuntime:
     """Host-owned policy for admitting previously accepted observations."""
 
-    allowed_observation_ids: tuple[str, ...]
+    allowed_input_ids: tuple[str, ...]
 
     def admit(self, store: Any, observation_id: str, *, created_at: str) -> Any:
-        if observation_id not in self.allowed_observation_ids:
-            raise PlannerActionError("observation is outside the host-owned admission scope")
+        observation = store.get_exploration_observation(observation_id)
+        if observation is None:
+            raise PlannerActionError("exploration observation does not exist")
+        if not set(observation.input_ids).issubset(self.allowed_input_ids):
+            raise PlannerActionError("observation inputs are outside the host-owned admission scope")
         assessments = [
             item
             for item in store.iter_exploration_observation_assessments(observation_id)
