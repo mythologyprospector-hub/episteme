@@ -2,6 +2,7 @@ from episteme.autonomy import DiscoveryAction, DiscoveryContext, PlannerActionEr
 from episteme.discovery import detect_positional_gap
 from episteme.model import Provenance, Record, RecordKind
 from episteme.store import Store
+from episteme.evidence_request import EvidenceRequestRejected
 
 CREATED = "2026-10-05T00:00:00Z"
 PROVENANCE = (Provenance(source_id="autonomy-fixture", captured_at=CREATED, source_location="https://example.org/autonomy", source_version="1"),)
@@ -124,7 +125,7 @@ def test_planner_drives_the_loop_without_a_declared_workflow():
         planner = FixturePlanner()
         result = run_autonomous_discovery(store, planner, grounded_input_ids=tuple(record.id for record in records), started_at=CREATED)
 
-        assert result.status == "stopped"
+        assert result.status == "stopped", result.stop_reason
         assert len(result.steps) == 4
         assert planner.calls == 5
         assert [item.action.kind for item in result.steps] == ["hypothesis", "hypothesis", "prediction", "experiment"]
@@ -627,3 +628,227 @@ def test_host_state_machine_rejects_stop_before_experiment():
         assert result.status == "failed"
         assert result.stop_reason is not None
         assert "before a bounded experiment" in result.stop_reason
+
+
+class EvidenceRequestPlanner(AdaptiveFixturePlanner):
+    def choose(self, context: DiscoveryContext) -> DiscoveryAction:
+        if context.evaluations and not any(
+            action.kind == "request_evidence" for action in context.actions_taken
+        ):
+            return DiscoveryAction(
+                kind="request_evidence",
+                target_ids=(context.predictions[0]["id"],),
+                evidence_capability="crossref_works",
+                evidence_parameters={"rows": 1, "query.title": "bounded discovery"},
+                requested_representation="application/json",
+                rationale="The evaluated experiment leaves an external evidence question that should be answered through a host-approved capability.",
+            )
+        if any(action.kind == "request_evidence" for action in context.actions_taken):
+            return DiscoveryAction(
+                kind="stop",
+                rationale="The bounded evidence request has completed; stop without treating the capture as grounded truth.",
+            )
+        return super().choose(context)
+
+
+class CrossrefEvidenceRuntime:
+    def request_evidence(self, store, request, *, created_at):
+        from episteme.acquisition import AcquisitionResponse
+        from episteme.capture import CaptureOutcome
+        from episteme.evidence_request import execute_evidence_request
+
+        return execute_evidence_request(
+            request,
+            store,
+            provider=lambda _request: AcquisitionResponse(
+                status=200,
+                media_type="application/json",
+                source_version="fixture-crossref-v1",
+                content=b'{"message":{"items":[]}}',
+                outcome=CaptureOutcome.COMPLETE,
+            ),
+            captured_at=created_at,
+            capture_id="capture-autonomous-evidence",
+        )
+
+
+
+    
+class RejectedEvidenceRuntime:
+    def request_evidence(self, store, request, *, created_at):
+        raise EvidenceRequestRejected("fixture host admission policy denied the request")
+
+
+
+class FailedEvidenceRuntime:
+    def request_evidence(self, store, request, *, created_at):
+        from episteme.acquisition import AcquisitionResponse
+        from episteme.capture import CaptureOutcome
+        from episteme.evidence_request import execute_evidence_request
+        return execute_evidence_request(
+            request, store,
+            provider=lambda _request: AcquisitionResponse(
+                status=None, media_type=None, source_version="fixture-crossref-v1",
+                content=None, outcome=CaptureOutcome.FAILED, error="fixture acquisition failed",
+            ),
+            captured_at=created_at, capture_id="capture-autonomous-evidence-failed",
+        )
+
+
+class PartialEvidenceRuntime:
+    def request_evidence(self, store, request, *, created_at):
+        from episteme.acquisition import AcquisitionResponse
+        from episteme.capture import CaptureOutcome
+        from episteme.evidence_request import execute_evidence_request
+        return execute_evidence_request(
+            request, store,
+            provider=lambda _request: AcquisitionResponse(
+                status=206, media_type="application/json", source_version="fixture-crossref-v1",
+                content=b'{"message":{"items":[]}}', outcome=CaptureOutcome.PARTIAL,
+            ),
+            captured_at=created_at, capture_id="capture-autonomous-evidence-partial",
+        )
+
+
+
+
+class MalformedOutcomeEvidenceRuntime:
+    def request_evidence(self, store, request, *, created_at):
+        return type("MalformedCapture", (), {"id": "malformed-capture", "outcome": "complete"})()
+
+
+class UnsupportedMediaEvidenceRuntime:
+    def request_evidence(self, store, request, *, created_at):
+        from episteme.acquisition import AcquisitionResponse
+        from episteme.capture import CaptureOutcome
+        from episteme.evidence_request import execute_evidence_request
+        return execute_evidence_request(
+            request, store,
+            provider=lambda _request: AcquisitionResponse(
+                status=200, media_type="text/html", source_version="fixture-crossref-v1",
+                content=b"<html>not the registered representation</html>",
+                outcome=CaptureOutcome.COMPLETE,
+            ),
+            captured_at=created_at, capture_id="capture-autonomous-evidence-media-mismatch",
+        )
+
+
+def _run_autonomous_evidence_fixture(tmp_path, runtime):
+    records = _records()
+    db_path = tmp_path / "phase28-autonomous.sqlite"
+    with Store(db_path, capture_root=tmp_path / "captures") as store:
+        for record in records:
+            store.put_record(record)
+        gap = detect_positional_gap(
+            store, record_ids=tuple(record.id for record in records),
+            position_key="position", step=1.0, created_at=CREATED,
+        )
+        assert gap is not None
+        store.put_discovery_finding(gap)
+        result = run_autonomous_discovery(
+            store, EvidenceRequestPlanner(),
+            grounded_input_ids=tuple(record.id for record in records),
+            started_at=CREATED, evidence_request_runtime=runtime, max_steps=6,
+        )
+        return result, db_path
+
+
+def test_autonomous_host_rejection_creates_no_capture(tmp_path):
+    result, db_path = _run_autonomous_evidence_fixture(
+        tmp_path, RejectedEvidenceRuntime()
+    )
+    assert result.status == "failed", result.stop_reason
+    assert "rejected by host policy" in result.stop_reason
+    assert tuple(step.action.kind for step in result.steps) == ("hypothesis", "hypothesis", "prediction", "experiment")
+    with Store(db_path, capture_root=tmp_path / "captures") as store:
+        assert tuple(store.iter_captured_representations()) == ()
+
+def test_autonomous_evidence_failure_is_not_reported_as_success(tmp_path):
+    result, db_path = _run_autonomous_evidence_fixture(tmp_path, FailedEvidenceRuntime())
+    assert result.status == "failed", result.stop_reason
+    assert "failed" in result.stop_reason
+    capture_id = result.steps[-1].output_ids[0]
+    with Store(db_path, capture_root=tmp_path / "captures") as store:
+        capture = store.get_captured_representation(capture_id)
+        assert capture is not None
+        assert capture.outcome.value == "failed"
+        assert store.get_record(capture_id) is None
+
+
+def test_autonomous_partial_evidence_is_not_reported_as_complete(tmp_path):
+    result, db_path = _run_autonomous_evidence_fixture(tmp_path, PartialEvidenceRuntime())
+    assert result.status == "failed", result.stop_reason
+    assert "partial capture" in result.stop_reason
+    capture_id = result.steps[-1].output_ids[0]
+    with Store(db_path, capture_root=tmp_path / "captures") as store:
+        capture = store.get_captured_representation(capture_id)
+        assert capture is not None
+        assert capture.outcome.value == "partial"
+        assert store.get_record(capture_id) is None
+
+
+def test_autonomous_malformed_evidence_outcome_is_rejected(tmp_path):
+    import pytest
+
+    with pytest.raises(
+        RuntimeError,
+        match="invalid capture outcome",
+    ):
+        _run_autonomous_evidence_fixture(
+            tmp_path, MalformedOutcomeEvidenceRuntime()
+        )
+
+
+def test_autonomous_evidence_media_mismatch_is_not_reported_as_success(tmp_path):
+    result, db_path = _run_autonomous_evidence_fixture(
+        tmp_path, UnsupportedMediaEvidenceRuntime()
+    )
+    assert result.status == "failed", result.stop_reason
+    capture_id = result.steps[-1].output_ids[0]
+    with Store(db_path, capture_root=tmp_path / "captures") as store:
+        capture = store.get_captured_representation(capture_id)
+        assert capture is not None
+        assert capture.outcome.value == "failed"
+        assert "media type" in (capture.error or "")
+        assert store.get_record(capture_id) is None
+
+def test_autonomous_discovery_can_request_evidence_only_through_host_runtime(tmp_path):
+    records = _records()
+    with Store(capture_root=tmp_path / "captures") as store:
+        for record in records:
+            store.put_record(record)
+
+        gap = detect_positional_gap(
+            store,
+            record_ids=tuple(record.id for record in records),
+            position_key="position",
+            step=1.0,
+            created_at=CREATED,
+        )
+        assert gap is not None
+        store.put_discovery_finding(gap)
+
+        planner = EvidenceRequestPlanner()
+        result = run_autonomous_discovery(
+            store,
+            planner,
+            grounded_input_ids=tuple(record.id for record in records),
+            started_at=CREATED,
+            evidence_request_runtime=CrossrefEvidenceRuntime(),
+            max_steps=6,
+        )
+
+        assert result.status == "stopped", result.stop_reason
+        assert [step.action.kind for step in result.steps] == [
+            "hypothesis",
+            "hypothesis",
+            "prediction",
+            "experiment",
+            "request_evidence",
+        ]
+        capture_id = result.steps[-1].output_ids[0]
+        capture = store.get_captured_representation(capture_id)
+        assert capture is not None
+        assert capture.outcome.value == "complete"
+        assert store.read_captured_content(capture_id) == b'{"message":{"items":[]}}'
+        assert store.get_record(capture_id) is None
