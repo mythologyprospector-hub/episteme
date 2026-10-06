@@ -378,15 +378,31 @@ def execute_action(store: Any, action: DiscoveryAction, *, created_at: str) -> t
         finding = store.get_discovery_finding(action.target_ids[0])
         if finding is None:
             raise PlannerActionError("hypothesis target finding does not exist")
-        hypothesis = propose_hypothesis(
-            statement=statement,
-            finding_ids=(finding.id,),
-            input_ids=finding.input_ids,
-            method="planner-driven-hypothesis",
-            method_version="1",
-            rationale=action.rationale,
-            created_at=created_at,
-        )
+        if finding.kind is DiscoveryFindingKind.GAP:
+            from .proposals import complete_structural_gap
+
+            try:
+                hypothesis = complete_structural_gap(
+                    store,
+                    gap_id=finding.id,
+                    statement=statement,
+                    method="planner-driven-structural-gap-completion",
+                    method_version="1",
+                    rationale=action.rationale,
+                    created_at=created_at,
+                )
+            except ValueError as exc:
+                raise PlannerActionError(str(exc)) from exc
+        else:
+            hypothesis = propose_hypothesis(
+                statement=statement,
+                finding_ids=(finding.id,),
+                input_ids=finding.input_ids,
+                method="planner-driven-hypothesis",
+                method_version="1",
+                rationale=action.rationale,
+                created_at=created_at,
+            )
         store.put_hypothesis(hypothesis)
         return (hypothesis.id,)
 
