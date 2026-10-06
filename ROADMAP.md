@@ -690,6 +690,6 @@ If implementation reveals that the roadmap is wrong, revise the roadmap rather t
 
 ## Current Position
 
-**Phase 26 — Praxis Evidence Interoperability — Complete**
+**Phase 27 — Bounded Autonomous Discovery — Complete**
 
 
