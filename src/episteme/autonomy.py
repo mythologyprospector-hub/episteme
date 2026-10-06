@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Mapping, Protocol
 
 from .discovery import detect_positional_gap, question_from_finding
-from .evidence_request import EvidenceRequest
+from .evidence_request import EvidenceRequest, EvidenceRequestRejected
 from .exploration import scout_positional_records
 from .exploration_bridge import admit_exploration_observation, assess_exploration_observation
 from .model import Provenance
@@ -834,9 +834,16 @@ def run_autonomous_discovery(
                         motivation_ids=action.target_ids,
                         requested_representation=_require(action.requested_representation, "requested_representation"),
                     )
-                    result = evidence_request_runtime.request_evidence(
-                        store, request, created_at=started_at
-                    )
+                    try:
+                        result = evidence_request_runtime.request_evidence(
+                            store, request, created_at=started_at
+                        )
+                    except EvidenceRequestRejected as exc:
+                        return DiscoveryRun(
+                            status="failed",
+                            steps=tuple(steps),
+                            stop_reason=f"bounded evidence request was rejected by host policy: {exc}",
+                        )
                     if not hasattr(result, "outcome") or not hasattr(result, "id"):
                         raise RuntimeError(
                             "host evidence runtime returned an invalid capture result"
