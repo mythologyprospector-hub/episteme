@@ -52,7 +52,10 @@ class OllamaPlanner:
         try:
             return DiscoveryAction(**action_data)
         except (TypeError, ValueError) as exc:
-            raise PlannerActionError("Ollama planner returned an invalid DiscoveryAction") from exc
+            raise PlannerActionError(
+                f"Ollama planner returned an invalid DiscoveryAction: {exc}; "
+                f"response content={content!r}"
+            ) from exc
 
     def _request_payload(self, context: DiscoveryContext) -> dict[str, Any]:
         context_data = {
