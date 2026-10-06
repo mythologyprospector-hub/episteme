@@ -262,14 +262,16 @@ def test_evidence_request_rejects_mismatched_provider_media_type(tmp_path):
             outcome=CaptureOutcome.COMPLETE,
         )
 
-    with pytest.raises(ValueError, match="media type"):
-        execute_evidence_request(
-            request,
-            store,
-            provider=provider,
-            captured_at="2026-10-06T00:00:00+00:00",
-        )
+    capture = execute_evidence_request(
+        request,
+        store,
+        provider=provider,
+        captured_at="2026-10-06T00:00:00+00:00",
+    )
 
+    assert capture.outcome is CaptureOutcome.FAILED
+    assert "media type" in (capture.error or "")
+    assert capture.content_digest is None
 
 def test_evidence_request_representation_must_be_supported_by_capability():
     from episteme.evidence_request import EvidenceRequest, resolve_evidence_capability
