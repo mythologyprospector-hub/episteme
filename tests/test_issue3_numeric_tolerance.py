@@ -46,3 +46,25 @@ def test_accounting_gap_does_not_treat_float_rounding_as_real_residual():
         )
 
         assert finding is None
+
+
+def test_accounting_gap_still_reports_residual_above_tolerance():
+    """A materially different quantity must remain a real accounting gap."""
+
+    total = _record("aaaaaaaa-0002-4aaa-8aaa-aaaaaaaaaaaa", 0.3)
+    first = _record("bbbbbbbb-0002-4aaa-8aaa-bbbbbbbbbbbb", 0.1)
+    second = _record("cccccccc-0002-4aaa-8aaa-cccccccccccc", 0.20000001)
+
+    with Store() as store:
+        for record in (total, first, second):
+            store.put_record(record)
+
+        finding = detect_accounting_gap(
+            store,
+            total_record_id=total.id,
+            component_record_ids=(first.id, second.id),
+            quantity_key="quantity",
+            created_at=CREATED,
+        )
+
+        assert finding is not None
