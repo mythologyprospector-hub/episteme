@@ -88,6 +88,7 @@ def test_admitted_evidence_request_reuses_existing_acquire_and_persists_capture(
         capability="crossref_works",
         parameters={"rows": 1, "query.title": "example"},
         rationale="Discriminate the current candidate hypotheses.",
+        requested_representation="application/json",
         motivation_ids=("11111111-1111-4111-8111-111111111111",),
     )
 
@@ -109,6 +110,7 @@ def test_provider_failure_remains_failed_capture(tmp_path):
         capability="crossref_works",
         parameters={"rows": 1},
         rationale="Test bounded failure handling.",
+        requested_representation="application/json",
         motivation_ids=("22222222-2222-4222-8222-222222222222",),
     )
 
@@ -131,6 +133,7 @@ def test_partial_capture_remains_partial(tmp_path):
         capability="crossref_works",
         parameters={"rows": 1},
         rationale="Test bounded partial acquisition handling.",
+        requested_representation="application/json",
         motivation_ids=("33333333-3333-4333-8333-333333333333",),
     )
 
@@ -240,6 +243,7 @@ def test_evidence_request_requires_a_discriminating_rationale():
             capability="crossref_works",
             parameters={"rows": 1},
             rationale="",
+            requested_representation="application/json",
             motivation_ids=("44444444-4444-4444-8444-444444444444",),
         )
 
@@ -251,6 +255,7 @@ def test_evidence_request_rejects_missing_motivation_before_provider(tmp_path):
         capability="crossref_works",
         parameters={"rows": 1},
         rationale="Discriminate the current candidate hypotheses.",
+        requested_representation="application/json",
         motivation_ids=("99999999-9999-4999-8999-999999999999",),
     )
 
