@@ -752,7 +752,7 @@ def test_autonomous_host_rejection_creates_no_capture(tmp_path):
     )
     assert result.status == "failed", result.stop_reason
     assert "rejected by host policy" in result.stop_reason
-    assert result.steps == ()
+    assert tuple(step.action.kind for step in result.steps) == ("hypothesis", "hypothesis", "prediction", "experiment")
     with Store(db_path, capture_root=tmp_path / "captures") as store:
         assert tuple(store.iter_captured_representations()) == ()
 
