@@ -434,8 +434,6 @@ def _validate_action_state(store: Any, action: DiscoveryAction) -> None:
 
 def execute_action(store: Any, action: DiscoveryAction, *, created_at: str) -> tuple[str, ...]:
     """Validate and execute one action using existing Episteme primitives."""
-    _validate_action_state(store, action)
-
     if action.kind == "stop":
         return ()
 
@@ -680,6 +678,7 @@ def run_autonomous_discovery(
                 action = planner.choose(context)
                 if not isinstance(action, DiscoveryAction):
                     raise PlannerActionError("planner must return DiscoveryAction")
+                _validate_action_state(store, action)
                 if action.kind == "stop":
                     return DiscoveryRun(
                         status="stopped",
