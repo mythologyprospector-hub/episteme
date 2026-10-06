@@ -1002,6 +1002,7 @@ class Prediction:
     method_version: str
     rationale: str
     comparison_hypothesis_ids: tuple[str, ...]
+    expected_presence: bool | None = None
     created_at: str
     schema_version: int = SCHEMA_VERSION
 
@@ -1017,6 +1018,8 @@ class Prediction:
         _require_text(self.rationale, "rationale")
         for value in self.comparison_hypothesis_ids:
             _require_uuid(value, "comparison_hypothesis_id")
+        if self.expected_presence is not None and not isinstance(self.expected_presence, bool):
+            raise ValueError("expected_presence must be a boolean when supplied")
         if self.comparison_hypothesis_ids:
             if len(self.comparison_hypothesis_ids) < 2:
                 raise ValueError("distinguishing prediction requires at least two hypotheses")
@@ -1032,6 +1035,7 @@ class Prediction:
                 "assumptions": list(self.assumptions), "method": self.method,
                 "method_version": self.method_version, "rationale": self.rationale,
                 "comparison_hypothesis_ids": list(self.comparison_hypothesis_ids),
+                "expected_presence": self.expected_presence,
                 "created_at": self.created_at, "schema_version": self.schema_version}
 
     @classmethod
@@ -1041,6 +1045,7 @@ class Prediction:
                    assumptions=tuple(data["assumptions"]), method=data["method"],
                    method_version=data["method_version"], rationale=data["rationale"],
                    comparison_hypothesis_ids=tuple(data.get("comparison_hypothesis_ids", ())),
+                   expected_presence=data.get("expected_presence"),
                    created_at=data["created_at"],
                    schema_version=data.get("schema_version", SCHEMA_VERSION))
 
