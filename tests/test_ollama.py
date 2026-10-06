@@ -51,3 +51,24 @@ def test_ollama_accepts_only_bounded_action_fields():
     assert isinstance(action, DiscoveryAction)
     assert action.kind == "stop"
     assert action.rationale.startswith("The bounded investigation")
+
+
+def test_ollama_accepts_bounded_evidence_request():
+    action = _planner(
+        json.dumps(
+            {
+                "kind": "request_evidence",
+                "evidence_request": {
+                    "source_id": "approved-source",
+                    "requested_resource": "resource-1",
+                    "request_parameters": {"query": "bounded"},
+                    "acquisition_method": "approved-fetch",
+                    "acquisition_method_version": "1",
+                },
+                "rationale": "The current investigation requires an approved external representation.",
+            }
+        )
+    ).choose(_context())
+
+    assert action.kind == "request_evidence"
+    assert action.evidence_request["source_id"] == "approved-source"

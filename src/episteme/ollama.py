@@ -79,6 +79,7 @@ class OllamaPlanner:
                     "proposed_observation": action.proposed_observation,
                     "discrimination_basis": action.discrimination_basis,
                     "execution_spec": dict(action.execution_spec) if action.execution_spec is not None else None,
+                    "evidence_request": dict(action.evidence_request) if action.evidence_request is not None else None,
                     "rationale": action.rationale,
                 }
                 for action in context.actions_taken
@@ -86,7 +87,7 @@ class OllamaPlanner:
         }
         system = (
             "You are the bounded planning component of a scientific inquiry instrument. "
-            "Choose exactly one next action from: scout, assess_exploration, admit_exploration, discover_gap, question, "
+            "Choose exactly one next action from: request_evidence, scout, assess_exploration, admit_exploration, discover_gap, question, "
             "hypothesis, prediction, experiment, stop. If the supplied context has no "
             "exploration observations and the host provides scouting capability, the first "
             "action MUST be scout. After a scout, if an exploration observation exists but "
@@ -104,7 +105,7 @@ class OllamaPlanner:
             "predictions. After competing predictions exist with no experiment, propose the "
             "bounded experiment. Once an experiment has already been executed and its result and evaluations are present in the context, choose stop to finish the bounded investigation; do not propose another experiment for the same run. Do not stop merely because the GAP has been found; continue "
             "through candidate generation and discrimination until the bounded experiment has "
-            "been executed or external evidence is required. ""For kind='scout', request only a bounded host-owned scouting pass; you do not choose its grounded inputs, executor, limits, or configuration. For kind='assess_exploration', target exactly one supplied exploration observation id; the host decides acceptance, assessment method, provenance, and rationale. For kind='admit_exploration', target exactly one supplied exploration observation id; the host chooses the accepted assessment and admission policy. Never invent or supply assessment policy fields. For kind='discover_gap', request only the bounded host-owned structural discovery pass; you do not choose its grounded inputs, detector, limits, or configuration. If external evidence is required and the instrument cannot acquire it, stop. "
+            "been executed or external evidence is required. For kind='request_evidence', provide only the bounded evidence_request object exposed by the host; never provide executable code or arbitrary network instructions. For kind='scout', request only a bounded host-owned scouting pass; you do not choose its grounded inputs, executor, limits, or configuration. For kind='assess_exploration', target exactly one supplied exploration observation id; the host decides acceptance, assessment method, provenance, and rationale. For kind='admit_exploration', target exactly one supplied exploration observation id; the host chooses the accepted assessment and admission policy. Never invent or supply assessment policy fields. For kind='discover_gap', request only the bounded host-owned structural discovery pass; you do not choose its grounded inputs, detector, limits, or configuration. If external evidence is required and the instrument cannot acquire it, stop. "
             "Return one JSON object only. The JSON field for the action type is named "
             "'kind', never 'action'. The field 'rationale' is REQUIRED on EVERY action, "
             "including prediction, and must be a non-empty string explaining why that action "
@@ -112,7 +113,7 @@ class OllamaPlanner:
             "must include kind, target_ids, conditions, consequence or consequences, and "
             "rationale. The only allowed JSON fields are: kind, target_ids, "
             "statement, consequence, consequences, conditions, objective, "
-            "proposed_observation, discrimination_basis, execution_spec, rationale. Do not invent other "
+            "proposed_observation, discrimination_basis, evidence_request, execution_spec, rationale. Do not invent other "
             "field names. A hypothesis action creates a NEW hypothesis about a finding. "
             "For kind='question' or kind='hypothesis', target_ids MUST contain exactly "
             "one existing GAP or TENSION finding id. NEVER put an existing hypothesis id "
@@ -137,7 +138,7 @@ class OllamaPlanner:
                 "properties": {
                     "kind": {
                         "type": "string",
-                        "enum": ["scout", "assess_exploration", "admit_exploration", "discover_gap", "question", "hypothesis", "prediction", "experiment", "stop"],
+                        "enum": ["request_evidence", "scout", "assess_exploration", "admit_exploration", "discover_gap", "question", "hypothesis", "prediction", "experiment", "stop"],
                     },
                     "target_ids": {"type": "array", "items": {"type": "string"}},
                     "statement": {"type": "string"},
@@ -147,6 +148,7 @@ class OllamaPlanner:
                     "objective": {"type": "string"},
                     "proposed_observation": {"type": "string"},
                     "discrimination_basis": {"type": "string"},
+                    "evidence_request": {"type": "object"},
                     "execution_spec": {
                         "type": "object",
                         "properties": {
@@ -166,6 +168,10 @@ class OllamaPlanner:
                 "required": ["kind", "rationale"],
                 "additionalProperties": False,
                 "oneOf": [
+                    {
+                        "properties": {"kind": {"const": "request_evidence"}},
+                        "required": ["kind", "evidence_request", "rationale"],
+                    },
                     {
                         "properties": {"kind": {"const": "scout"}},
                         "required": ["kind", "rationale"],
