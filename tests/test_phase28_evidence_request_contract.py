@@ -182,6 +182,7 @@ def test_evidence_request_rejects_non_epistemic_workflow_artifact_as_motivation(
             capability="crossref_works",
             parameters={"rows": 1},
             rationale="Discriminate the current candidate hypotheses.",
+            requested_representation="application/json",
             motivation_ids=(capture_motivation_id,),
         )
 
@@ -278,6 +279,7 @@ def test_evidence_request_requires_a_motivating_episteme_object():
             capability="crossref_works",
             parameters={"rows": 1},
             rationale="Discriminate the current candidate hypotheses.",
+            requested_representation="application/json",
             motivation_ids=(),
         )
 
