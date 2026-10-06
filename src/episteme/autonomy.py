@@ -368,6 +368,7 @@ def _validate_action_state(
     action: DiscoveryAction,
     *,
     enforce_exploration_policy: bool,
+    actions_taken: tuple[DiscoveryAction, ...] = (),
 ) -> None:
     """Enforce bounded discovery transitions at the host boundary.
 
@@ -456,6 +457,8 @@ def _validate_action_state(
         return
 
     if action.kind == "stop":
+        if any(item.kind == "request_evidence" for item in actions_taken):
+            return
         # Stopping before a GAP is a valid bounded exploration termination.
         # Once a candidate gap/tension exists, termination requires the
         # bounded experiment and its deterministic evaluation.
@@ -762,6 +765,7 @@ def run_autonomous_discovery(
                         exploration_assessment_runtime is not None
                         or exploration_admission_runtime is not None
                     ),
+                    actions_taken=tuple(actions),
                 )
                 if action.kind == "stop":
                     return DiscoveryRun(
