@@ -2,6 +2,7 @@ from episteme.autonomy import DiscoveryAction, DiscoveryContext, PlannerActionEr
 from episteme.discovery import detect_positional_gap
 from episteme.model import Provenance, Record, RecordKind
 from episteme.store import Store
+from episteme.evidence_request import EvidenceRequestRejected
 
 CREATED = "2026-10-05T00:00:00Z"
 PROVENANCE = (Provenance(source_id="autonomy-fixture", captured_at=CREATED, source_location="https://example.org/autonomy", source_version="1"),)
@@ -672,6 +673,12 @@ class CrossrefEvidenceRuntime:
 
 
 
+    
+class RejectedEvidenceRuntime:
+    def request_evidence(self, store, request, *, created_at):
+        raise EvidenceRequestRejected("fixture host admission policy denied the request")
+
+
 
 class FailedEvidenceRuntime:
     def request_evidence(self, store, request, *, created_at):
@@ -738,6 +745,16 @@ def _run_autonomous_evidence_fixture(tmp_path, runtime):
         )
         return result, db_path
 
+
+def test_autonomous_host_rejection_creates_no_capture(tmp_path):
+    result, db_path = _run_autonomous_evidence_fixture(
+        tmp_path, RejectedEvidenceRuntime()
+    )
+    assert result.status == "failed", result.stop_reason
+    assert "rejected by host policy" in result.stop_reason
+    assert result.steps == ()
+    with Store(db_path, capture_root=tmp_path / "captures") as store:
+        assert tuple(store.iter_captured_representations()) == ()
 
 def test_autonomous_evidence_failure_is_not_reported_as_success(tmp_path):
     result, db_path = _run_autonomous_evidence_fixture(tmp_path, FailedEvidenceRuntime())
