@@ -78,6 +78,17 @@ def test_autonomous_exploration_can_reach_host_owned_structural_discovery():
 
 def test_planner_cannot_execute_structural_discovery_without_host_runtime():
     with Store() as store:
+        for record_id, position in zip(IDS, (1.0, 2.0, 4.0)):
+            store.put_record(
+                Record(
+                    record_id,
+                    RecordKind.OBSERVATION,
+                    {"position": position},
+                    PROV,
+                    CREATED,
+                )
+            )
+
         result = run_autonomous_discovery(
             store,
             ScoutDiscoverPlanner(),
