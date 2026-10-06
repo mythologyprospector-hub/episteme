@@ -243,7 +243,8 @@ def test_evidence_request_rejects_mismatched_provider_media_type(tmp_path):
     from episteme.evidence_request import EvidenceRequest, execute_evidence_request
 
     store = Store(tmp_path / "episteme.db")
-    motivation_id = _seed_motivation(store)
+    motivation_id = "99999999-9999-4999-8999-999999999999"
+    _seed_motivation(store, motivation_id)
 
     request = EvidenceRequest(
         capability="crossref_works",
