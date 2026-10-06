@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Mapping, Protocol
 
 from .discovery import detect_positional_gap, question_from_finding
+from .evidence_request import EvidenceRequest
 from .exploration import scout_positional_records
 from .exploration_bridge import admit_exploration_observation, assess_exploration_observation
 from .model import Provenance
@@ -22,6 +23,15 @@ from .proposals import (
     propose_discriminating_prediction,
     propose_hypothesis,
 )
+
+
+class EvidenceRequestRuntime(Protocol):
+    """Host-owned binding for bounded external evidence acquisition."""
+
+    def request_evidence(
+        self, store: Any, request: EvidenceRequest, *, created_at: str
+    ) -> Any:
+        """Execute one validated evidence request through host-owned policy."""
 
 
 class ExplorationRuntime(Protocol):
@@ -146,13 +156,21 @@ class DiscoveryAction:
     proposed_observation: str | None = None
     discrimination_basis: str | None = None
     execution_spec: Mapping[str, Any] | None = None
+    evidence_capability: str | None = None
+    evidence_parameters: Mapping[str, Any] | None = None
+    requested_representation: str | None = None
     rationale: str = ""
 
     def __post_init__(self) -> None:
-        if self.kind not in {"scout", "assess_exploration", "admit_exploration", "discover_gap", "question", "hypothesis", "prediction", "experiment", "stop"}:
+        if self.kind not in {"scout", "assess_exploration", "admit_exploration", "discover_gap", "question", "hypothesis", "prediction", "experiment", "request_evidence", "stop"}:
             raise PlannerActionError(f"unknown discovery action: {self.kind}")
         if not self.rationale.strip():
             raise PlannerActionError("discovery action requires a rationale")
+        if self.kind == "request_evidence":
+            _require(self.evidence_capability, "evidence_capability")
+            if self.evidence_parameters is None or not isinstance(self.evidence_parameters, Mapping):
+                raise PlannerActionError("request_evidence requires evidence_parameters")
+            _require(self.requested_representation, "requested_representation")
 
 
 @dataclass(frozen=True, slots=True)
@@ -428,12 +446,13 @@ def _validate_action_state(
     )
 
     if experiments:
-        if action.kind != "stop":
+        evaluations = tuple(store.iter_prediction_evaluations())
+        if not evaluations:
+            raise PlannerActionError("the bounded investigation requires experiment evaluation before another action")
+        if action.kind not in {"stop", "request_evidence"}:
             raise PlannerActionError(
-                "the bounded investigation is complete; stop after the executed experiment"
+                "the bounded investigation permits stop or a bounded evidence request after experiment evaluation"
             )
-        if not tuple(store.iter_prediction_evaluations()):
-            raise PlannerActionError("stop is unavailable before experiment evaluation")
         return
 
     if action.kind == "stop":
@@ -496,6 +515,9 @@ def execute_action(store: Any, action: DiscoveryAction, *, created_at: str) -> t
 
     if action.kind == "discover_gap":
         raise PlannerActionError("discover_gap action requires the host-owned structural discovery runtime")
+
+    if action.kind == "request_evidence":
+        raise PlannerActionError("request_evidence action requires the host-owned evidence request runtime")
 
     if not action.target_ids:
         raise PlannerActionError(f"{action.kind} action requires target_ids")
@@ -703,6 +725,7 @@ def run_autonomous_discovery(
     structural_discovery_runtime: StructuralDiscoveryRuntime | None = None,
     exploration_assessment_runtime: ExplorationAssessmentRuntimeProtocol | None = None,
     exploration_admission_runtime: ExplorationAdmissionRuntimeProtocol | None = None,
+    evidence_request_runtime: EvidenceRequestRuntime | None = None,
     max_retries_per_step: int = 2,
 ) -> DiscoveryRun:
     """Run a finite planner-steered investigation until stop or a hard budget.
@@ -783,6 +806,22 @@ def run_autonomous_discovery(
                         raise PlannerActionError("admit_exploration action requires exactly one observation id")
                     finding = exploration_admission_runtime.admit(store, action.target_ids[0], created_at=started_at)
                     output_ids = (finding.id,)
+                elif action.kind == "request_evidence":
+                    if evidence_request_runtime is None:
+                        raise PlannerActionError("evidence request is unavailable without a host-owned evidence request runtime")
+                    if not action.target_ids:
+                        raise PlannerActionError("request_evidence action requires at least one motivation id")
+                    request = EvidenceRequest(
+                        capability=_require(action.evidence_capability, "evidence_capability"),
+                        parameters=action.evidence_parameters or {},
+                        rationale=action.rationale,
+                        motivation_ids=action.target_ids,
+                        requested_representation=_require(action.requested_representation, "requested_representation"),
+                    )
+                    result = evidence_request_runtime.request_evidence(
+                        store, request, created_at=started_at
+                    )
+                    output_ids = (result.id,)
                 else:
                     output_ids = execute_action(store, action, created_at=started_at)
             except PlannerActionError as exc:
