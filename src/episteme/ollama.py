@@ -102,7 +102,7 @@ class OllamaPlanner:
             "propose a distinct competing hypothesis for the same finding. After two or more "
             "competing hypotheses exist and have no predictions, propose discriminating "
             "predictions. After competing predictions exist with no experiment, propose the "
-            "bounded experiment. Do not stop merely because the GAP has been found; continue "
+            "bounded experiment. Once an experiment has already been executed and its result and evaluations are present in the context, choose stop to finish the bounded investigation; do not propose another experiment for the same run. Do not stop merely because the GAP has been found; continue "
             "through candidate generation and discrimination until the bounded experiment has "
             "been executed or external evidence is required. ""For kind='scout', request only a bounded host-owned scouting pass; you do not choose its grounded inputs, executor, limits, or configuration. For kind='assess_exploration', target exactly one supplied exploration observation id; the host decides acceptance, assessment method, provenance, and rationale. For kind='admit_exploration', target exactly one supplied exploration observation id; the host chooses the accepted assessment and admission policy. Never invent or supply assessment policy fields. For kind='discover_gap', request only the bounded host-owned structural discovery pass; you do not choose its grounded inputs, detector, limits, or configuration. If external evidence is required and the instrument cannot acquire it, stop. "
             "Return one JSON object only. The JSON field for the action type is named "
