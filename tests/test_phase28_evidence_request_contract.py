@@ -748,3 +748,44 @@ def test_captured_representation_request_parameters_cannot_be_mutated(tmp_path):
             result.request_parameters["rows"] = 999
 
         assert result.request_parameters == {"rows": 1}
+
+
+def test_reloaded_capture_request_parameters_remain_immutable(tmp_path):
+    from episteme.evidence_request import EvidenceRequest, execute_evidence_request
+
+    motivation_id = "ceeeeeee-ceee-4eee-8eee-ceeeeeeeeeee"
+    request = EvidenceRequest(
+        capability="crossref_works",
+        parameters={"rows": 1},
+        rationale="Preserve immutable acquisition provenance across reload.",
+        requested_representation="application/json",
+        motivation_ids=(motivation_id,),
+    )
+
+    db_path = tmp_path / "phase28.sqlite"
+    capture_root = tmp_path / "captures"
+    with Store(db_path, capture_root=capture_root) as store:
+        _seed_motivation(store, motivation_id)
+        result = execute_evidence_request(
+            request,
+            store,
+            provider=lambda _request: AcquisitionResponse(
+                status=200,
+                media_type="application/json",
+                source_version="v1",
+                content=CONTENT,
+                outcome=CaptureOutcome.COMPLETE,
+            ),
+            captured_at=CAPTURED_AT,
+            capture_id="capture-phase28-reloaded-params",
+        )
+        assert result.request_parameters == {"rows": 1}
+
+    with Store(db_path, capture_root=capture_root) as store:
+        reloaded = store.get_captured_representation(
+            "capture-phase28-reloaded-params"
+        )
+        assert reloaded is not None
+        with pytest.raises(TypeError):
+            reloaded.request_parameters["rows"] = 999
+        assert reloaded.request_parameters == {"rows": 1}
