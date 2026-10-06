@@ -2,7 +2,7 @@ name: Test
 
 on:
   push:
-    branches: ["main", "wire-structural-discovery-into-autonomy"]
+    branches: ["main"]
   pull_request:
   workflow_dispatch:
 
