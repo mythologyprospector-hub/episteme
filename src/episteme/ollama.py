@@ -90,7 +90,7 @@ class OllamaPlanner:
             "When a GAP or TENSION finding has one hypothesis but no genuinely competing "
             "hypothesis, prefer proposing a distinct competing hypothesis grounded in that "
             "finding before stopping, when the finding permits one. "
-            "For kind='scout', request only a bounded host-owned scouting pass; you do not choose its grounded inputs, executor, limits, or configuration. If external evidence is required and the instrument cannot acquire it, stop. "
+            "For kind='scout', request only a bounded host-owned scouting pass; you do not choose its grounded inputs, executor, limits, or configuration. For kind='assess_exploration', target exactly one supplied exploration observation id; the host decides acceptance, assessment method, provenance, and rationale. For kind='admit_exploration', target exactly one supplied exploration observation id; the host chooses the accepted assessment and admission policy. Never invent or supply assessment policy fields. If external evidence is required and the instrument cannot acquire it, stop. "
             "Return one JSON object only. The JSON field for the action type is named "
             "'kind', never 'action'. The only allowed JSON fields are: kind, target_ids, "
             "statement, consequence, consequences, conditions, objective, "
