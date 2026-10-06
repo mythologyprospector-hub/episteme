@@ -839,6 +839,13 @@ def run_autonomous_discovery(
                     )
                     evidence_request_completed = True
                     output_ids = (result.id,)
+                    steps.append(DiscoveryStep(action=action, output_ids=output_ids))
+                    actions.append(action)
+                    return DiscoveryRun(
+                        status="stopped",
+                        steps=tuple(steps),
+                        stop_reason="bounded evidence request completed through the host-owned runtime",
+                    )
                 else:
                     output_ids = execute_action(store, action, created_at=started_at)
             except PlannerActionError as exc:
