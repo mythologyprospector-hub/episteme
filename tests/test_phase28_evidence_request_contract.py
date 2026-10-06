@@ -591,3 +591,29 @@ def test_unknown_capability_is_rejected_before_provider_and_capture(tmp_path):
             )
 
         assert store.get_captured_representation("should-not-exist") is None
+
+
+def test_unknown_capability_is_rejected_before_motivation_lookup(tmp_path):
+    from episteme.evidence_request import EvidenceRequest, execute_evidence_request
+
+    request = EvidenceRequest(
+        capability="arbitrary-network-client",
+        parameters={},
+        rationale="Discriminate the current candidate hypotheses.",
+        requested_representation="application/json",
+        motivation_ids=("not-a-real-motivation",),
+    )
+
+    class ExplodingStore:
+        def epistemic_object_exists(self, _object_id):
+            raise AssertionError(
+                "motivation lookup must not occur before capability admission"
+            )
+
+    with pytest.raises(ValueError, match="unknown evidence capability"):
+        execute_evidence_request(
+            request,
+            ExplodingStore(),
+            provider=lambda _request: pytest.fail("provider must not run"),
+            captured_at=CAPTURED_AT,
+        )
