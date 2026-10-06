@@ -345,8 +345,97 @@ def _validate_execution_spec(
     }
 
 
+def _validate_action_state(store: Any, action: DiscoveryAction) -> None:
+    """Enforce the bounded discovery protocol at the host boundary.
+
+    The planner remains free to choose the next action, but only actions that
+    are legal for the represented epistemic state may be executed. This keeps
+    sequencing out of the provider prompt and makes the control protocol a
+    host-owned invariant.
+    """
+    if action.kind == "stop":
+        if not tuple(store.iter_experiment_proposals()):
+            raise PlannerActionError("stop is unavailable before a bounded experiment")
+        if not tuple(store.iter_prediction_evaluations()):
+            raise PlannerActionError("stop is unavailable before experiment evaluation")
+        return
+
+    observations = tuple(store.iter_exploration_observations())
+    assessments = tuple(store.iter_exploration_observation_assessments())
+    findings = tuple(store.iter_discovery_findings())
+    hypotheses = tuple(store.iter_hypotheses())
+    predictions = tuple(store.iter_predictions())
+    experiments = tuple(store.iter_experiment_proposals())
+
+    if observations:
+        unassessed = any(
+            not any(item.observation_id == observation.id for item in assessments)
+            for observation in observations
+        )
+        if unassessed:
+            if action.kind != "assess_exploration":
+                raise PlannerActionError("exploration observation must be assessed before another action")
+            return
+
+        accepted_pending = any(
+            assessment.accepted
+            and not any(
+                finding.kind is DiscoveryFindingKind.EXPLORATION_OBSERVATION
+                and assessment.observation_id in finding.context_ids
+                for finding in findings
+            )
+            for assessment in assessments
+        )
+        if accepted_pending:
+            if action.kind != "admit_exploration":
+                raise PlannerActionError("accepted exploration observation must be admitted before another action")
+            return
+
+    candidate_findings = tuple(
+        finding for finding in findings
+        if finding.kind in {DiscoveryFindingKind.GAP, DiscoveryFindingKind.TENSION}
+    )
+
+    if not candidate_findings:
+        if action.kind != "discover_gap":
+            raise PlannerActionError("bounded discovery requires a GAP or TENSION finding before candidate generation")
+        return
+
+    if experiments:
+        raise PlannerActionError("the bounded investigation is complete; stop after the executed experiment")
+
+    hypothesis_counts = {
+        finding.id: sum(finding.id in item.finding_ids for item in hypotheses)
+        for finding in candidate_findings
+    }
+    pending_hypothesis = next(
+        (finding for finding in candidate_findings if hypothesis_counts[finding.id] < 2),
+        None,
+    )
+
+    if pending_hypothesis is not None:
+        count = hypothesis_counts[pending_hypothesis.id]
+        if count == 0:
+            if action.kind not in {"hypothesis", "question"}:
+                raise PlannerActionError("a GAP or TENSION requires an initial hypothesis before predictions")
+        elif count == 1:
+            if action.kind != "hypothesis":
+                raise PlannerActionError("a single hypothesis requires a competing hypothesis before prediction")
+        return
+
+    if not predictions:
+        if action.kind != "prediction":
+            raise PlannerActionError("competing hypotheses require discriminating predictions before experiment")
+        return
+
+    if action.kind != "experiment":
+        raise PlannerActionError("existing predictions require a bounded experiment before another action")
+
+
 def execute_action(store: Any, action: DiscoveryAction, *, created_at: str) -> tuple[str, ...]:
     """Validate and execute one action using existing Episteme primitives."""
+    _validate_action_state(store, action)
+
     if action.kind == "stop":
         return ()
 
