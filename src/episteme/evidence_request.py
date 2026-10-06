@@ -8,6 +8,7 @@ then delegates to the existing acquisition pipeline.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from types import MappingProxyType
 from typing import Any, Mapping
 from uuid import UUID
 
@@ -87,6 +88,9 @@ class EvidenceRequest:
             raise ValueError("evidence request rationale must be non-empty")
         if not self.requested_representation.strip():
             raise ValueError("evidence request representation must be non-empty")
+        if not isinstance(self.parameters, Mapping):
+            raise ValueError("evidence request parameters must be a mapping")
+        object.__setattr__(self, "parameters", MappingProxyType(dict(self.parameters)))
         if not self.motivation_ids:
             raise ValueError("evidence request requires at least one motivation")
         for motivation_id in self.motivation_ids:
