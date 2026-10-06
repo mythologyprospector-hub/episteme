@@ -97,6 +97,17 @@ def execute_evidence_request(
     capture_id: str | None = None,
 ):
     """Execute an admitted request through the existing acquisition pipeline."""
+    missing_motivations = [
+        motivation_id
+        for motivation_id in request.motivation_ids
+        if not store.workflow_artifact_exists(motivation_id)
+    ]
+    if missing_motivations:
+        raise ValueError(
+            "evidence request motivation not found: "
+            + ", ".join(missing_motivations)
+        )
+
     capability = resolve_evidence_capability(request.capability)
     acquisition_request = capability.build_request(request.parameters)
     return acquire(
