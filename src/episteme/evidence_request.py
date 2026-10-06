@@ -12,7 +12,7 @@ from types import MappingProxyType
 from typing import Any, Mapping
 from uuid import UUID
 
-from .acquisition import AcquisitionProvider, AcquisitionRequest, acquire
+from .acquisition import AcquisitionProvider, AcquisitionRequest, _freeze_parameters, acquire
 from .store import Store
 
 
@@ -90,7 +90,7 @@ class EvidenceRequest:
             raise ValueError("evidence request representation must be non-empty")
         if not isinstance(self.parameters, Mapping):
             raise ValueError("evidence request parameters must be a mapping")
-        object.__setattr__(self, "parameters", MappingProxyType(dict(self.parameters)))
+        object.__setattr__(self, "parameters", _freeze_parameters(self.parameters))
         if not self.motivation_ids:
             raise ValueError("evidence request requires at least one motivation")
         object.__setattr__(self, "motivation_ids", tuple(self.motivation_ids))
