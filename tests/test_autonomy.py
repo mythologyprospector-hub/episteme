@@ -724,9 +724,10 @@ class UnsupportedMediaEvidenceRuntime:
 
 def _run_autonomous_evidence_fixture(tmp_path, runtime):
     records = _records()
+    held_out = _held_out_record()
     db_path = tmp_path / "phase28-autonomous.sqlite"
     with Store(db_path, capture_root=tmp_path / "captures") as store:
-        for record in records:
+        for record in (*records, held_out):
             store.put_record(record)
         gap = detect_positional_gap(
             store, record_ids=tuple(record.id for record in records),
@@ -737,6 +738,7 @@ def _run_autonomous_evidence_fixture(tmp_path, runtime):
         result = run_autonomous_discovery(
             store, EvidenceRequestPlanner(),
             grounded_input_ids=tuple(record.id for record in records),
+            experiment_input_ids=(held_out.id,),
             started_at=CREATED, evidence_request_runtime=runtime, max_steps=6,
         )
         return result, db_path
