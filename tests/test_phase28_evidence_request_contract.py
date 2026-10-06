@@ -7,6 +7,7 @@ implementation.  They are expected to fail until the Phase 28 contract exists.
 import pytest
 
 from episteme import AcquisitionRequest, AcquisitionResponse, CaptureOutcome, Store
+from episteme.model import Provenance, Record, RecordKind
 
 
 CAPTURED_AT = "2026-10-06T12:00:00Z"
@@ -25,6 +26,18 @@ def _request(**overrides):
     }
     values.update(overrides)
     return AcquisitionRequest(**values)
+
+
+def _seed_motivation(store, motivation_id):
+    store.put_record(
+        Record(
+            id=motivation_id,
+            kind=RecordKind.OBSERVATION,
+            payload={"phase": 28},
+            provenance=(Provenance(source_id="phase28-test", captured_at=CAPTURED_AT),),
+            created_at=CAPTURED_AT,
+        )
+    )
 
 
 def test_existing_acquisition_request_remains_the_host_execution_object():
@@ -79,6 +92,7 @@ def test_admitted_evidence_request_reuses_existing_acquire_and_persists_capture(
     )
 
     with Store(tmp_path / "phase28.sqlite", capture_root=tmp_path / "captures") as store:
+        _seed_motivation(store, "11111111-1111-4111-8111-111111111111")
         result = execute_evidence_request(
             request, store, provider=provider,
             captured_at=CAPTURED_AT, capture_id="capture-phase28-success",
@@ -102,6 +116,7 @@ def test_provider_failure_remains_failed_capture(tmp_path):
         raise TimeoutError("provider timeout")
 
     with Store(tmp_path / "phase28.sqlite") as store:
+        _seed_motivation(store, "22222222-2222-4222-8222-222222222222")
         result = execute_evidence_request(
             request, store, provider=provider,
             captured_at=CAPTURED_AT, capture_id="capture-phase28-failure",
@@ -127,6 +142,7 @@ def test_partial_capture_remains_partial(tmp_path):
         )
 
     with Store(tmp_path / "phase28.sqlite", capture_root=tmp_path / "captures") as store:
+        _seed_motivation(store, "33333333-3333-4333-8333-333333333333")
         result = execute_evidence_request(
             request, store, provider=provider,
             captured_at=CAPTURED_AT, capture_id="capture-phase28-partial",
