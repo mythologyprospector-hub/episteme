@@ -33,6 +33,13 @@ class EvidenceCapability:
                 "unsupported evidence request representation: " + representation
             )
 
+    def validate_response_media_type(self, media_type: str | None) -> None:
+        if media_type not in self.supported_media_types:
+            raise ValueError(
+                "acquisition response media type is not supported by evidence capability: "
+                + str(media_type)
+            )
+
     def build_request(self, parameters: Mapping[str, Any]) -> AcquisitionRequest:
         if not isinstance(parameters, Mapping):
             raise ValueError("evidence capability parameters must be a mapping")
@@ -132,9 +139,16 @@ def execute_evidence_request(
     capability = resolve_evidence_capability(request.capability)
     capability.validate_representation(request.requested_representation)
     acquisition_request = capability.build_request(request.parameters)
+
+    def bounded_provider(acquisition: AcquisitionRequest):
+        response = provider(acquisition)
+        if response.outcome.value != "failed":
+            capability.validate_response_media_type(response.media_type)
+        return response
+
     return acquire(
         acquisition_request,
-        provider,
+        bounded_provider,
         store,
         captured_at=captured_at,
         capture_id=capture_id,
