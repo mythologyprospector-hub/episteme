@@ -58,6 +58,8 @@ class OllamaPlanner:
         context_data = {
             "grounded_input_ids": list(context.grounded_input_ids),
             "findings": list(context.findings),
+            "exploration_observations": list(context.exploration_observations),
+            "exploration_assessments": list(context.exploration_assessments),
             "hypotheses": list(context.hypotheses),
             "predictions": list(context.predictions),
             "experiments": list(context.experiments),
@@ -117,7 +119,7 @@ class OllamaPlanner:
                 "properties": {
                     "kind": {
                         "type": "string",
-                        "enum": ["scout", "question", "hypothesis", "prediction", "experiment", "stop"],
+                        "enum": ["scout", "assess_exploration", "admit_exploration", "question", "hypothesis", "prediction", "experiment", "stop"],
                     },
                     "target_ids": {"type": "array", "items": {"type": "string"}},
                     "statement": {"type": "string"},
@@ -149,6 +151,14 @@ class OllamaPlanner:
                     {
                         "properties": {"kind": {"const": "scout"}},
                         "required": ["kind", "rationale"],
+                    },
+                    {
+                        "properties": {"kind": {"const": "assess_exploration"}},
+                        "required": ["kind", "target_ids", "rationale"],
+                    },
+                    {
+                        "properties": {"kind": {"const": "admit_exploration"}},
+                        "required": ["kind", "target_ids", "rationale"],
                     },
                     {
                         "properties": {"kind": {"const": "question"}},

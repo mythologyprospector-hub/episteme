@@ -12,6 +12,8 @@ from typing import Any, Callable, Mapping, Protocol
 
 from .discovery import question_from_finding
 from .exploration import scout_positional_records
+from .exploration_bridge import admit_exploration_observation, assess_exploration_observation
+from .model import Provenance
 from .executor import ExecutableExperimentSpec, build_registered_experiment_runtime
 from .model import (DiscoveryFindingKind, ExperimentProposal, KnowledgeStateConsequence, KnowledgeStateConsequenceKind, KnowledgeStateTargetKind, Prediction, PredictionEvaluation)
 from uuid import uuid4
@@ -47,6 +49,58 @@ class PositionalExplorationRuntime:
         )
 
 
+@dataclass(frozen=True, slots=True)
+class ExplorationAssessmentRuntime:
+    """Host-owned policy for assessing one bounded exploration observation."""
+
+    allowed_input_ids: tuple[str, ...]
+    accepted: bool
+    method: str
+    method_version: str
+    rationale: str
+    provenance: tuple[Provenance, ...]
+
+    def assess(self, store: Any, observation_id: str, *, created_at: str) -> Any:
+        observation = store.get_exploration_observation(observation_id)
+        if observation is None:
+            raise PlannerActionError("exploration observation does not exist")
+        if not set(observation.input_ids).issubset(self.allowed_input_ids):
+            raise PlannerActionError("observation inputs are outside the host-owned assessment scope")
+        return assess_exploration_observation(
+            store,
+            observation_id,
+            accepted=self.accepted,
+            method=self.method,
+            method_version=self.method_version,
+            rationale=self.rationale,
+            provenance=self.provenance,
+            assessed_at=created_at,
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class ExplorationAdmissionRuntime:
+    """Host-owned policy for admitting previously accepted observations."""
+
+    allowed_input_ids: tuple[str, ...]
+
+    def admit(self, store: Any, observation_id: str, *, created_at: str) -> Any:
+        observation = store.get_exploration_observation(observation_id)
+        if observation is None:
+            raise PlannerActionError("exploration observation does not exist")
+        if not set(observation.input_ids).issubset(self.allowed_input_ids):
+            raise PlannerActionError("observation inputs are outside the host-owned admission scope")
+        assessments = [
+            item
+            for item in store.iter_exploration_observation_assessments(observation_id)
+            if item.accepted
+        ]
+        if not assessments:
+            raise PlannerActionError("observation has no accepted assessment")
+        assessment = assessments[-1]
+        return admit_exploration_observation(store, observation_id, assessment.id, created_at)
+
+
 class PlannerActionError(ValueError):
     """The planner proposed an action that violates the bounded action contract."""
 
@@ -66,7 +120,7 @@ class DiscoveryAction:
     rationale: str = ""
 
     def __post_init__(self) -> None:
-        if self.kind not in {"scout", "question", "hypothesis", "prediction", "experiment", "stop"}:
+        if self.kind not in {"scout", "assess_exploration", "admit_exploration", "question", "hypothesis", "prediction", "experiment", "stop"}:
             raise PlannerActionError(f"unknown discovery action: {self.kind}")
         if not self.rationale.strip():
             raise PlannerActionError("discovery action requires a rationale")
@@ -84,11 +138,22 @@ class DiscoveryContext:
     consequences: tuple[Mapping[str, Any], ...] = ()
     feedback: tuple[str, ...] = ()
     exploration_observations: tuple[Mapping[str, Any], ...] = ()
+    exploration_assessments: tuple[Mapping[str, Any], ...] = ()
 
 
 class Planner(Protocol):
     def choose(self, context: DiscoveryContext) -> DiscoveryAction:
         """Choose exactly one bounded next action from the supplied context."""
+
+
+class ExplorationAssessmentRuntimeProtocol(Protocol):
+    def assess(self, store: Any, observation_id: str, *, created_at: str) -> Any:
+        """Apply host-owned assessment policy."""
+
+
+class ExplorationAdmissionRuntimeProtocol(Protocol):
+    def admit(self, store: Any, observation_id: str, *, created_at: str) -> Any:
+        """Apply host-owned admission policy."""
 
 
 class ExperimentExecutor(Protocol):
@@ -158,6 +223,10 @@ def _exploration_observation_view(item: Any) -> dict[str, Any]:
     return {"id": item.id, "observation": item.observation, "input_ids": tuple(item.input_ids), "evidence": tuple(item.evidence), "method": item.method, "method_version": item.method_version, "uncertainty": item.uncertainty, "parameters": dict(item.parameters) if item.parameters is not None else None}
 
 
+def _exploration_assessment_view(item: Any) -> dict[str, Any]:
+    return {"id": item.id, "observation_id": item.observation_id, "accepted": item.accepted, "method": item.method, "method_version": item.method_version, "rationale": item.rationale}
+
+
 def _hypothesis_view(item: Any) -> dict[str, Any]:
     return {
         "id": item.id,
@@ -206,6 +275,7 @@ def build_context(
         grounded_input_ids=tuple(grounded_input_ids),
         findings=tuple(_finding_view(item) for item in store.iter_discovery_findings()),
         exploration_observations=tuple(_exploration_observation_view(item) for item in store.iter_exploration_observations()),
+        exploration_assessments=tuple(_exploration_assessment_view(item) for item in store.iter_exploration_observation_assessments()),
         hypotheses=tuple(_hypothesis_view(item) for item in store.iter_hypotheses()),
         predictions=tuple(_prediction_view(item) for item in store.iter_predictions()),
         experiments=tuple(_experiment_view(item) for item in store.iter_experiment_proposals()),
@@ -441,6 +511,8 @@ def run_autonomous_discovery(
     max_steps: int = 12,
     experiment_runtime: ExperimentRuntime | None = None,
     exploration_runtime: ExplorationRuntime | None = None,
+    exploration_assessment_runtime: ExplorationAssessmentRuntimeProtocol | None = None,
+    exploration_admission_runtime: ExplorationAdmissionRuntimeProtocol | None = None,
     max_retries_per_step: int = 2,
 ) -> DiscoveryRun:
     """Run a finite planner-steered investigation until stop or a hard budget.
@@ -481,6 +553,20 @@ def run_autonomous_discovery(
                         raise PlannerActionError("scout action is unavailable without a host-owned exploration runtime")
                     observation = exploration_runtime.scout(store, created_at=started_at)
                     output_ids = (observation.id,)
+                elif action.kind == "assess_exploration":
+                    if exploration_assessment_runtime is None:
+                        raise PlannerActionError("exploration assessment is unavailable without a host-owned assessment runtime")
+                    if len(action.target_ids) != 1:
+                        raise PlannerActionError("assess_exploration action requires exactly one observation id")
+                    assessment = exploration_assessment_runtime.assess(store, action.target_ids[0], created_at=started_at)
+                    output_ids = (assessment.id,)
+                elif action.kind == "admit_exploration":
+                    if exploration_admission_runtime is None:
+                        raise PlannerActionError("exploration admission is unavailable without a host-owned admission runtime")
+                    if len(action.target_ids) != 1:
+                        raise PlannerActionError("admit_exploration action requires exactly one observation id")
+                    finding = exploration_admission_runtime.admit(store, action.target_ids[0], created_at=started_at)
+                    output_ids = (finding.id,)
                 else:
                     output_ids = execute_action(store, action, created_at=started_at)
             except PlannerActionError as exc:
