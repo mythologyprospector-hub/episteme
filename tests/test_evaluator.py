@@ -1,6 +1,8 @@
 from episteme.autonomy import record_prediction_consequences
 from episteme.evaluator import PositionalPredictionEvaluator
 from episteme.executor import PositionalObservationExecutor
+from dataclasses import replace
+
 from episteme.model import (
     DiscoveryExpectation,
     DiscoveryExpectationKind,
@@ -100,6 +102,10 @@ def test_positional_evaluator_records_consistent_and_inconsistent_results():
 
 def test_positional_evaluator_refuses_missing_executable_expectation():
     store, proposal, predictions, result = _setup()
+    predictions = tuple(
+        replace(prediction, expected_presence=(index == 0))
+        for index, prediction in enumerate(predictions)
+    )
     try:
         try:
             PositionalPredictionEvaluator(position=3.0).evaluate(
@@ -116,10 +122,11 @@ def test_positional_evaluator_refuses_missing_executable_expectation():
 def test_prediction_evaluations_become_explicit_knowledge_consequences():
     store, proposal, predictions, result = _setup()
     try:
-        evaluations = PositionalPredictionEvaluator(
-            position=3.0,
-            expected_presence={predictions[0].id: True, predictions[1].id: False},
-        ).evaluate(
+        predictions = tuple(
+            replace(prediction, expected_presence=(index == 0))
+            for index, prediction in enumerate(predictions)
+        )
+        evaluations = PositionalPredictionEvaluator(position=3.0).evaluate(
             store, result, proposal, predictions,
             comparison_conditions="same observations", created_at=CREATED)
 
