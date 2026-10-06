@@ -152,6 +152,48 @@ def test_partial_capture_remains_partial(tmp_path):
 
 
 
+
+def test_evidence_request_rejects_non_epistemic_workflow_artifact_as_motivation(tmp_path):
+    from episteme.acquisition import AcquisitionResponse, acquire
+    from episteme.capture import CaptureOutcome
+    from episteme.evidence_request import EvidenceRequest, execute_evidence_request
+
+    capture_motivation_id = "88888888-8888-4888-8888-888888888888"
+
+    with Store(tmp_path / "phase28.sqlite") as store:
+        acquire(
+            _request(),
+            lambda _request: AcquisitionResponse(
+                status=200,
+                media_type="application/json",
+                source_version="v1",
+                content=CONTENT,
+                outcome=CaptureOutcome.COMPLETE,
+            ),
+            store,
+            captured_at=CAPTURED_AT,
+            capture_id=capture_motivation_id,
+        )
+
+        request = EvidenceRequest(
+            capability="crossref_works",
+            parameters={"rows": 1},
+            rationale="Discriminate the current candidate hypotheses.",
+            motivation_ids=(capture_motivation_id,),
+        )
+
+        def provider(_request):
+            raise AssertionError("provider must not run for a non-epistemic motivation")
+
+        with pytest.raises(ValueError, match="motivation.*not found"):
+            execute_evidence_request(
+                request,
+                store,
+                provider=provider,
+                captured_at=CAPTURED_AT,
+                capture_id="capture-phase28-invalid-capture-motivation",
+            )
+
 def test_crossref_capability_bounds_parameter_values():
     from episteme.evidence_request import resolve_evidence_capability
 
