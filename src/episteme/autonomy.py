@@ -156,6 +156,7 @@ class DiscoveryAction:
     objective: str | None = None
     proposed_observation: str | None = None
     discrimination_basis: str | None = None
+    expected_presences: Mapping[str, bool] | None = None
     execution_spec: Mapping[str, Any] | None = None
     evidence_capability: str | None = None
     evidence_parameters: Mapping[str, Any] | None = None
@@ -566,6 +567,7 @@ def execute_action(store: Any, action: DiscoveryAction, *, created_at: str) -> t
                     method="planner-driven-structural-gap-completion",
                     method_version="1",
                     rationale=action.rationale,
+                    expected_presence=(action.expected_presences or {}).get(candidate_id),
                     created_at=created_at,
                 )
             except ValueError as exc:
@@ -619,10 +621,12 @@ def execute_action(store: Any, action: DiscoveryAction, *, created_at: str) -> t
         if len(action.target_ids) < 2:
             raise PlannerActionError("experiment action requires at least two prediction ids")
         execution_spec = _validate_execution_spec(action.execution_spec)
-        if set(execution_spec["expected_presence"]) != set(action.target_ids):
+        if not isinstance(action.expected_presences, Mapping) or set(action.expected_presences) != set(action.target_ids):
             raise PlannerActionError(
-                "execution_spec expected_presence must exactly match experiment prediction ids"
+                "experiment expected_presences must exactly match experiment prediction ids"
             )
+        if any(not isinstance(value, bool) for value in action.expected_presences.values()):
+            raise PlannerActionError("experiment expected_presences values must be booleans")
         try:
                 proposal = propose_candidate_discrimination_experiment(
             store,
