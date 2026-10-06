@@ -52,13 +52,19 @@ def test_ollama_planner_translates_structured_model_output():
         "stop",
     ]
     assert len(captured["format"]["oneOf"]) == 9
-    prediction_schema = captured["format"]["oneOf"][2]
+
+    schemas_by_kind = {
+        schema["properties"]["kind"]["const"]: schema
+        for schema in captured["format"]["oneOf"]
+    }
+    prediction_schema = schemas_by_kind["prediction"]
     assert "conditions" in prediction_schema["required"]
     assert prediction_schema["oneOf"] == [
         {"required": ["consequence"]},
         {"required": ["consequences"]},
     ]
-    experiment_schema = captured["format"]["oneOf"][3]
+
+    experiment_schema = schemas_by_kind["experiment"]
     assert {
         "conditions",
         "objective",
