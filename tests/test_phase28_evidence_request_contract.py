@@ -287,6 +287,7 @@ def test_evidence_request_requires_a_motivating_episteme_object():
         capability="crossref_works",
         parameters={"rows": 1},
         rationale="Discriminate the current candidate hypotheses.",
+        requested_representation="application/json",
         motivation_ids=("11111111-1111-4111-8111-111111111111",),
     )
     assert request.motivation_ids == ("11111111-1111-4111-8111-111111111111",)
