@@ -9,6 +9,7 @@ from __future__ import annotations
 import math
 from uuid import UUID, uuid4
 
+from .numeric import numerically_equal
 from .model import (
     DiscoveryExpectation,
     DiscoveryExpectationKind,
@@ -579,7 +580,7 @@ def detect_accounting_gap(
     component_sum = sum(value for _, value in component_values)
     residual = total - component_sum
 
-    if residual == 0.0:
+    if numerically_equal(residual, 0.0):
         return None
 
     input_ids = (total_record_id, *component_record_ids)

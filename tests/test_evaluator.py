@@ -145,3 +145,28 @@ def test_prediction_evaluations_become_explicit_knowledge_consequences():
         }
     finally:
         store.close()
+
+
+def test_positional_evaluator_uses_numeric_tolerance_for_measurements():
+    store, proposal, predictions, result = _setup()
+    tolerant_result = replace(
+        result,
+        id="dddddddd-0001-4aaa-8aaa-dddddddddddd",
+        payload={**result.payload, "observed_positions": [1.0, 2.0, 3.0000000005, 4.0]},
+    )
+    store.put_record(tolerant_result)
+    try:
+        evaluations = PositionalPredictionEvaluator(position=3.0).evaluate(
+            store,
+            tolerant_result,
+            proposal,
+            predictions,
+            comparison_conditions="same observations",
+            created_at=CREATED,
+        )
+        assert [item.outcome for item in evaluations] == [
+            PredictionEvaluationOutcome.CONSISTENT,
+            PredictionEvaluationOutcome.INCONSISTENT,
+        ]
+    finally:
+        store.close()
