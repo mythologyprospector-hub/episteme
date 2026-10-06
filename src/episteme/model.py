@@ -1002,8 +1002,8 @@ class Prediction:
     method_version: str
     rationale: str
     comparison_hypothesis_ids: tuple[str, ...]
-    expected_presence: bool | None = None
     created_at: str
+    expected_presence: bool | None = None
     schema_version: int = SCHEMA_VERSION
 
     def __post_init__(self) -> None:
