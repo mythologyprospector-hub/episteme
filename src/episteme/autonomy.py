@@ -451,6 +451,10 @@ def _validate_action_state(
         # runtime returns successfully, so it is a bounded terminal transition.
         if any(item.kind == "request_evidence" for item in actions_taken):
             return
+        # A completed and evaluated bounded experiment is also a legal terminal
+        # transition. The planner's stop remains blocked before that boundary.
+        if experiments and tuple(store.iter_prediction_evaluations()):
+            return
         # Stopping before a GAP is a valid bounded exploration termination.
         # Once a candidate gap/tension exists, termination requires the
         # bounded experiment and its deterministic evaluation.
