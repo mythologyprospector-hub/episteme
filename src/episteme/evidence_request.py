@@ -110,7 +110,7 @@ def execute_evidence_request(
     missing_motivations = [
         motivation_id
         for motivation_id in request.motivation_ids
-        if not store.workflow_artifact_exists(motivation_id)
+        if not store.epistemic_object_exists(motivation_id)
     ]
     if missing_motivations:
         raise ValueError(
