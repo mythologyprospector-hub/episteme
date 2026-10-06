@@ -561,3 +561,33 @@ def test_evidence_request_requires_a_motivating_episteme_object():
         motivation_ids=("11111111-1111-4111-8111-111111111111",),
     )
     assert request.motivation_ids == ("11111111-1111-4111-8111-111111111111",)
+
+
+
+def test_unknown_capability_is_rejected_before_provider_and_capture(tmp_path):
+    from episteme.evidence_request import EvidenceRequest, execute_evidence_request
+
+    motivation_id = "dddddddd-dddd-4ddd-8ddd-dddddddddddd"
+    request = EvidenceRequest(
+        capability="arbitrary-network-client",
+        parameters={},
+        rationale="Discriminate the current candidate hypotheses.",
+        requested_representation="application/json",
+        motivation_ids=(motivation_id,),
+    )
+
+    def provider(_request):
+        raise AssertionError("provider must not run for an unknown capability")
+
+    with Store(tmp_path / "phase28.sqlite", capture_root=tmp_path / "captures") as store:
+        _seed_motivation(store, motivation_id)
+        with pytest.raises(ValueError, match="unknown evidence capability"):
+            execute_evidence_request(
+                request,
+                store,
+                provider=provider,
+                captured_at=CAPTURED_AT,
+                capture_id="should-not-exist",
+            )
+
+        assert store.get_captured_representation("should-not-exist") is None
