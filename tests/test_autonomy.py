@@ -627,3 +627,85 @@ def test_host_state_machine_rejects_stop_before_experiment():
         assert result.status == "failed"
         assert result.stop_reason is not None
         assert "before a bounded experiment" in result.stop_reason
+
+
+class EvidenceRequestPlanner(AdaptiveFixturePlanner):
+    def choose(self, context: DiscoveryContext) -> DiscoveryAction:
+        if context.evaluations and not any(
+            action.kind == "request_evidence" for action in context.actions_taken
+        ):
+            return DiscoveryAction(
+                kind="request_evidence",
+                target_ids=(context.predictions[0]["id"],),
+                evidence_capability="crossref_works",
+                evidence_parameters={"rows": 1, "query.title": "bounded discovery"},
+                requested_representation="application/json",
+                rationale="The evaluated experiment leaves an external evidence question that should be answered through a host-approved capability.",
+            )
+        return DiscoveryAction(
+            kind="stop",
+            rationale="The bounded evidence request has completed; stop without treating the capture as grounded truth.",
+        )
+
+
+class CrossrefEvidenceRuntime:
+    def request_evidence(self, store, request, *, created_at):
+        from episteme.acquisition import AcquisitionResponse
+        from episteme.capture import CaptureOutcome
+        from episteme.evidence_request import execute_evidence_request
+
+        return execute_evidence_request(
+            request,
+            store,
+            provider=lambda _request: AcquisitionResponse(
+                status=200,
+                media_type="application/json",
+                source_version="fixture-crossref-v1",
+                content=b'{"message":{"items":[]}}',
+                outcome=CaptureOutcome.COMPLETE,
+            ),
+            captured_at=created_at,
+            capture_id="capture-autonomous-evidence",
+        )
+
+
+def test_autonomous_discovery_can_request_evidence_only_through_host_runtime():
+    records = _records()
+    with Store() as store:
+        for record in records:
+            store.put_record(record)
+
+        gap = detect_positional_gap(
+            store,
+            record_ids=tuple(record.id for record in records),
+            position_key="position",
+            step=1.0,
+            created_at=CREATED,
+        )
+        assert gap is not None
+        store.put_discovery_finding(gap)
+
+        planner = EvidenceRequestPlanner()
+        result = run_autonomous_discovery(
+            store,
+            planner,
+            grounded_input_ids=tuple(record.id for record in records),
+            started_at=CREATED,
+            evidence_request_runtime=CrossrefEvidenceRuntime(),
+            max_steps=6,
+        )
+
+        assert result.status == "stopped"
+        assert [step.action.kind for step in result.steps] == [
+            "hypothesis",
+            "hypothesis",
+            "prediction",
+            "experiment",
+            "request_evidence",
+        ]
+        capture_id = result.steps[-1].output_ids[0]
+        capture = store.get_captured_representation(capture_id)
+        assert capture is not None
+        assert capture.outcome.value == "complete"
+        assert store.read_captured_content(capture_id) == b'{"message":{"items":[]}}'
+        assert store.get_record(capture_id) is None
