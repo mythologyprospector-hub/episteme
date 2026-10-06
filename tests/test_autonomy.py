@@ -695,7 +695,7 @@ def test_autonomous_discovery_can_request_evidence_only_through_host_runtime():
             max_steps=6,
         )
 
-        assert result.status == "stopped"
+        assert result.status == "stopped", result.stop_reason
         assert [step.action.kind for step in result.steps] == [
             "hypothesis",
             "hypothesis",
