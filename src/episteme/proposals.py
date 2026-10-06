@@ -96,7 +96,6 @@ def represent_model(
         hypothesis_ids=hypothesis_ids,
         input_ids=input_ids,
         assumptions=assumptions,
-        expected_presence=expected_presence,
         method=method,
         method_version=method_version,
         rationale=rationale,
