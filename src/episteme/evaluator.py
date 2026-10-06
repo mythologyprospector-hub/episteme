@@ -9,7 +9,6 @@ supports a prediction.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Mapping
 from uuid import uuid4
 
 from .model import (
@@ -34,7 +33,6 @@ class PositionalPredictionEvaluator:
     """
 
     position: float
-    expected_presence: Mapping[str, bool]
     method: str = "positional_prediction_evaluation"
     method_version: str = "1"
 
@@ -68,11 +66,11 @@ class PositionalPredictionEvaluator:
         evaluations: list[PredictionEvaluation] = []
 
         for prediction in predictions:
-            if prediction.id not in self.expected_presence:
-                raise ValueError("missing executable expectation for prediction: " + prediction.id)
-            expected = self.expected_presence[prediction.id]
+            expected = prediction.expected_presence
+            if expected is None:
+                raise ValueError("prediction is missing executable expectation: " + prediction.id)
             if not isinstance(expected, bool):
-                raise ValueError("expected_presence values must be booleans")
+                raise ValueError("prediction expected_presence must be a boolean")
 
             if actual_presence == expected:
                 outcome = PredictionEvaluationOutcome.CONSISTENT
