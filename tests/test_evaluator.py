@@ -103,7 +103,7 @@ def test_positional_evaluator_records_consistent_and_inconsistent_results():
 def test_positional_evaluator_refuses_missing_executable_expectation():
     store, proposal, predictions, result = _setup()
     predictions = tuple(
-        replace(prediction, expected_presence=(index == 0))
+        replace(prediction, expected_presence=(True if index == 0 else None))
         for index, prediction in enumerate(predictions)
     )
     try:
