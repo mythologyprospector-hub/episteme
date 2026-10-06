@@ -251,6 +251,35 @@ def test_crossref_capability_bounds_parameter_values():
     assert request.request_parameters == {"rows": 10, "query.title": "example"}
 
 
+def test_invalid_bounded_parameters_do_not_create_capture(tmp_path):
+    from episteme.evidence_request import EvidenceRequest, execute_evidence_request
+
+    motivation_id = "cccccccc-cccc-4ccc-8ccc-cccccccccccc"
+    request = EvidenceRequest(
+        capability="crossref_works",
+        parameters={"rows": 1001},
+        rationale="Discriminate the current candidate hypotheses.",
+        requested_representation="application/json",
+        motivation_ids=(motivation_id,),
+    )
+
+    def provider(_request):
+        raise AssertionError("provider must not run for rejected parameters")
+
+    with Store(tmp_path / "phase28.sqlite", capture_root=tmp_path / "captures") as store:
+        _seed_motivation(store, motivation_id)
+        with pytest.raises(ValueError, match="rows"):
+            execute_evidence_request(
+                request,
+                store,
+                provider=provider,
+                captured_at=CAPTURED_AT,
+                capture_id="should-not-exist",
+            )
+
+        assert not store.captured_representation_exists("should-not-exist")
+
+
 def test_invalid_bounded_parameters_are_rejected_before_provider(tmp_path):
     from episteme.evidence_request import EvidenceRequest, execute_evidence_request
 
