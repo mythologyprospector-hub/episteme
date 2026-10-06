@@ -566,7 +566,6 @@ def execute_action(store: Any, action: DiscoveryAction, *, created_at: str) -> t
                     method="planner-driven-structural-gap-completion",
                     method_version="1",
                     rationale=action.rationale,
-                    expected_presence=(action.expected_presences or {}).get(candidate_id),
                     created_at=created_at,
                 )
             except ValueError as exc:
@@ -610,6 +609,7 @@ def execute_action(store: Any, action: DiscoveryAction, *, created_at: str) -> t
                     method="planner-driven-prediction",
                     method_version="1",
                     rationale=action.rationale,
+                    expected_presence=(action.expected_presences or {}).get(candidate_id),
                     created_at=created_at,
                 )
                 predictions.append(prediction)
