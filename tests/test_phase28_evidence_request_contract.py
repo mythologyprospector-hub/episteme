@@ -237,6 +237,22 @@ def test_evidence_request_requires_requested_representation():
     )
     assert request.requested_representation == "application/json"
 
+def test_evidence_request_representation_must_be_supported_by_capability():
+    from episteme.evidence_request import EvidenceRequest, resolve_evidence_capability
+
+    capability = resolve_evidence_capability("crossref_works")
+    request = EvidenceRequest(
+        capability=capability.name,
+        parameters={"rows": 1},
+        rationale="Discriminate the current candidate hypotheses.",
+        requested_representation="text/html",
+        motivation_ids=("11111111-1111-4111-8111-111111111111",),
+    )
+
+    with pytest.raises(ValueError, match="representation"):
+        capability.validate_representation(request.requested_representation)
+
+
 def test_unresolved_question_is_a_valid_evidence_request_motivation(tmp_path):
     from episteme.discovery import question_from_finding
     from episteme.evidence_request import EvidenceRequest, execute_evidence_request
