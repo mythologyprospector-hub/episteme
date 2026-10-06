@@ -21,6 +21,17 @@ def _records():
     )
 
 
+
+def _held_out_record():
+    return Record(
+        id="eeeeeeee-0001-4aaa-8aaa-eeeeeeeeeeee",
+        kind=RecordKind.OBSERVATION,
+        payload={"position": 3.0},
+        provenance=PROVENANCE,
+        created_at=CREATED,
+    )
+
+
 def _grounded_test_predictions(store):
     from episteme.proposals import propose_discriminating_prediction, propose_hypothesis
 
@@ -118,8 +129,9 @@ class FixturePlanner:
 
 def test_planner_drives_the_loop_without_a_declared_workflow():
     records = _records()
+    held_out = _held_out_record()
     with Store() as store:
-        for record in records:
+        for record in (*records, held_out):
             store.put_record(record)
 
         gap = detect_positional_gap(store, record_ids=tuple(record.id for record in records), position_key="position", step=1.0, created_at=CREATED)
@@ -127,7 +139,7 @@ def test_planner_drives_the_loop_without_a_declared_workflow():
         store.put_discovery_finding(gap)
 
         planner = FixturePlanner()
-        result = run_autonomous_discovery(store, planner, grounded_input_ids=tuple(record.id for record in records), started_at=CREATED)
+        result = run_autonomous_discovery(store, planner, grounded_input_ids=tuple(record.id for record in records), experiment_input_ids=(held_out.id,), started_at=CREATED)
 
         assert result.status == "stopped", result.stop_reason
         assert len(result.steps) == 4
@@ -138,8 +150,9 @@ def test_planner_drives_the_loop_without_a_declared_workflow():
 
 def test_invalid_prediction_action_does_not_persist_partial_outputs():
     records = _records()
+    held_out = _held_out_record()
     with Store() as store:
-        for record in records:
+        for record in (*records, held_out):
             store.put_record(record)
 
         gap = detect_positional_gap(
@@ -275,8 +288,9 @@ class AdaptiveFixturePlanner(FixturePlanner):
 
 def test_experiment_is_executed_evaluated_and_changes_planner_knowledge_state():
     records = _records()
+    held_out = _held_out_record()
     with Store() as store:
-        for record in records:
+        for record in (*records, held_out):
             store.put_record(record)
 
         gap = detect_positional_gap(
@@ -294,8 +308,9 @@ def test_experiment_is_executed_evaluated_and_changes_planner_knowledge_state():
             store,
             planner,
             grounded_input_ids=tuple(record.id for record in records),
+            experiment_input_ids=(held_out.id,),
             started_at=CREATED,
-       )
+        )
 
         assert result.status == "stopped"
         assert len(result.steps) == 4
@@ -711,9 +726,10 @@ class UnsupportedMediaEvidenceRuntime:
 
 def _run_autonomous_evidence_fixture(tmp_path, runtime):
     records = _records()
+    held_out = _held_out_record()
     db_path = tmp_path / "phase28-autonomous.sqlite"
     with Store(db_path, capture_root=tmp_path / "captures") as store:
-        for record in records:
+        for record in (*records, held_out):
             store.put_record(record)
         gap = detect_positional_gap(
             store, record_ids=tuple(record.id for record in records),
@@ -724,6 +740,7 @@ def _run_autonomous_evidence_fixture(tmp_path, runtime):
         result = run_autonomous_discovery(
             store, EvidenceRequestPlanner(),
             grounded_input_ids=tuple(record.id for record in records),
+            experiment_input_ids=(held_out.id,),
             started_at=CREATED, evidence_request_runtime=runtime, max_steps=6,
         )
         return result, db_path
@@ -790,8 +807,9 @@ def test_autonomous_evidence_media_mismatch_is_not_reported_as_success(tmp_path)
 
 def test_autonomous_discovery_can_request_evidence_only_through_host_runtime(tmp_path):
     records = _records()
+    held_out = _held_out_record()
     with Store(capture_root=tmp_path / "captures") as store:
-        for record in records:
+        for record in (*records, held_out):
             store.put_record(record)
 
         gap = detect_positional_gap(
@@ -809,6 +827,7 @@ def test_autonomous_discovery_can_request_evidence_only_through_host_runtime(tmp
             store,
             planner,
             grounded_input_ids=tuple(record.id for record in records),
+            experiment_input_ids=(held_out.id,),
             started_at=CREATED,
             evidence_request_runtime=CrossrefEvidenceRuntime(),
             max_steps=6,

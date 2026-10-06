@@ -734,6 +734,7 @@ def run_autonomous_discovery(
     *,
     grounded_input_ids: tuple[str, ...],
     started_at: str,
+    experiment_input_ids: tuple[str, ...] | None = None,
     max_steps: int = 12,
     experiment_runtime: ExperimentRuntime | None = None,
     exploration_runtime: ExplorationRuntime | None = None,
@@ -917,10 +918,21 @@ def run_autonomous_discovery(
                         evaluator_factory=evaluator_factory,
                         comparison_conditions=proposal.conditions,
                     )
+                if experiment_input_ids is None:
+                    raise RuntimeError(
+                        "bounded experiment requires an explicit host-owned input scope"
+                    )
+                if not experiment_input_ids:
+                    raise RuntimeError("bounded experiment input scope must not be empty")
+                overlap = set(grounded_input_ids) & set(experiment_input_ids)
+                if overlap:
+                    raise RuntimeError(
+                        "bounded experiment input scope must be disjoint from discovery inputs"
+                    )
                 output_ids = _execute_experiment_cycle(
                     store,
                     proposal,
-                    grounded_input_ids=grounded_input_ids,
+                    grounded_input_ids=experiment_input_ids,
                     runtime=active_runtime,
                     created_at=started_at,
                 )
