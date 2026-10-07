@@ -846,16 +846,16 @@ def run_autonomous_discovery(
                         result = evidence_request_runtime.request_evidence(
                             store, request, created_at=started_at
                         )
-                    except ValueError as exc:
-                        raise PlannerActionError(
-                            f"evidence request execution failed validation: {exc}"
-                        ) from exc
                     except EvidenceRequestRejected as exc:
                         return DiscoveryRun(
                             status="failed",
                             steps=tuple(steps),
                             stop_reason=f"bounded evidence request was rejected by host policy: {exc}",
                         )
+                    except ValueError as exc:
+                        raise PlannerActionError(
+                            f"evidence request execution failed validation: {exc}"
+                        ) from exc
                     if not hasattr(result, "outcome") or not hasattr(result, "id"):
                         raise RuntimeError(
                             "host evidence runtime returned an invalid capture result"
