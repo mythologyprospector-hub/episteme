@@ -106,7 +106,7 @@ class OllamaPlanner:
             "You are the bounded planning component of a scientific inquiry instrument. "
             "Choose exactly one next action from: scout, assess_exploration, admit_exploration, discover_gap, question, "
             "hypothesis, prediction, experiment, request_evidence, stop. If the supplied context has no "
-            "exploration observations and "scout" is listed in available_host_capabilities, the first "
+            "exploration observations and 'scout' is listed in available_host_capabilities, the first "
             "action MUST be scout. After a scout, if an exploration observation exists but "
             "has no assessment, choose assess_exploration for that observation. After an "
             "accepted assessment exists but the observation has not been admitted, choose "
