@@ -128,3 +128,30 @@ def test_ollama_prediction_schema_exposes_required_typed_fields():
         if branch["properties"]["kind"]["const"] == "prediction"
     )
     assert "expected_presences" in prediction_branch["required"]
+
+
+def test_ollama_prompt_makes_zero_hypothesis_transition_explicit():
+    payload = {}
+
+    def transport(request):
+        payload.update(request)
+        return {
+            "message": {
+                "content": json.dumps(
+                    {
+                        "kind": "hypothesis",
+                        "target_ids": ["gap-1"],
+                        "statement": "The missing observation reflects an unrepresented case.",
+                        "rationale": "A GAP with no hypotheses requires an initial candidate explanation.",
+                    }
+                )
+            }
+        }
+
+    action = OllamaPlanner("qwen3:8b", transport=transport).choose(_context())
+
+    assert action.kind == "hypothesis"
+    system = payload["messages"][0]["content"]
+    assert "ONLY valid candidate-generation action is hypothesis (or question)" in system
+    assert "A GAP or TENSION is a finding, NOT a hypothesis" in system
+    assert "Never propose prediction, experiment, request_evidence, or stop" in system
