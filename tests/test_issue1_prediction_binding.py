@@ -79,7 +79,7 @@ def test_positional_experiment_rejects_prediction_expectation_contradicting_hypo
         )
         assert gap is not None
         store.put_discovery_finding(gap)
-        from episteme.proposals import propose_hypothesis, predict, propose_experiment
+        from episteme.proposals import propose_discriminating_prediction, propose_hypothesis
         from episteme.autonomy import PlannerActionError, execute_action
 
         supported = propose_hypothesis(
@@ -94,8 +94,18 @@ def test_positional_experiment_rejects_prediction_expectation_contradicting_hypo
         )
         store.put_hypothesis(supported)
         store.put_hypothesis(competing)
-        p1 = predict(source_id=supported.id, consequence="present", conditions="bounded", method="fixture", method_version="1", rationale="fixture", expected_presence=False, created_at=CREATED)
-        p2 = predict(source_id=competing.id, consequence="absent", conditions="bounded", method="fixture", method_version="1", rationale="fixture", expected_presence=True, created_at=CREATED)
+        p1 = propose_discriminating_prediction(
+            store, candidate_id=supported.id,
+            competing_candidate_ids=(supported.id, competing.id),
+            consequence="present", conditions="bounded", method="fixture", method_version="1",
+            rationale="fixture", expected_presence=False, created_at=CREATED,
+        )
+        p2 = propose_discriminating_prediction(
+            store, candidate_id=competing.id,
+            competing_candidate_ids=(supported.id, competing.id),
+            consequence="absent", conditions="bounded", method="fixture", method_version="1",
+            rationale="fixture", expected_presence=True, created_at=CREATED,
+        )
         store.put_prediction(p1)
         store.put_prediction(p2)
         action = DiscoveryAction(
