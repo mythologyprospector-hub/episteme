@@ -1,8 +1,8 @@
 import math
 from dataclasses import replace
 
-from episteme.model import PredictionEvaluationOutcome
-from episteme.proposals import predict, propose_experiment, propose_hypothesis, complete_structural_gap
+from episteme.discovery import detect_positional_gap\nfrom episteme.model import PredictionEvaluationOutcome
+from episteme.proposals import predict, propose_experiment, complete_structural_gap
 from episteme.discovery import detect_positional_gap
 from episteme.rediscovery import (
     RediscoveryOutcome,
@@ -117,10 +117,20 @@ def test_phase29_runtime_executes_and_evaluates_through_host_experiment_boundary
         for record in fixture.pre_discovery_records + (fixture.held_out_record,):
             store.put_record(record)
 
-        hypothesis = propose_hypothesis(
+        finding = detect_positional_gap(
+            store,
+            tuple(record.id for record in fixture.pre_discovery_records),
+            "period",
+            1.0,
+            FIXTURE_CAPTURED_AT,
+        )
+        assert finding is not None
+        store.put_discovery_finding(finding)
+
+        hypothesis = complete_structural_gap(
+            store,
+            gap_id=finding.id,
             statement="the missing period-4 element has a predictable relative atomic mass",
-            finding_ids=(),
-            input_ids=tuple(record.id for record in fixture.pre_discovery_records),
             method="phase29-fixture",
             method_version="1",
             rationale="fixture hypothesis",
