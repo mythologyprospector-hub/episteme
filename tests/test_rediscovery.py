@@ -2,7 +2,7 @@ import math
 from dataclasses import replace
 
 from episteme.model import PredictionEvaluationOutcome
-from episteme.proposals import predict, propose_experiment
+from episteme.proposals import predict, propose_experiment, propose_hypothesis
 from episteme.rediscovery import (
     RediscoveryOutcome,
     FIXTURE_CAPTURED_AT,
@@ -116,8 +116,19 @@ def test_phase29_runtime_executes_and_evaluates_through_host_experiment_boundary
         for record in fixture.pre_discovery_records + (fixture.held_out_record,):
             store.put_record(record)
 
+        hypothesis = propose_hypothesis(
+            statement="the missing period-4 element has a predictable relative atomic mass",
+            finding_ids=(),
+            input_ids=tuple(record.id for record in fixture.pre_discovery_records),
+            method="phase29-fixture",
+            method_version="1",
+            rationale="fixture hypothesis",
+            created_at=FIXTURE_CAPTURED_AT,
+        )
+        store.put_hypothesis(hypothesis)
+
         prediction = predict(
-            source_id=fixture.pre_discovery_records[1].id,
+            source_id=hypothesis.id,
             consequence="the missing period-4 mass is approximately the forecast value",
             conditions="group-14 period-4 gap",
             method="phase29-fixture",
