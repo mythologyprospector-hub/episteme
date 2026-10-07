@@ -122,12 +122,10 @@ def test_ollama_prediction_schema_exposes_required_typed_fields():
     }
     schema = payload["format"]
     assert "expected_presences" in schema["properties"]
-    prediction_branch = next(
-        branch
-        for branch in schema["oneOf"]
-        if branch["properties"]["kind"]["const"] == "prediction"
-    )
-    assert "expected_presences" in prediction_branch["required"]
+    assert schema["properties"]["expected_presences"]["type"] == "object"
+    assert schema["properties"]["expected_presences"]["additionalProperties"]["type"] == "boolean"
+    assert "oneOf" not in schema
+    assert schema["required"] == ["kind", "rationale"]
 
 
 def test_ollama_prompt_makes_zero_hypothesis_transition_explicit():
