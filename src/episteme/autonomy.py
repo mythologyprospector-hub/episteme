@@ -293,6 +293,7 @@ def _prediction_view(item: Any) -> dict[str, Any]:
         "consequence": item.consequence,
         "conditions": item.conditions,
         "comparison_hypothesis_ids": tuple(item.comparison_hypothesis_ids),
+        "predicted_numeric_value": item.predicted_numeric_value,
     }
 
 
