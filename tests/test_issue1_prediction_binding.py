@@ -3,7 +3,7 @@
 from collections import Counter
 
 from test_autonomy import AdaptiveFixturePlanner, CREATED, _held_out_record, _records
-from episteme.autonomy import run_autonomous_discovery
+from episteme.autonomy import DiscoveryAction, run_autonomous_discovery
 from episteme.discovery import detect_positional_gap
 from episteme.store import Store
 
