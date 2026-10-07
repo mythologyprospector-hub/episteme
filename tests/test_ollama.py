@@ -65,8 +65,8 @@ def test_ollama_schema_exposes_request_evidence_action():
                         "kind": "request_evidence",
                         "target_ids": ["prediction-1"],
                         "evidence_capability": "crossref_works",
-                        "evidence_parameters": {"query": "test"},
-                        "requested_representation": "crossref-work-metadata",
+                        "evidence_parameters": {"query.title": "test"},
+                        "requested_representation": "application/json",
                         "rationale": "Additional evidence is required to discriminate the active alternatives.",
                     }
                 )
@@ -77,9 +77,11 @@ def test_ollama_schema_exposes_request_evidence_action():
 
     assert action.kind == "request_evidence"
     assert action.evidence_capability == "crossref_works"
-    assert action.requested_representation == "crossref-work-metadata"
+    assert action.requested_representation == "application/json"
     assert "available_evidence_capabilities" in payload["messages"][1]["content"]
     assert "crossref_works" in payload["messages"][1]["content"]
+    assert "application/json" in payload["messages"][1]["content"]
+    assert "query.title" in payload["messages"][1]["content"]
     schema = payload["format"]
     assert "request_evidence" in schema["properties"]["kind"]["enum"]
     assert "evidence_capability" in schema["properties"]
