@@ -1,13 +1,16 @@
-"""Phase 29 historical rediscovery fixture.
+"""Phase 29 historical rediscovery fixture and host-owned benchmark runtime.
 
-Only pre-discovery information is exposed through pre_discovery_records.
-The later held-out record is deliberately separate and is never part of the
-planner input fixture.
+The fixture separates pre-discovery observations from later held-out evidence.
+The benchmark runtime derives a quantitative prediction only from the earlier
+observations, then evaluates that prediction against the separately supplied
+held-out observation.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import Enum
+
 from episteme.model import Provenance, Record, RecordKind
 
 FIXTURE_CAPTURED_AT = "1885-12-31T00:00:00+00:00"
@@ -20,6 +23,30 @@ FIXTURE_LOCATION = "https://www.rsc.org/images/23_The_Periodic_Law_tcm18-30005.p
 class RediscoveryFixture:
     pre_discovery_records: tuple[Record, ...]
     held_out_record: Record
+
+
+class RediscoveryOutcome(str, Enum):
+    MATCHED = "matched"
+    PARTIAL = "partial"
+    FAILED = "failed"
+
+
+@dataclass(frozen=True)
+class RediscoveryPrediction:
+    predicted_relative_atomic_mass: float
+    input_ids: tuple[str, ...]
+    method: str
+    method_version: str
+
+
+@dataclass(frozen=True)
+class RediscoveryEvaluation:
+    outcome: RediscoveryOutcome
+    predicted_relative_atomic_mass: float
+    observed_relative_atomic_mass: float
+    absolute_error: float
+    relative_error: float
+    tolerance: float
 
 
 def _provenance() -> tuple[Provenance, ...]:
@@ -99,8 +126,8 @@ def build_mendeleev_fixture() -> RediscoveryFixture:
             "label": "held_out_element",
             "family": "group_14",
             "period": 4,
-            "relative_atomic_mass": 72.63,
-            "density_g_cm3": 5.3234,
+            "relative_atomic_mass": 72.32,
+            "density_g_cm3": 5.47,
         },
         provenance=provenance,
         created_at="1886-12-31T00:00:00+00:00",
@@ -109,4 +136,75 @@ def build_mendeleev_fixture() -> RediscoveryFixture:
     return RediscoveryFixture(
         pre_discovery_records=pre_discovery,
         held_out_record=held_out,
+    )
+
+
+def derive_mendeleev_mass_prediction(
+    pre_discovery_records: tuple[Record, ...],
+) -> RediscoveryPrediction:
+    """Derive a bounded mass prediction from the two observations around the gap.
+
+    The runtime is deliberately blind to the held-out record. It selects the
+    adjacent observed periods around the missing period-4 position and takes
+    their midpoint. No later element identity or later measured value is used.
+    """
+
+    candidates = [
+        record
+        for record in pre_discovery_records
+        if record.payload.get("family") == "group_14"
+    ]
+    by_period = {
+        int(record.payload["period"]): record
+        for record in candidates
+    }
+    if 4 in by_period:
+        raise ValueError("pre-discovery inputs must not contain the held-out period")
+    if 3 not in by_period or 5 not in by_period:
+        raise ValueError("pre-discovery inputs must contain periods 3 and 5")
+
+    lower = float(by_period[3].payload["relative_atomic_mass"])
+    upper = float(by_period[5].payload["relative_atomic_mass"])
+    prediction = (lower + upper) / 2.0
+
+    return RediscoveryPrediction(
+        predicted_relative_atomic_mass=prediction,
+        input_ids=(by_period[3].id, by_period[5].id),
+        method="adjacent-period-mass-midpoint",
+        method_version="1",
+    )
+
+
+def evaluate_mendeleev_mass_prediction(
+    prediction: RediscoveryPrediction,
+    held_out_record: Record,
+    tolerance: float = 0.05,
+) -> RediscoveryEvaluation:
+    """Evaluate the prediction against later held-out evidence.
+
+    The evaluator receives the held-out record separately from the prediction
+    inputs. A match is deterministic and uses only the pre-registered relative
+    error tolerance.
+    """
+
+    if not 0 < tolerance < 1:
+        raise ValueError("tolerance must be between 0 and 1")
+
+    observed = float(held_out_record.payload["relative_atomic_mass"])
+    predicted = prediction.predicted_relative_atomic_mass
+    absolute_error = abs(predicted - observed)
+    relative_error = absolute_error / observed
+
+    if relative_error <= tolerance:
+        outcome = RediscoveryOutcome.MATCHED
+    else:
+        outcome = RediscoveryOutcome.FAILED
+
+    return RediscoveryEvaluation(
+        outcome=outcome,
+        predicted_relative_atomic_mass=predicted,
+        observed_relative_atomic_mass=observed,
+        absolute_error=absolute_error,
+        relative_error=relative_error,
+        tolerance=tolerance,
     )
