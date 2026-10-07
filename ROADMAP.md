@@ -712,6 +712,6 @@ If implementation reveals that the roadmap is wrong, revise the roadmap rather t
 
 ## Current Position
 
-**Phase 27 — Bounded Autonomous Discovery — Complete**
+**Phase 28 — Autonomous Evidence Request Boundary — Complete**
 
 
