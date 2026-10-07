@@ -193,7 +193,7 @@ class OllamaPlanner:
                         "required": ["operation", "position"],
                         "additionalProperties": False,
                     },
-                    "rationale": {"type": "string"},
+                    "rationale": {"type": "string", "minLength": 1},
                 },
                 "required": ["kind", "rationale"],
                 "additionalProperties": False,
