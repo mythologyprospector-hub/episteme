@@ -12,6 +12,7 @@ from typing import Any, Callable
 from urllib.request import Request, urlopen
 
 from .autonomy import DiscoveryAction, DiscoveryContext, PlannerActionError
+from .evidence_request import resolve_evidence_capability
 
 
 Transport = Callable[[dict[str, Any]], dict[str, Any]]
@@ -66,6 +67,14 @@ class OllamaPlanner:
             "exploration_observations": list(context.exploration_observations),
             "exploration_assessments": list(context.exploration_assessments),
             "available_evidence_capabilities": list(self.evidence_capabilities),
+            "available_evidence_capability_contracts": [
+                {
+                    "name": name,
+                    "allowed_parameters": sorted(resolve_evidence_capability(name).allowed_parameters),
+                    "supported_media_types": sorted(resolve_evidence_capability(name).supported_media_types),
+                }
+                for name in self.evidence_capabilities
+            ],
             "hypotheses": list(context.hypotheses),
             "predictions": list(context.predictions),
             "experiments": list(context.experiments),
@@ -110,7 +119,7 @@ class OllamaPlanner:
             "predictions. After competing predictions exist with no experiment, propose the "
             "bounded experiment. Once an experiment has been executed and its result and evaluations are present, request evidence when an explicitly available host capability could materially discriminate the active alternatives; otherwise choose stop. Do not propose another experiment for the same run. Do not stop merely because the GAP has been found; continue "
             "through candidate generation and discrimination until the bounded experiment has "
-            "been executed or a justified evidence request/stop is reached. For kind='scout', request only a bounded host-owned scouting pass; you do not choose its grounded inputs, executor, limits, or configuration. For kind='assess_exploration', target exactly one supplied exploration observation id; the host decides acceptance, assessment method, provenance, and rationale. For kind='admit_exploration', target exactly one supplied exploration observation id; the host chooses the accepted assessment and admission policy. Never invent or supply assessment policy fields. For kind='discover_gap', request only the bounded host-owned structural discovery pass; you do not choose its grounded inputs, detector, limits, or configuration. For kind='request_evidence', choose only an explicitly available host evidence capability, provide at least one existing motivation id, bounded evidence_parameters, and a requested_representation; never provide URLs, network instructions, provider credentials, or executable code. If external evidence is required and no host evidence capability is available, stop. "
+            "been executed or a justified evidence request/stop is reached. For kind='scout', request only a bounded host-owned scouting pass; you do not choose its grounded inputs, executor, limits, or configuration. For kind='assess_exploration', target exactly one supplied exploration observation id; the host decides acceptance, assessment method, provenance, and rationale. For kind='admit_exploration', target exactly one supplied exploration observation id; the host chooses the accepted assessment and admission policy. Never invent or supply assessment policy fields. For kind='discover_gap', request only the bounded host-owned structural discovery pass; you do not choose its grounded inputs, detector, limits, or configuration. For kind='request_evidence', choose only an explicitly available host evidence capability and obey its supplied capability contract. Use only allowed parameter names and one of its supported media types as requested_representation. Provide at least one existing motivation id and bounded evidence_parameters; never provide URLs, network instructions, provider credentials, or executable code. If external evidence is required and no host evidence capability is available, stop. "
             "Return one JSON object only. The JSON field for the action type is named "
             "'kind', never 'action'. The field 'rationale' is REQUIRED on EVERY action, "
             "including prediction, and must be a non-empty string explaining why that action "
