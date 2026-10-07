@@ -174,6 +174,21 @@ class OllamaPlanner:
                 ]
             )
 
+        allowed_kinds = [
+            "scout",
+            "assess_exploration",
+            "admit_exploration",
+            "discover_gap",
+            "question",
+            "hypothesis",
+            "prediction",
+            "experiment",
+            "request_evidence",
+            "stop",
+        ]
+        if context.predictions and not context.experiments:
+            allowed_kinds = ["experiment"]
+
         return {
             "model": self.model,
             "stream": False,
@@ -182,7 +197,7 @@ class OllamaPlanner:
                 "properties": {
                     "kind": {
                         "type": "string",
-                        "enum": ["scout", "assess_exploration", "admit_exploration", "discover_gap", "question", "hypothesis", "prediction", "experiment", "request_evidence", "stop"],
+                        "enum": allowed_kinds,
                     },
                     "target_ids": {"type": "array", "items": {"type": "string"}},
                     "statement": {"type": "string"},
