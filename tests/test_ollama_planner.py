@@ -60,10 +60,9 @@ def test_ollama_planner_translates_structured_model_output():
     }
     prediction_schema = schemas_by_kind["prediction"]
     assert "conditions" in prediction_schema["required"]
-    assert prediction_schema["oneOf"] == [
-        {"required": ["consequence"]},
-        {"required": ["consequences"]},
-    ]
+    assert "consequence" in prediction_schema["required"]
+    assert "consequences" not in prediction_schema["required"]
+    assert "oneOf" not in prediction_schema
 
     request_schema = schemas_by_kind["request_evidence"]
     assert {"target_ids", "evidence_capability", "evidence_parameters", "requested_representation"}.issubset(request_schema["required"])
