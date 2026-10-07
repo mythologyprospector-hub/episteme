@@ -146,8 +146,8 @@ class OllamaPlanner:
             "For kind='experiment', target_ids MUST contain at least two existing "
             "prediction ids and conditions, objective, proposed_observation, "
             "discrimination_basis, and execution_spec are required. execution_spec "
-            "must be an object with operation='positional_presence', numeric position, "
-            "optional position_key, and expected_presence mapping prediction ids to booleans. "
+            "must contain only operation='positional_presence', numeric position, and optional position_key. "
+            "Do not add any other execution_spec fields; the host supplies experiment inputs and prediction expectations. "
             "Do not name a Python callable, command, URL, or evaluator. For kind='stop', rationale is required. "
             "Always include rationale. If feedback is supplied, it describes a rejected prior action; correct the action instead of repeating the same error."
         )
