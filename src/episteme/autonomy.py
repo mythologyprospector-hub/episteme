@@ -157,6 +157,7 @@ class DiscoveryAction:
     proposed_observation: str | None = None
     discrimination_basis: str | None = None
     expected_presences: Mapping[str, bool] | None = None
+    predicted_numeric_value: float | None = None
     execution_spec: Mapping[str, Any] | None = None
     evidence_capability: str | None = None
     evidence_parameters: Mapping[str, Any] | None = None
