@@ -670,19 +670,37 @@ The implemented Phase 27 behavior satisfies the Phase 27 exit condition:
 
 ## Phase 28 — Autonomous Evidence Request Boundary
 
-**Status:** Design only — not approved for implementation.
+**Status:** Boundary implemented — capability not yet exit-complete.
 
-**Goal:** Define a bounded bridge from planner-driven discovery to the existing host-owned external acquisition and captured-representation boundaries.
+**Goal:** Define and implement a bounded bridge from planner-driven discovery to the existing host-owned external acquisition and captured-representation boundaries.
 
-The canonical design is defined in docs/AUTONOMOUS_EVIDENCE_REQUEST.md.
+The canonical boundary is defined in docs/AUTONOMOUS_EVIDENCE_REQUEST.md.
 
 Phase 28 must not introduce a generic browsing or agent subsystem. Its purpose is to let a bounded autonomous investigation request additional evidence through an explicitly exposed acquisition capability while preserving host authority over external access, acquisition policy, exact capture, provenance, and grounded ingestion.
 
-The design must preserve the existing separation:
+The implemented boundary now includes:
+
+- [x] a typed generated evidence-request representation;
+- [x] host-owned validation and evidence-request execution binding;
+- [x] bounded autonomous-loop handling for request, rejection, failure, partial, and complete outcomes;
+- [x] reuse of the existing acquisition/capture boundary rather than a second acquisition model;
+- [x] tests for malformed requests, host rejection, invalid outcomes, and completed evidence-request transitions.
+
+These are boundary/plumbing capabilities, not yet proof that autonomous evidence acquisition produces discriminating scientific progress.
+
+The implemented separation remains:
 
 **planner request → host validation/policy → existing AcquisitionRequest → existing provider → existing capture → optional named grounded ingestion**
 
-Implementation is deferred until the design exit condition can be translated into executable tests without creating a second acquisition, capture, provenance, or epistemic model.
+### Phase 28 Exit Condition
+
+Phase 28 is exit-complete only when the implemented boundary is demonstrated to satisfy the full design exit condition in `docs/AUTONOMOUS_EVIDENCE_REQUEST.md` and a concrete autonomous investigation demonstrates that newly acquired evidence can be brought back through the existing grounded boundary and materially discriminate among the active alternatives. Until then, Phase 28 remains in progress.
+
+### Phase 28 Exit Audit
+
+Current implementation establishes the control boundary and preserves the core ownership invariant. It does not yet establish scientific capability beyond the plumbing boundary.
+
+**Status:** In progress.
 
 ## Roadmap Rules/
 
