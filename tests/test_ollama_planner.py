@@ -49,9 +49,10 @@ def test_ollama_planner_translates_structured_model_output():
         "hypothesis",
         "prediction",
         "experiment",
+        "request_evidence",
         "stop",
     ]
-    assert len(captured["format"]["oneOf"]) == 9
+    assert len(captured["format"]["oneOf"]) == 10
 
     schemas_by_kind = {
         schema["properties"]["kind"]["const"]: schema
@@ -63,6 +64,9 @@ def test_ollama_planner_translates_structured_model_output():
         {"required": ["consequence"]},
         {"required": ["consequences"]},
     ]
+
+    request_schema = schemas_by_kind["request_evidence"]
+    assert {"target_ids", "evidence_capability", "evidence_parameters", "requested_representation"}.issubset(request_schema["required"])
 
     experiment_schema = schemas_by_kind["experiment"]
     assert {
