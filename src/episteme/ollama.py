@@ -115,7 +115,7 @@ class OllamaPlanner:
             "After a GAP or TENSION finding exists with no hypothesis, the ONLY valid candidate-generation action is hypothesis (or question). "
             "A GAP or TENSION is a finding, NOT a hypothesis. Never propose prediction, experiment, request_evidence, or stop while a candidate finding has zero hypotheses. "
             "After exactly one hypothesis exists for the finding, propose a distinct competing hypothesis for the same finding. "
-            "propose a distinct competing hypothesis for the same finding. After two or more "
+            "After two or more "
             "competing hypotheses exist and have no predictions, propose discriminating "
             "predictions. After competing predictions exist with no experiment, propose the "
             "bounded experiment. Once an experiment has been executed and its result and evaluations are present, request evidence when an explicitly available host capability could materially discriminate the active alternatives; otherwise choose stop. Do not propose another experiment for the same run. Do not stop merely because the GAP has been found; continue "
