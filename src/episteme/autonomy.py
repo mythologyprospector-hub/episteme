@@ -846,6 +846,10 @@ def run_autonomous_discovery(
                         result = evidence_request_runtime.request_evidence(
                             store, request, created_at=started_at
                         )
+                    except ValueError as exc:
+                        raise PlannerActionError(
+                            f"evidence request execution failed validation: {exc}"
+                        ) from exc
                     except EvidenceRequestRejected as exc:
                         return DiscoveryRun(
                             status="failed",
