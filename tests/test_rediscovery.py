@@ -2,7 +2,7 @@ import math
 from dataclasses import replace
 
 from episteme.model import PredictionEvaluationOutcome
-from episteme.proposals import predict, propose_experiment, complete_structural_gap
+from episteme.proposals import predict, propose_experiment, propose_hypothesis, complete_structural_gap
 from episteme.discovery import detect_positional_gap
 from episteme.rediscovery import (
     RediscoveryOutcome,
