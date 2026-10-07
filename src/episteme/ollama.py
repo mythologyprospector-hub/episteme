@@ -27,6 +27,7 @@ class OllamaPlanner:
         base_url: str = "http://127.0.0.1:11434",
         timeout: float = 120.0,
         transport: Transport | None = None,
+        evidence_capabilities: tuple[str, ...] = (),
     ) -> None:
         if not model.strip():
             raise ValueError("model must be non-empty")
@@ -36,6 +37,7 @@ class OllamaPlanner:
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
         self._transport = transport
+        self.evidence_capabilities = tuple(evidence_capabilities)
 
     def choose(self, context: DiscoveryContext) -> DiscoveryAction:
         payload = self._request_payload(context)
@@ -63,6 +65,7 @@ class OllamaPlanner:
             "findings": list(context.findings),
             "exploration_observations": list(context.exploration_observations),
             "exploration_assessments": list(context.exploration_assessments),
+            "available_evidence_capabilities": list(self.evidence_capabilities),
             "hypotheses": list(context.hypotheses),
             "predictions": list(context.predictions),
             "experiments": list(context.experiments),
@@ -147,6 +150,9 @@ class OllamaPlanner:
                     "objective": {"type": "string"},
                     "proposed_observation": {"type": "string"},
                     "discrimination_basis": {"type": "string"},
+                    "evidence_capability": {"type": "string"},
+                    "evidence_parameters": {"type": "object"},
+                    "requested_representation": {"type": "string"},
                     "execution_spec": {
                         "type": "object",
                         "properties": {
@@ -208,6 +214,17 @@ class OllamaPlanner:
                             "proposed_observation",
                             "discrimination_basis",
                             "execution_spec",
+                            "rationale",
+                        ],
+                    },
+                    {
+                        "properties": {"kind": {"const": "request_evidence"}},
+                        "required": [
+                            "kind",
+                            "target_ids",
+                            "evidence_capability",
+                            "evidence_parameters",
+                            "requested_representation",
                             "rationale",
                         ],
                     },
