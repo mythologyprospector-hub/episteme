@@ -117,9 +117,45 @@ class OllamaPlanner:
                 if isinstance(item.get("id"), str)
             )
         )
+        target_id_candidates = context_target_ids
+        candidate_findings = tuple(
+            item
+            for item in context.findings
+            if item.get("kind") in {"gap", "tension"}
+        )
+        hypothesis_counts = {
+            finding.get("id"): sum(
+                finding.get("id") in hypothesis.get("finding_ids", ())
+                for hypothesis in context.hypotheses
+            )
+            for finding in candidate_findings
+        }
+        pending_findings = tuple(
+            finding_id
+            for finding_id, count in hypothesis_counts.items()
+            if count < 2
+        )
+        if pending_findings:
+            target_id_candidates = pending_findings
+        elif len(context.hypotheses) >= 2 and not context.predictions:
+            target_id_candidates = tuple(
+                item.get("id")
+                for item in context.hypotheses
+                if isinstance(item.get("id"), str)
+            )
+        elif context.predictions and not context.experiments:
+            target_id_candidates = tuple(
+                item.get("id")
+                for item in context.predictions
+                if isinstance(item.get("id"), str)
+            )
+
         target_ids_schema: dict[str, Any] = {"type": "array", "items": {"type": "string"}}
-        if context_target_ids:
-            target_ids_schema["items"] = {"type": "string", "enum": list(context_target_ids)}
+        if target_id_candidates:
+            target_ids_schema["items"] = {
+                "type": "string",
+                "enum": list(target_id_candidates),
+            }
 
         system = (
             "You are the bounded planning component of a scientific inquiry instrument. "
