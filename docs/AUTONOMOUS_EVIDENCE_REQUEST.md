@@ -1,6 +1,6 @@
 # Autonomous Evidence Request Boundary
 
-**Status:** Design proposal — no implementation yet  
+**Status:** Implemented boundary — capability not yet exit-complete  
 **Phase:** Post-27 architectural design  
 **Scope:** Boundary between bounded autonomous discovery and existing external acquisition/capture/grounded-ingestion capabilities
 
@@ -27,7 +27,7 @@ Episteme already has the pieces needed on both sides:
 7. **Phase 25** exposes capture-to-execution lineage.
 8. **Phase 11** provides deterministic grounded ingestion through named adapters.
 
-The missing capability is an explicit control boundary connecting autonomous reasoning to those already-declared operations.
+The previously missing control boundary is now implemented. The remaining Phase 28 work is capability validation: demonstrating that the boundary can support a concrete autonomous investigation in which newly acquired material is preserved, optionally grounded through the existing ingestion path, and used to discriminate among active alternatives.
 
 ## Proposed boundary
 
@@ -203,17 +203,15 @@ It may then:
 
 The loop remains subject to Phase 27's finite step and retry limits.
 
-## Proposed action shape
+## Implemented action shape
 
-If implemented, the autonomous action vocabulary should add a narrowly defined evidence-request operation rather than a generic "browse" or "search" action.
+The autonomous action vocabulary now includes a narrowly defined evidence-request operation rather than a generic "browse" or "search" action.
 
 Conceptually:
 
 `request_evidence`
 
-The action should identify the investigation need and a host-exposed acquisition capability, but should not contain arbitrary executable instructions.
-
-A future implementation should define its exact schema only after tests establish the required validation boundary.
+The action identifies the investigation need, host-exposed acquisition capability, bounded parameters, requested representation, and rationale, but contains no arbitrary executable instructions. The host translates the validated request into the existing acquisition/capture boundary.
 
 ## What this does not introduce
 
@@ -239,9 +237,9 @@ This preserves the Phase 27 invariant:
 
 > **The planner may choose among declared bounded operations, but only host-owned Episteme capabilities determine what those operations actually do.**
 
-## Design exit condition
+## Exit condition
 
-This design is ready for implementation only when tests can demonstrate all of the following:
+Phase 28 is exit-complete only when tests and an end-to-end autonomous investigation demonstrate all of the following:
 
 - an autonomous planner can request additional evidence without receiving arbitrary network authority;
 - the host can reject unsupported or unsafe requests before acquisition;
@@ -254,4 +252,4 @@ This design is ready for implementation only when tests can demonstrate all of t
 - bounded retry and step semantics remain intact;
 - no second acquisition, capture, provenance, or epistemic model is introduced.
 
-Until those tests can be specified clearly, implementation should not begin.
+The boundary implementation exists, but Phase 28 remains in progress until these conditions are demonstrated in practice.
