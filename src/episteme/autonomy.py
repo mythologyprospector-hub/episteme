@@ -830,13 +830,18 @@ def run_autonomous_discovery(
                         raise PlannerActionError("evidence request is unavailable without a host-owned evidence request runtime")
                     if not action.target_ids:
                         raise PlannerActionError("request_evidence action requires at least one motivation id")
-                    request = EvidenceRequest(
-                        capability=_require(action.evidence_capability, "evidence_capability"),
-                        parameters=action.evidence_parameters or {},
-                        rationale=action.rationale,
-                        motivation_ids=action.target_ids,
-                        requested_representation=_require(action.requested_representation, "requested_representation"),
-                    )
+                    try:
+                        request = EvidenceRequest(
+                            capability=_require(action.evidence_capability, "evidence_capability"),
+                            parameters=action.evidence_parameters or {},
+                            rationale=action.rationale,
+                            motivation_ids=action.target_ids,
+                            requested_representation=_require(action.requested_representation, "requested_representation"),
+                        )
+                    except ValueError as exc:
+                        raise PlannerActionError(
+                            f"invalid evidence request: {exc}"
+                        ) from exc
                     try:
                         result = evidence_request_runtime.request_evidence(
                             store, request, created_at=started_at
