@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -78,74 +79,76 @@ def main() -> int:
     )
     input_ids = tuple(item.id for item in records)
 
-    with Store() as store:
-        for record in (*records, held_out):
-            store.put_record(record)
-
-        result = run_autonomous_discovery(
-            store,
-            OllamaPlanner(
-                model,
-                timeout=timeout,
-                evidence_capabilities=("crossref_works",),
-                host_capabilities=("scout", "assess_exploration", "admit_exploration", "discover_gap", "request_evidence"),
-            ),
-            grounded_input_ids=input_ids,
-            experiment_input_ids=(held_out.id,),
-            started_at=CREATED,
-            max_steps=12,
-            max_retries_per_step=2,
-            exploration_runtime=PositionalExplorationRuntime(
-                input_ids=input_ids, position_key="position", max_records=3
-            ),
-            structural_discovery_runtime=PositionalGapDiscoveryRuntime(
-                input_ids=input_ids, position_key="position", step=1.0
-            ),
-            exploration_assessment_runtime=ExplorationAssessmentRuntime(
-                allowed_input_ids=input_ids,
-                accepted=True,
-                method="ollama-evidence-request-host-assessment",
-                method_version="1",
-                rationale="Acceptance fixture permits generated exploration into discovery context.",
-                provenance=PROVENANCE,
-            ),
-            exploration_admission_runtime=ExplorationAdmissionRuntime(
-                allowed_input_ids=input_ids
-            ),
-            evidence_request_runtime=FixtureEvidenceRuntime(),
-        )
-
-        actions = [step.action.kind for step in result.steps]
-        captures = tuple(store.iter_captured_representations())
-
-        print("model:", model)
-        print("status:", result.status)
-        print("stop_reason:", result.stop_reason)
-        print("actions:", actions)
-        print("captures:", len(captures))
-
-        if result.status != "stopped":
-            print("ACCEPTANCE: FAIL — bounded Ollama evidence-request run did not stop cleanly.")
-            return 1
-
-        if "request_evidence" not in actions:
-            print("ACCEPTANCE: FAIL — real Ollama did not choose request_evidence.")
-            return 1
-
-        if actions[-1] != "request_evidence":
-            print("ACCEPTANCE: FAIL — evidence request was not the terminal completed action.")
-            return 1
-
-        if len(captures) != 1 or captures[0].outcome is not CaptureOutcome.COMPLETE:
-            print("ACCEPTANCE: FAIL — host-owned evidence runtime did not produce one complete capture.")
-            return 1
-
-        print(
-            "ACCEPTANCE: PASS — Ollama selected a bounded evidence request and the "
-            "host-owned runtime completed it through the registered capability."
-        )
-        return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
+    with tempfile.TemporaryDirectory(prefix="episteme-ollama-evidence-") as capture_root:
+        with Store(capture_root=capture_root) as store:
+            for record in (*records, held_out):
+                store.put_record(record)
+    
+            result = run_autonomous_discovery(
+                store,
+                OllamaPlanner(
+                    model,
+                    timeout=timeout,
+                    evidence_capabilities=("crossref_works",),
+                    host_capabilities=("scout", "assess_exploration", "admit_exploration", "discover_gap", "request_evidence"),
+                ),
+                grounded_input_ids=input_ids,
+                experiment_input_ids=(held_out.id,),
+                started_at=CREATED,
+                max_steps=12,
+                max_retries_per_step=2,
+                exploration_runtime=PositionalExplorationRuntime(
+                    input_ids=input_ids, position_key="position", max_records=3
+                ),
+                structural_discovery_runtime=PositionalGapDiscoveryRuntime(
+                    input_ids=input_ids, position_key="position", step=1.0
+                ),
+                exploration_assessment_runtime=ExplorationAssessmentRuntime(
+                    allowed_input_ids=input_ids,
+                    accepted=True,
+                    method="ollama-evidence-request-host-assessment",
+                    method_version="1",
+                    rationale="Acceptance fixture permits generated exploration into discovery context.",
+                    provenance=PROVENANCE,
+                ),
+                exploration_admission_runtime=ExplorationAdmissionRuntime(
+                    allowed_input_ids=input_ids
+                ),
+                evidence_request_runtime=FixtureEvidenceRuntime(),
+            )
+    
+            actions = [step.action.kind for step in result.steps]
+            captures = tuple(store.iter_captured_representations())
+    
+            print("model:", model)
+            print("status:", result.status)
+            print("stop_reason:", result.stop_reason)
+            print("actions:", actions)
+            print("captures:", len(captures))
+    
+            if result.status != "stopped":
+                print("ACCEPTANCE: FAIL — bounded Ollama evidence-request run did not stop cleanly.")
+                return 1
+    
+            if "request_evidence" not in actions:
+                print("ACCEPTANCE: FAIL — real Ollama did not choose request_evidence.")
+                return 1
+    
+            if actions[-1] != "request_evidence":
+                print("ACCEPTANCE: FAIL — evidence request was not the terminal completed action.")
+                return 1
+    
+            if len(captures) != 1 or captures[0].outcome is not CaptureOutcome.COMPLETE:
+                print("ACCEPTANCE: FAIL — host-owned evidence runtime did not produce one complete capture.")
+                return 1
+    
+            print(
+                "ACCEPTANCE: PASS — Ollama selected a bounded evidence request and the "
+                "host-owned runtime completed it through the registered capability."
+            )
+            return 0
+    
+    
+    if __name__ == "__main__":
+        raise SystemExit(main())
+    
