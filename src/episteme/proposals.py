@@ -149,6 +149,7 @@ def propose_discriminating_prediction(
     assumptions: tuple[str, ...] = (),
     created_at: str,
     expected_presence: bool | None = None,
+    predicted_numeric_value: float | None = None,
 ) -> Prediction:
     """Construct a prediction that explicitly discriminates candidate hypotheses.
 
@@ -181,6 +182,7 @@ def propose_discriminating_prediction(
         rationale=rationale,
         comparison_hypothesis_ids=candidate_ids,
         expected_presence=expected_presence,
+        predicted_numeric_value=predicted_numeric_value,
         created_at=created_at,
     )
 
