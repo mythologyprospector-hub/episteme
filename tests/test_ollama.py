@@ -205,6 +205,45 @@ def test_ollama_experiment_schema_exposes_required_typed_fields():
 
 
 
+def test_ollama_schema_restricts_kind_to_experiment_after_predictions():
+    payload = {}
+
+    def transport(request):
+        payload.update(request)
+        return {
+            "message": {
+                "content": json.dumps(
+                    {
+                        "kind": "experiment",
+                        "target_ids": ["prediction-1", "prediction-2"],
+                        "conditions": "Under bounded conditions.",
+                        "objective": "Discriminate the predictions.",
+                        "proposed_observation": "Observe the held-out position.",
+                        "discrimination_basis": "The predictions disagree.",
+                        "execution_spec": {"operation": "positional_presence", "position": 3.0},
+                        "rationale": "A bounded experiment is required.",
+                    }
+                )
+            }
+        }
+
+    context = DiscoveryContext(
+        grounded_input_ids=(),
+        findings=(),
+        hypotheses=(),
+        predictions=(
+            {"id": "prediction-1"},
+            {"id": "prediction-2"},
+        ),
+        experiments=(),
+        actions_taken=(),
+    )
+    action = OllamaPlanner("qwen3:8b", transport=transport).choose(context)
+
+    assert action.kind == "experiment"
+    assert payload["format"]["properties"]["kind"]["enum"] == ["experiment"]
+
+
 def test_ollama_prompt_makes_zero_hypothesis_transition_explicit():
     payload = {}
 
