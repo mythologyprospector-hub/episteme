@@ -465,6 +465,14 @@ def _validate_action_state(
         # bounded experiment and its deterministic evaluation.
         if candidate_findings:
             raise PlannerActionError("stop is unavailable before a bounded experiment")
+        if enforce_exploration_policy and observations and any(
+            finding.kind is DiscoveryFindingKind.EXPLORATION_OBSERVATION
+            and any(observation.id in finding.context_ids for observation in observations)
+            for finding in findings
+        ):
+            raise PlannerActionError(
+                "structural gap discovery is required after accepted exploration"
+            )
         return
 
     if experiments:
