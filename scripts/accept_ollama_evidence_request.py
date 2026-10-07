@@ -88,6 +88,7 @@ def main() -> int:
                 model,
                 timeout=timeout,
                 evidence_capabilities=("crossref_works",),
+                host_capabilities=("scout", "assess_exploration", "admit_exploration", "discover_gap", "request_evidence"),
             ),
             grounded_input_ids=input_ids,
             experiment_input_ids=(held_out.id,),
