@@ -193,7 +193,6 @@ class OllamaPlanner:
                         "properties": {
                             "operation": {"type": "string", "enum": ["positional_presence"]},
                             "position": {"type": "number"},
-                            "position_key": {"type": "string"},
                         },
                         "required": ["operation", "position"],
                         "additionalProperties": False,
