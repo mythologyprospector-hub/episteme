@@ -82,6 +82,9 @@ class OllamaPlanner:
                     "proposed_observation": action.proposed_observation,
                     "discrimination_basis": action.discrimination_basis,
                     "execution_spec": dict(action.execution_spec) if action.execution_spec is not None else None,
+                    "evidence_capability": action.evidence_capability,
+                    "evidence_parameters": dict(action.evidence_parameters) if action.evidence_parameters is not None else None,
+                    "requested_representation": action.requested_representation,
                     "rationale": action.rationale,
                 }
                 for action in context.actions_taken
@@ -90,7 +93,7 @@ class OllamaPlanner:
         system = (
             "You are the bounded planning component of a scientific inquiry instrument. "
             "Choose exactly one next action from: scout, assess_exploration, admit_exploration, discover_gap, question, "
-            "hypothesis, prediction, experiment, stop. If the supplied context has no "
+            "hypothesis, prediction, experiment, request_evidence, stop. If the supplied context has no "
             "exploration observations and the host provides scouting capability, the first "
             "action MUST be scout. After a scout, if an exploration observation exists but "
             "has no assessment, choose assess_exploration for that observation. After an "
@@ -115,8 +118,8 @@ class OllamaPlanner:
             "must include kind, target_ids, conditions, consequence or consequences, and "
             "rationale. The only allowed JSON fields are: kind, target_ids, "
             "statement, consequence, consequences, conditions, objective, "
-            "proposed_observation, discrimination_basis, execution_spec, rationale. Do not invent other "
-            "field names. A hypothesis action creates a NEW hypothesis about a finding. "
+            "proposed_observation, discrimination_basis, execution_spec, evidence_capability, "
+            "evidence_parameters, requested_representation, rationale. Do not invent other field names. A hypothesis action creates a NEW hypothesis about a finding. "
             "For kind='question' or kind='hypothesis', target_ids MUST contain exactly "
             "one existing GAP or TENSION finding id. NEVER put an existing hypothesis id "
             "in target_ids for a hypothesis action. Example: if the finding id is GAP_001, "
@@ -226,13 +229,6 @@ class OllamaPlanner:
                             "evidence_parameters",
                             "requested_representation",
                             "rationale",
-                        ],
-                    },
-                    {
-                        "properties": {"kind": {"const": "request_evidence"}},
-                        "required": [
-                            "kind", "target_ids", "evidence_capability",
-                            "evidence_parameters", "requested_representation", "rationale",
                         ],
                     },
                     {
