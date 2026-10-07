@@ -146,6 +146,65 @@ def test_ollama_prediction_schema_exposes_required_typed_fields():
     ]
 
 
+
+def test_ollama_experiment_schema_exposes_required_typed_fields():
+    payload = {}
+
+    def transport(request):
+        payload.update(request)
+        return {
+            "message": {
+                "content": json.dumps(
+                    {
+                        "kind": "experiment",
+                        "target_ids": ["prediction-1", "prediction-2"],
+                        "conditions": "Under the bounded held-out fixture conditions.",
+                        "objective": "Discriminate the competing predictions.",
+                        "proposed_observation": "Observe whether the held-out position is present.",
+                        "discrimination_basis": "The competing predictions disagree at the held-out position.",
+                        "execution_spec": {
+                            "operation": "positional_presence",
+                            "position": 3.0,
+                        },
+                        "rationale": "The competing predictions require a bounded discriminating experiment.",
+                    }
+                )
+            }
+        }
+
+    experiment_context = DiscoveryContext(
+        grounded_input_ids=(),
+        findings=(),
+        hypotheses=(),
+        predictions=(
+            {"id": "prediction-1"},
+            {"id": "prediction-2"},
+        ),
+        experiments=(),
+        actions_taken=(),
+    )
+    action = OllamaPlanner("qwen3:8b", transport=transport).choose(experiment_context)
+
+    assert action.kind == "experiment"
+    assert action.execution_spec == {
+        "operation": "positional_presence",
+        "position": 3.0,
+    }
+    schema = payload["format"]
+    assert schema["required"] == [
+        "kind",
+        "rationale",
+        "target_ids",
+        "conditions",
+        "objective",
+        "proposed_observation",
+        "discrimination_basis",
+        "execution_spec",
+    ]
+    assert "position_key" not in schema["properties"]["execution_spec"]["properties"]
+
+
+
 def test_ollama_prompt_makes_zero_hypothesis_transition_explicit():
     payload = {}
 
