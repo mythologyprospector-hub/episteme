@@ -185,12 +185,8 @@ class OllamaPlanner:
                             "operation": {"type": "string", "enum": ["positional_presence"]},
                             "position": {"type": "number"},
                             "position_key": {"type": "string"},
-                            "expected_presence": {
-                                "type": "object",
-                                "additionalProperties": {"type": "boolean"},
-                            },
                         },
-                        "required": ["operation", "position", "expected_presence"],
+                        "required": ["operation", "position"],
                         "additionalProperties": False,
                     },
                     "rationale": {"type": "string"},
