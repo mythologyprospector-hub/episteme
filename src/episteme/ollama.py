@@ -159,6 +159,10 @@ class OllamaPlanner:
                     "consequence": {"type": "string"},
                     "consequences": {"type": "array", "items": {"type": "string"}},
                     "conditions": {"type": "string"},
+                    "expected_presences": {
+                        "type": "object",
+                        "additionalProperties": {"type": "boolean"},
+                    },
                     "objective": {"type": "string"},
                     "proposed_observation": {"type": "string"},
                     "discrimination_basis": {"type": "string"},
@@ -210,7 +214,7 @@ class OllamaPlanner:
                     },
                     {
                         "properties": {"kind": {"const": "prediction"}},
-                        "required": ["kind", "target_ids", "conditions", "rationale"],
+                        "required": ["kind", "target_ids", "conditions", "expected_presences", "rationale"],
                         "oneOf": [
                             {"required": ["consequence"]},
                             {"required": ["consequences"]},
