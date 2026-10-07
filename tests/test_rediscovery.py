@@ -5,6 +5,7 @@ from episteme.model import PredictionEvaluationOutcome
 from episteme.proposals import predict, propose_experiment
 from episteme.rediscovery import (
     RediscoveryOutcome,
+    FIXTURE_CAPTURED_AT,
     build_mendeleev_fixture,
     derive_mendeleev_mass_prediction,
     evaluate_mendeleev_mass_prediction,
