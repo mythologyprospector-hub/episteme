@@ -670,7 +670,7 @@ The implemented Phase 27 behavior satisfies the Phase 27 exit condition:
 
 ## Phase 28 — Autonomous Evidence Request Boundary
 
-**Status:** Design only — not approved for implementation.
+**Status:** Complete.
 
 **Goal:** Define a bounded bridge from planner-driven discovery to the existing host-owned external acquisition and captured-representation boundaries.
 
@@ -682,7 +682,13 @@ The design must preserve the existing separation:
 
 **planner request → host validation/policy → existing AcquisitionRequest → existing provider → existing capture → optional named grounded ingestion**
 
-Implementation is deferred until the design exit condition can be translated into executable tests without creating a second acquisition, capture, provenance, or epistemic model.
+Implementation is complete. The design exit condition was translated into executable tests without creating a second acquisition, capture, provenance, or epistemic model.
+
+### Phase 28 Exit Audit
+
+The implemented Phase 28 behavior satisfies the stated exit condition. The planner can request bounded evidence through a host-owned capability; the host validates and admits the request; the request is translated into the existing acquisition model; exact received content is captured immutably; capture lineage remains inspectable; captured content does not become grounded evidence automatically; bounded retry/step semantics remain intact; and the real Ollama acceptance harness completed a full discovery path ending in `request_evidence` with one complete capture.
+
+**Status:** Complete.
 
 ## Roadmap Rules/
 
@@ -706,6 +712,6 @@ If implementation reveals that the roadmap is wrong, revise the roadmap rather t
 
 ## Current Position
 
-**Phase 27 — Bounded Autonomous Discovery — Complete**
+**Phase 28 — Autonomous Evidence Request Boundary — Complete**
 
 

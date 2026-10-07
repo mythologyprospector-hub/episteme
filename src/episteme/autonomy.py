@@ -465,6 +465,14 @@ def _validate_action_state(
         # bounded experiment and its deterministic evaluation.
         if candidate_findings:
             raise PlannerActionError("stop is unavailable before a bounded experiment")
+        if enforce_exploration_policy and observations and any(
+            finding.kind is DiscoveryFindingKind.EXPLORATION_OBSERVATION
+            and any(observation.id in finding.context_ids for observation in observations)
+            for finding in findings
+        ):
+            raise PlannerActionError(
+                "structural gap discovery is required after accepted exploration"
+            )
         return
 
     if experiments:
@@ -830,13 +838,18 @@ def run_autonomous_discovery(
                         raise PlannerActionError("evidence request is unavailable without a host-owned evidence request runtime")
                     if not action.target_ids:
                         raise PlannerActionError("request_evidence action requires at least one motivation id")
-                    request = EvidenceRequest(
-                        capability=_require(action.evidence_capability, "evidence_capability"),
-                        parameters=action.evidence_parameters or {},
-                        rationale=action.rationale,
-                        motivation_ids=action.target_ids,
-                        requested_representation=_require(action.requested_representation, "requested_representation"),
-                    )
+                    try:
+                        request = EvidenceRequest(
+                            capability=_require(action.evidence_capability, "evidence_capability"),
+                            parameters=action.evidence_parameters or {},
+                            rationale=action.rationale,
+                            motivation_ids=action.target_ids,
+                            requested_representation=_require(action.requested_representation, "requested_representation"),
+                        )
+                    except ValueError as exc:
+                        raise PlannerActionError(
+                            f"invalid evidence request: {exc}"
+                        ) from exc
                     try:
                         result = evidence_request_runtime.request_evidence(
                             store, request, created_at=started_at
@@ -847,6 +860,10 @@ def run_autonomous_discovery(
                             steps=tuple(steps),
                             stop_reason=f"bounded evidence request was rejected by host policy: {exc}",
                         )
+                    except ValueError as exc:
+                        raise PlannerActionError(
+                            f"evidence request execution failed validation: {exc}"
+                        ) from exc
                     if not hasattr(result, "outcome") or not hasattr(result, "id"):
                         raise RuntimeError(
                             "host evidence runtime returned an invalid capture result"
