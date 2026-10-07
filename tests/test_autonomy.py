@@ -593,8 +593,27 @@ class PrematureStopPlanner:
 
 def test_host_state_machine_requires_gap_discovery_after_admitted_exploration():
     records = _records()
+
     class ExplorationPlanner:
+        def __init__(self):
+            self.calls = 0
+
         def choose(self, context):
+            self.calls += 1
+            if self.calls == 1:
+                return DiscoveryAction(kind="scout", rationale="Begin the bounded exploration pass.")
+            if self.calls == 2:
+                return DiscoveryAction(
+                    kind="assess_exploration",
+                    target_ids=(context.exploration_observations[0]["id"],),
+                    rationale="Assess the bounded exploration observation.",
+                )
+            if self.calls == 3:
+                return DiscoveryAction(
+                    kind="admit_exploration",
+                    target_ids=(context.exploration_observations[0]["id"],),
+                    rationale="Admit the accepted exploration observation.",
+                )
             return DiscoveryAction(kind="stop", rationale="Intentionally stop before structural discovery.")
 
     from episteme.autonomy import ExplorationAdmissionRuntime, ExplorationAssessmentRuntime, PositionalExplorationRuntime, PositionalGapDiscoveryRuntime
@@ -620,7 +639,7 @@ def test_host_state_machine_requires_gap_discovery_after_admitted_exploration():
             exploration_admission_runtime=ExplorationAdmissionRuntime(
                 allowed_input_ids=tuple(record.id for record in records)
             ),
-            max_steps=1,
+            max_steps=4,
             max_retries_per_step=0,
         )
         assert result.status == "failed"
