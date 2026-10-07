@@ -619,6 +619,7 @@ def execute_action(store: Any, action: DiscoveryAction, *, created_at: str) -> t
                     method_version="1",
                     rationale=action.rationale,
                     expected_presence=(action.expected_presences or {}).get(candidate_id),
+                    predicted_numeric_value=action.predicted_numeric_value,
                     created_at=created_at,
                 )
                 predictions.append(prediction)
