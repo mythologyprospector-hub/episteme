@@ -7,6 +7,8 @@ control-plane machinery, not an epistemic authority.
 
 from __future__ import annotations
 
+import re
+
 from dataclasses import dataclass
 from typing import Any, Callable, Mapping, Protocol
 
@@ -366,6 +368,36 @@ def _validate_execution_spec(
     }
 
 
+
+def _validate_positional_prediction_bindings(store: Any, action: DiscoveryAction) -> None:
+    """Reject positional predictions whose expectation contradicts their hypothesis."""
+    if not action.execution_spec or action.execution_spec.get("operation") != "positional_presence":
+        return
+    predictions = {item.id: item for item in store.iter_predictions()}
+    hypotheses = {item.id: item for item in store.iter_hypotheses()}
+    position = float(action.execution_spec["position"])
+    pattern = re.compile(r"\\b(not\\s+)?at\\s+position\\s+([-+]?(?:\\d+(?:\\.\\d*)?|\\.\\d+))\\b", re.IGNORECASE)
+    for prediction_id in action.target_ids:
+        prediction = predictions.get(prediction_id)
+        if prediction is None:
+            continue
+        hypothesis = hypotheses.get(prediction.source_id)
+        if hypothesis is None or prediction.expected_presence is None:
+            continue
+        match = pattern.search(hypothesis.statement)
+        if match is None:
+            continue
+        claimed_position = float(match.group(2))
+        if claimed_position != position:
+            raise PlannerActionError(
+                "positional prediction target does not match its hypothesis position"
+            )
+        expected = match.group(1) is None
+        if prediction.expected_presence is not expected:
+            raise PlannerActionError(
+                "positional prediction expected_presence contradicts its source hypothesis"
+            )
+
 def _validate_action_state(
     store: Any,
     action: DiscoveryAction,
@@ -528,6 +560,7 @@ def _validate_action_state(
         raise PlannerActionError(
             "existing predictions require a bounded experiment before another action"
         )
+    _validate_positional_prediction_bindings(store, action)
 
 def execute_action(store: Any, action: DiscoveryAction, *, created_at: str) -> tuple[str, ...]:
     """Validate and execute one action using existing Episteme primitives."""
