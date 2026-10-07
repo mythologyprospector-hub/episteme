@@ -102,6 +102,25 @@ class OllamaPlanner:
                 for action in context.actions_taken
             ],
         }
+        context_target_ids = tuple(
+            dict.fromkeys(
+                item["id"]
+                for items in (
+                    context.findings,
+                    context.exploration_observations,
+                    context.exploration_assessments,
+                    context.hypotheses,
+                    context.predictions,
+                    context.experiments,
+                )
+                for item in items
+                if isinstance(item.get("id"), str)
+            )
+        )
+        target_ids_schema: dict[str, Any] = {"type": "array", "items": {"type": "string"}}
+        if context_target_ids:
+            target_ids_schema["items"] = {"type": "string", "enum": list(context_target_ids)}
+
         system = (
             "You are the bounded planning component of a scientific inquiry instrument. "
             "Choose exactly one next action from: scout, assess_exploration, admit_exploration, discover_gap, question, "
@@ -154,7 +173,7 @@ class OllamaPlanner:
             "For kind='experiment', target_ids MUST contain at least two existing "
             "prediction ids and conditions, objective, proposed_observation, "
             "discrimination_basis, and execution_spec are required. execution_spec "
-            "must contain only operation='positional_presence', numeric position, and optional position_key. "
+            "must contain only operation='positional_presence' and numeric position. "
             "Do not add any other execution_spec fields; the host supplies experiment inputs and prediction expectations. "
             "Do not name a Python callable, command, URL, or evaluator. For kind='stop', rationale is required. "
             "Always include rationale. If feedback is supplied, it describes a rejected prior action; correct the action instead of repeating the same error."
@@ -199,7 +218,7 @@ class OllamaPlanner:
                         "type": "string",
                         "enum": allowed_kinds,
                     },
-                    "target_ids": {"type": "array", "items": {"type": "string"}},
+                    "target_ids": target_ids_schema,
                     "statement": {"type": "string"},
                     "consequence": {"type": "string"},
                     "consequences": {"type": "array", "items": {"type": "string"}},
