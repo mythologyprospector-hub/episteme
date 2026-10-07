@@ -52,28 +52,13 @@ def test_ollama_planner_translates_structured_model_output():
         "request_evidence",
         "stop",
     ]
-    assert len(captured["format"]["oneOf"]) == 10
-
-    schemas_by_kind = {
-        schema["properties"]["kind"]["const"]: schema
-        for schema in captured["format"]["oneOf"]
-    }
-    prediction_schema = schemas_by_kind["prediction"]
-    assert "conditions" in prediction_schema["required"]
-    assert "consequence" in prediction_schema["required"]
-    assert "consequences" not in prediction_schema["required"]
-    assert "oneOf" not in prediction_schema
-
-    request_schema = schemas_by_kind["request_evidence"]
-    assert {"target_ids", "evidence_capability", "evidence_parameters", "requested_representation"}.issubset(request_schema["required"])
-
-    experiment_schema = schemas_by_kind["experiment"]
-    assert {
-        "conditions",
-        "objective",
-        "proposed_observation",
-        "discrimination_basis",
-    }.issubset(experiment_schema["required"])
+    assert "oneOf" not in captured["format"]
+    assert captured["format"]["required"] == ["kind", "rationale"]
+    assert captured["format"]["properties"]["rationale"]["minLength"] == 1
+    assert captured["format"]["additionalProperties"] is False
+    assert "target_ids" in captured["format"]["properties"]
+    assert "evidence_capability" in captured["format"]["properties"]
+    assert "execution_spec" in captured["format"]["properties"]
     assert captured["messages"][0]["role"] == "system"
 
 
