@@ -78,6 +78,8 @@ def test_ollama_schema_exposes_request_evidence_action():
     assert action.kind == "request_evidence"
     assert action.evidence_capability == "crossref_works"
     assert action.requested_representation == "crossref-work-metadata"
+    assert payload["messages"][1]["content"].find("available_evidence_capabilities") >= 0
+    assert "crossref_works" in OllamaPlanner("qwen3:8b", transport=transport, evidence_capabilities=("crossref_works",))._request_payload(_context())["messages"][1]["content"]
     schema = payload["format"]
     assert "request_evidence" in schema["properties"]["kind"]["enum"]
     assert "evidence_capability" in schema["properties"]
