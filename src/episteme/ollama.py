@@ -162,6 +162,17 @@ class OllamaPlanner:
         required_fields = ["kind", "rationale"]
         if len(context.hypotheses) >= 2 and not context.predictions:
             required_fields.extend(["target_ids", "conditions", "consequence", "expected_presences"])
+        if context.predictions and not context.experiments:
+            required_fields.extend(
+                [
+                    "target_ids",
+                    "conditions",
+                    "objective",
+                    "proposed_observation",
+                    "discrimination_basis",
+                    "execution_spec",
+                ]
+            )
 
         return {
             "model": self.model,
