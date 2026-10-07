@@ -207,7 +207,7 @@ class OllamaPlanner:
             "For kind='prediction', target_ids MUST contain at least two existing "
             "hypothesis ids, because a prediction compares hypotheses. For prediction, conditions MUST be a plain JSON string, never an object or array; "
             "expected_presences MUST be an object mapping each target hypothesis id to a boolean; "
-            "prediction MUST include consequence as a non-empty string. Use the singular consequence field; do not use the consequences array. "
+            "prediction MUST include consequence as a non-empty string. Use the singular consequence field; do not use the consequences array. For quantitative predictions, include predicted_numeric_value as the machine-checkable numeric forecast. "
             "Do not emit uncertainty or any other field not listed above. "
             "For kind='experiment', target_ids MUST contain at least two existing "
             "prediction ids and conditions, objective, proposed_observation, "
@@ -279,6 +279,7 @@ class OllamaPlanner:
                         "additionalProperties": False,
                     },
                     "requested_representation": {"type": "string"},
+                    "predicted_numeric_value": {"type": "number"},
                     "execution_spec": {
                         "type": "object",
                         "properties": {
