@@ -9,6 +9,10 @@ held-out observation.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from uuid import uuid4
+
+from episteme.model import Prediction, PredictionEvaluation, PredictionEvaluationOutcome
+from episteme.store import Store
 from enum import Enum
 
 from episteme.model import Provenance, Record, RecordKind
@@ -208,3 +212,96 @@ def evaluate_mendeleev_mass_prediction(
         relative_error=relative_error,
         tolerance=tolerance,
     )
+
+
+@dataclass(frozen=True, slots=True)
+class RediscoveryExperimentExecutor:
+    """Host-owned executor for the Phase 29 held-out observation."""
+
+    method: str = "phase29_rediscovery"
+    method_version: str = "1"
+
+    def execute(self, store: Store, proposal, *, input_ids: tuple[str, ...], created_at: str) -> Record:
+        if store.get_experiment_proposal(proposal.id) is None:
+            raise ValueError("rediscovery executor requires a persisted proposal: " + proposal.id)
+        if len(input_ids) != 1:
+            raise ValueError("rediscovery experiment requires exactly one held-out input")
+        held_out = store.get_record(input_ids[0])
+        if held_out is None or held_out.kind is not RecordKind.OBSERVATION:
+            raise ValueError("rediscovery experiment requires a held-out observation")
+        observed = float(held_out.payload["relative_atomic_mass"])
+        result = Record(
+            id=str(uuid4()),
+            kind=RecordKind.RESULT,
+            payload={
+                "executor": self.method,
+                "executor_version": self.method_version,
+                "experiment_proposal_id": proposal.id,
+                "input_ids": list(input_ids),
+                "observed_relative_atomic_mass": observed,
+            },
+            provenance=(Provenance(
+                source_id=f"episteme://executor/{self.method}",
+                captured_at=created_at,
+                source_location=f"episteme://executor/{self.method}",
+                source_version=self.method_version,
+                note="Deterministic held-out result for the Phase 29 benchmark.",
+            ),),
+            created_at=created_at,
+        )
+        store.put_record(result)
+        return result
+
+
+@dataclass(frozen=True, slots=True)
+class RediscoveryPredictionEvaluator:
+    """Host-owned deterministic evaluator for the quantitative benchmark."""
+
+    pre_discovery_records: tuple[Record, ...]
+    tolerance: float = 0.05
+    method: str = "phase29_rediscovery_evaluation"
+    method_version: str = "1"
+
+    def evaluate(
+        self, store: Store, result: Record, proposal, predictions: tuple[Prediction, ...],
+        *, comparison_conditions: str, created_at: str,
+    ) -> tuple[PredictionEvaluation, ...]:
+        if result.kind is not RecordKind.RESULT:
+            raise ValueError("rediscovery evaluator requires a RESULT record")
+        if not 0 < self.tolerance < 1:
+            raise ValueError("tolerance must be between 0 and 1")
+        if {p.id for p in predictions} != set(proposal.prediction_ids):
+            raise ValueError("predictions must exactly match the experiment proposal")
+        observed = float(result.payload["observed_relative_atomic_mass"])
+        expected = derive_mendeleev_mass_prediction(self.pre_discovery_records)
+        evaluations = []
+        for prediction in predictions:
+            if prediction.predicted_numeric_value is None:
+                raise ValueError("rediscovery prediction requires predicted_numeric_value")
+            predicted = float(prediction.predicted_numeric_value)
+            expected_error = abs(predicted - expected.predicted_relative_atomic_mass) / expected.predicted_relative_atomic_mass
+            observed_error = abs(predicted - observed) / observed
+            matched = expected_error <= self.tolerance and observed_error <= self.tolerance
+            outcome = PredictionEvaluationOutcome.CONSISTENT if matched else PredictionEvaluationOutcome.INCONSISTENT
+            rationale = (
+                "predicted=" + str(predicted)
+                + "; expected_pre_discovery=" + str(expected.predicted_relative_atomic_mass)
+                + "; observed_held_out=" + str(observed)
+                + "; tolerance=" + str(self.tolerance)
+            )
+            evaluation = PredictionEvaluation(
+                id=str(uuid4()),
+                result_id=result.id,
+                prediction_id=prediction.id,
+                experiment_proposal_id=proposal.id,
+                comparison_conditions=comparison_conditions,
+                assumptions=prediction.assumptions,
+                outcome=outcome,
+                rationale=rationale,
+                method=self.method,
+                method_version=self.method_version,
+                created_at=created_at,
+            )
+            store.put_prediction_evaluation(evaluation)
+            evaluations.append(evaluation)
+        return tuple(evaluations)
