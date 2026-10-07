@@ -1,6 +1,6 @@
 # Autonomous Evidence Request Boundary
 
-**Status:** Design proposal — no implementation yet  
+**Status:** Implemented — Phase 28 complete  
 **Phase:** Post-27 architectural design  
 **Scope:** Boundary between bounded autonomous discovery and existing external acquisition/capture/grounded-ingestion capabilities
 
@@ -255,3 +255,22 @@ This design is ready for implementation only when tests can demonstrate all of t
 - no second acquisition, capture, provenance, or epistemic model is introduced.
 
 Until those tests can be specified clearly, implementation should not begin.
+
+
+## Phase 28 Exit Audit
+
+The implemented Phase 28 behavior satisfies the design exit condition.
+
+- the autonomous planner can request additional evidence without receiving arbitrary network authority;
+- the host validates the request and controls admission before acquisition;
+- admitted requests translate into the existing `AcquisitionRequest` model rather than introducing a second acquisition model;
+- acquisition outcomes remain explicitly bounded and preserve the existing complete/partial/failed semantics, while host rejection remains distinct;
+- exact received material passes through the existing immutable capture boundary;
+- capture identity and acquisition lineage remain inspectable through the existing capture and execution mechanisms;
+- captured content does not silently become grounded evidence;
+- grounded ingestion remains a separate named operation;
+- bounded retry and step semantics remain intact;
+- no second acquisition, capture, provenance, or epistemic model was introduced;
+- the real Ollama acceptance harness completed a full bounded path ending in `request_evidence`, with one complete capture through the registered host-owned capability.
+
+**Status:** Complete.
