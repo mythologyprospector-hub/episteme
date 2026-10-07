@@ -29,6 +29,7 @@ class OllamaPlanner:
         timeout: float = 120.0,
         transport: Transport | None = None,
         evidence_capabilities: tuple[str, ...] = (),
+        host_capabilities: tuple[str, ...] = (),
     ) -> None:
         if not model.strip():
             raise ValueError("model must be non-empty")
@@ -39,6 +40,7 @@ class OllamaPlanner:
         self.timeout = timeout
         self._transport = transport
         self.evidence_capabilities = tuple(evidence_capabilities)
+        self.host_capabilities = tuple(host_capabilities)
 
     def choose(self, context: DiscoveryContext) -> DiscoveryAction:
         payload = self._request_payload(context)
@@ -66,6 +68,7 @@ class OllamaPlanner:
             "findings": list(context.findings),
             "exploration_observations": list(context.exploration_observations),
             "exploration_assessments": list(context.exploration_assessments),
+            "available_host_capabilities": list(self.host_capabilities),
             "available_evidence_capabilities": list(self.evidence_capabilities),
             "available_evidence_capability_contracts": [
                 {
@@ -103,7 +106,7 @@ class OllamaPlanner:
             "You are the bounded planning component of a scientific inquiry instrument. "
             "Choose exactly one next action from: scout, assess_exploration, admit_exploration, discover_gap, question, "
             "hypothesis, prediction, experiment, request_evidence, stop. If the supplied context has no "
-            "exploration observations and the host provides scouting capability, the first "
+            "exploration observations and "scout" is listed in available_host_capabilities, the first "
             "action MUST be scout. After a scout, if an exploration observation exists but "
             "has no assessment, choose assess_exploration for that observation. After an "
             "accepted assessment exists but the observation has not been admitted, choose "
