@@ -159,6 +159,10 @@ class OllamaPlanner:
             "Do not name a Python callable, command, URL, or evaluator. For kind='stop', rationale is required. "
             "Always include rationale. If feedback is supplied, it describes a rejected prior action; correct the action instead of repeating the same error."
         )
+        required_fields = ["kind", "rationale"]
+        if len(context.hypotheses) >= 2 and not context.predictions:
+            required_fields.extend(["target_ids", "conditions", "consequence", "expected_presences"])
+
         return {
             "model": self.model,
             "stream": False,
@@ -196,7 +200,7 @@ class OllamaPlanner:
                     },
                     "rationale": {"type": "string", "minLength": 1},
                 },
-                "required": ["kind", "rationale"],
+                "required": required_fields,
                 "additionalProperties": False,
             },
             "messages": [
