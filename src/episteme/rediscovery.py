@@ -284,10 +284,10 @@ class RediscoveryPredictionEvaluator:
             matched = expected_error <= self.tolerance and observed_error <= self.tolerance
             outcome = PredictionEvaluationOutcome.CONSISTENT if matched else PredictionEvaluationOutcome.INCONSISTENT
             rationale = (
-                "predicted=" + str(predicted)
-                + "; expected_pre_discovery=" + str(expected.predicted_relative_atomic_mass)
-                + "; observed_held_out=" + str(observed)
-                + "; tolerance=" + str(self.tolerance)
+                "predicted=" + format(predicted, ".6g")
+                + "; expected_pre_discovery=" + format(expected.predicted_relative_atomic_mass, ".6g")
+                + "; observed_held_out=" + format(observed, ".6g")
+                + "; tolerance=" + format(self.tolerance, ".6g")
             )
             evaluation = PredictionEvaluation(
                 id=str(uuid4()),
