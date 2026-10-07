@@ -112,7 +112,18 @@ def test_ollama_prediction_schema_exposes_required_typed_fields():
             }
         }
 
-    action = OllamaPlanner("qwen3:8b", transport=transport).choose(_context())
+    prediction_context = DiscoveryContext(
+        grounded_input_ids=(),
+        findings=(),
+        hypotheses=(
+            {"id": "hypothesis-1"},
+            {"id": "hypothesis-2"},
+        ),
+        predictions=(),
+        experiments=(),
+        actions_taken=(),
+    )
+    action = OllamaPlanner("qwen3:8b", transport=transport).choose(prediction_context)
 
     assert action.kind == "prediction"
     assert action.conditions == "Under the bounded fixture conditions."
@@ -125,7 +136,14 @@ def test_ollama_prediction_schema_exposes_required_typed_fields():
     assert schema["properties"]["expected_presences"]["type"] == "object"
     assert schema["properties"]["expected_presences"]["additionalProperties"]["type"] == "boolean"
     assert "oneOf" not in schema
-    assert schema["required"] == ["kind", "rationale"]
+    assert schema["required"] == [
+        "kind",
+        "rationale",
+        "target_ids",
+        "conditions",
+        "consequence",
+        "expected_presences",
+    ]
 
 
 def test_ollama_prompt_makes_zero_hypothesis_transition_explicit():
