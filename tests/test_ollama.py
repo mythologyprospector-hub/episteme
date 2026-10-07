@@ -269,3 +269,40 @@ def test_ollama_prompt_makes_zero_hypothesis_transition_explicit():
     assert "ONLY valid candidate-generation action is hypothesis (or question)" in system
     assert "A GAP or TENSION is a finding, NOT a hypothesis" in system
     assert "Never propose prediction, experiment, request_evidence, or stop" in system
+
+
+def test_ollama_schema_binds_target_ids_to_pending_discovery_stage():
+    payload = {}
+
+    def transport(request):
+        payload.update(request)
+        return {
+            "message": {
+                "content": json.dumps(
+                    {
+                        "kind": "hypothesis",
+                        "target_ids": ["gap-1"],
+                        "statement": "A candidate explanation.",
+                        "rationale": "The pending gap requires another candidate.",
+                    }
+                )
+            }
+        }
+
+    context = DiscoveryContext(
+        grounded_input_ids=(),
+        findings=(
+            {"id": "gap-1", "kind": "gap"},
+            {"id": "gap-2", "kind": "gap"},
+        ),
+        hypotheses=(
+            {"id": "hypothesis-1", "finding_ids": ("gap-1",)},
+        ),
+        predictions=(),
+        experiments=(),
+        actions_taken=(),
+    )
+    action = OllamaPlanner("qwen3:8b", transport=transport).choose(context)
+
+    assert action.kind == "hypothesis"
+    assert payload["format"]["properties"]["target_ids"]["items"]["enum"] == ["gap-1", "gap-2"]
