@@ -161,6 +161,7 @@ class DiscoveryAction:
     expected_presences: Mapping[str, bool] | None = None
     predicted_numeric_value: float | None = None
     predicted_numeric_values: Mapping[str, float] | None = None
+    quantitative_rule: Mapping[str, Any] | None = None
     execution_spec: Mapping[str, Any] | None = None
     evidence_capability: str | None = None
     evidence_parameters: Mapping[str, Any] | None = None
@@ -671,6 +672,7 @@ def execute_action(store: Any, action: DiscoveryAction, *, created_at: str) -> t
                     method="planner-driven-structural-gap-completion",
                     method_version="1",
                     rationale=action.rationale,
+                    quantitative_rule=dict(action.quantitative_rule) if action.quantitative_rule is not None else None,
                     created_at=created_at,
                 )
             except ValueError as exc:
@@ -683,6 +685,7 @@ def execute_action(store: Any, action: DiscoveryAction, *, created_at: str) -> t
                 method="planner-driven-hypothesis",
                 method_version="1",
                 rationale=action.rationale,
+                quantitative_rule=dict(action.quantitative_rule) if action.quantitative_rule is not None else None,
                 created_at=created_at,
             )
         existing = tuple(
