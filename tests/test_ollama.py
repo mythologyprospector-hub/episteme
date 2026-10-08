@@ -63,7 +63,7 @@ def test_ollama_schema_exposes_request_evidence_action():
                 "content": json.dumps(
                     {
                         "kind": "request_evidence",
-                        "target_ids": ["prediction-1"],
+                        "target_ids": ["P1"],
                         "evidence_capability": "crossref_works",
                         "evidence_parameters": {"query.title": "test"},
                         "requested_representation": "application/json",
@@ -73,7 +73,15 @@ def test_ollama_schema_exposes_request_evidence_action():
             }
         }
 
-    action = OllamaPlanner("qwen3:8b", transport=transport, evidence_capabilities=("crossref_works",)).choose(_context())
+    evidence_context = DiscoveryContext(
+        grounded_input_ids=(),
+        findings=(),
+        hypotheses=(),
+        predictions=({"id": "prediction-1"},),
+        experiments=(),
+        actions_taken=(),
+    )
+    action = OllamaPlanner("qwen3:8b", transport=transport, evidence_capabilities=("crossref_works",)).choose(evidence_context)
 
     assert action.kind == "request_evidence"
     assert action.evidence_capability == "crossref_works"
@@ -134,7 +142,8 @@ def test_ollama_prediction_schema_exposes_required_typed_fields():
     schema = payload["format"]
     assert "expected_presences" in schema["properties"]
     assert schema["properties"]["expected_presences"]["type"] == "object"
-    assert schema["properties"]["expected_presences"]["additionalProperties"]["type"] == "boolean"
+    assert schema["properties"]["expected_presences"]["additionalProperties"] is False
+    assert schema["properties"]["expected_presences"]["required"] == ["H1", "H2"]
     assert "oneOf" not in schema
     assert schema["required"] == [
         "kind",
@@ -182,7 +191,7 @@ def test_ollama_experiment_schema_exposes_required_typed_fields():
                 "content": json.dumps(
                     {
                         "kind": "experiment",
-                        "target_ids": ["prediction-1", "prediction-2"],
+                        "target_ids": ["P1", "P2"],
                         "conditions": "Under the bounded held-out fixture conditions.",
                         "objective": "Discriminate the competing predictions.",
                         "proposed_observation": "Observe whether the held-out position is present.",
@@ -240,7 +249,7 @@ def test_ollama_schema_restricts_kind_to_experiment_after_predictions():
                 "content": json.dumps(
                     {
                         "kind": "experiment",
-                        "target_ids": ["prediction-1", "prediction-2"],
+                        "target_ids": ["P1", "P2"],
                         "conditions": "Under bounded conditions.",
                         "objective": "Discriminate the predictions.",
                         "proposed_observation": "Observe the held-out position.",
@@ -279,7 +288,7 @@ def test_ollama_prompt_makes_zero_hypothesis_transition_explicit():
                 "content": json.dumps(
                     {
                         "kind": "hypothesis",
-                        "target_ids": ["gap-1"],
+                        "target_ids": ["F1"],
                         "statement": "The missing observation reflects an unrepresented case.",
                         "rationale": "A GAP with no hypotheses requires an initial candidate explanation.",
                     }
@@ -287,7 +296,15 @@ def test_ollama_prompt_makes_zero_hypothesis_transition_explicit():
             }
         }
 
-    action = OllamaPlanner("qwen3:8b", transport=transport).choose(_context())
+    gap_context = DiscoveryContext(
+        grounded_input_ids=(),
+        findings=({"id": "gap-1", "kind": "gap"},),
+        hypotheses=(),
+        predictions=(),
+        experiments=(),
+        actions_taken=(),
+    )
+    action = OllamaPlanner("qwen3:8b", transport=transport).choose(gap_context)
 
     assert action.kind == "hypothesis"
     system = payload["messages"][0]["content"]
@@ -306,7 +323,7 @@ def test_ollama_schema_binds_target_ids_to_pending_discovery_stage():
                 "content": json.dumps(
                     {
                         "kind": "hypothesis",
-                        "target_ids": ["gap-1"],
+                        "target_ids": ["F1"],
                         "statement": "A candidate explanation.",
                         "rationale": "The pending gap requires another candidate.",
                     }
