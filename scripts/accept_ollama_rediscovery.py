@@ -125,13 +125,16 @@ def run_case(model: str, timeout: float, property_key: str, blinded: bool) -> tu
         seen_hypotheses: set[str] = set()
         for context in planner.contexts:
             for hypothesis in context["hypotheses"]:
-                if hypothesis.id in seen_hypotheses:
+                # Ollama context snapshots are JSON-shaped dictionaries.
+                hypothesis_id = str(hypothesis["id"])
+                if hypothesis_id in seen_hypotheses:
                     continue
-                seen_hypotheses.add(hypothesis.id)
-                print(f"  {hypothesis.id[:8]}: {hypothesis.statement}")
-                print(f"    rationale: {hypothesis.rationale}")
-                if hypothesis.assumptions:
-                    print(f"    assumptions: {'; '.join(hypothesis.assumptions)}")
+                seen_hypotheses.add(hypothesis_id)
+                print(f"  {hypothesis_id[:8]}: {hypothesis['statement']}")
+                print(f"    rationale: {hypothesis['rationale']}")
+                assumptions = hypothesis.get("assumptions") or []
+                if assumptions:
+                    print(f"    assumptions: {'; '.join(assumptions)}")
         print(f"stop reason: {result.stop_reason}")
         for prediction, evaluation in zip(predictions, evaluations):
             print(
