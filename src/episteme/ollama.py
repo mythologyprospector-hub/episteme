@@ -93,7 +93,9 @@ class OllamaPlanner:
         try:
             action_data = json.loads(content)
         except json.JSONDecodeError as exc:
-            raise PlannerActionError("Ollama planner returned invalid JSON") from exc
+            raise PlannerActionError(
+                f"Ollama planner returned invalid JSON; response content={content!r}"
+            ) from exc
         if not isinstance(action_data, dict):
             raise PlannerActionError("Ollama planner JSON must be an object")
         _, handle_to_id = _planner_id_aliases(context)
