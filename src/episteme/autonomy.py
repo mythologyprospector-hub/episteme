@@ -160,6 +160,7 @@ class DiscoveryAction:
     discrimination_basis: str | None = None
     expected_presences: Mapping[str, bool] | None = None
     predicted_numeric_value: float | None = None
+    predicted_numeric_values: Mapping[str, float] | None = None
     execution_spec: Mapping[str, Any] | None = None
     evidence_capability: str | None = None
     evidence_parameters: Mapping[str, Any] | None = None
@@ -171,6 +172,16 @@ class DiscoveryAction:
             raise PlannerActionError(f"unknown discovery action: {self.kind}")
         if not self.rationale.strip():
             raise PlannerActionError("discovery action requires a rationale")
+        if self.predicted_numeric_values is not None:
+            if not isinstance(self.predicted_numeric_values, Mapping):
+                raise PlannerActionError("predicted_numeric_values must be an object")
+            import math
+            if any(
+                isinstance(value, bool) or not isinstance(value, (int, float))
+                or not math.isfinite(float(value))
+                for value in self.predicted_numeric_values.values()
+            ):
+                raise PlannerActionError("predicted_numeric_values values must be finite numbers")
         if self.kind == "request_evidence":
             _require(self.evidence_capability, "evidence_capability")
             if self.evidence_parameters is None or not isinstance(self.evidence_parameters, Mapping):
@@ -672,6 +683,16 @@ def execute_action(store: Any, action: DiscoveryAction, *, created_at: str) -> t
                 rationale=action.rationale,
                 created_at=created_at,
             )
+        existing = tuple(
+            item
+            for item in store.iter_hypotheses()
+            if set(item.finding_ids) == set(hypothesis.finding_ids)
+        )
+        normalized = " ".join(hypothesis.statement.lower().split())
+        if any(" ".join(item.statement.lower().split()) == normalized for item in existing):
+            raise PlannerActionError(
+                "competing hypotheses must be distinct; duplicate hypothesis statement rejected"
+            )
         store.put_hypothesis(hypothesis)
         return (hypothesis.id,)
 
@@ -685,10 +706,30 @@ def execute_action(store: Any, action: DiscoveryAction, *, created_at: str) -> t
             consequences = tuple(consequence for _ in action.target_ids)
         if len(consequences) != len(action.target_ids):
             raise PlannerActionError("prediction consequences must match hypothesis targets")
-        if not isinstance(action.expected_presences, Mapping) or set(action.expected_presences) != set(action.target_ids):
-            raise PlannerActionError("prediction expected_presences must exactly match hypothesis targets")
-        if any(not isinstance(value, bool) for value in action.expected_presences.values()):
-            raise PlannerActionError("prediction expected_presences values must be booleans")
+        if action.predicted_numeric_values is not None:
+            if set(action.predicted_numeric_values) != set(action.target_ids):
+                raise PlannerActionError("predicted_numeric_values must exactly match hypothesis targets")
+            if action.expected_presences is not None:
+                raise PlannerActionError("numeric predictions must not include expected_presences")
+            numeric_values = {
+                candidate_id: float(action.predicted_numeric_values[candidate_id])
+                for candidate_id in action.target_ids
+            }
+            if len(set(numeric_values.values())) != len(numeric_values):
+                raise PlannerActionError(
+                    "competing numeric predictions must have distinct predicted values"
+                )
+            expected_presences = {}
+        else:
+            if not isinstance(action.expected_presences, Mapping) or set(action.expected_presences) != set(action.target_ids):
+                raise PlannerActionError("prediction expected_presences must exactly match hypothesis targets")
+            if any(not isinstance(value, bool) for value in action.expected_presences.values()):
+                raise PlannerActionError("prediction expected_presences values must be booleans")
+            numeric_values = {
+                candidate_id: action.predicted_numeric_value
+                for candidate_id in action.target_ids
+            }
+            expected_presences = action.expected_presences
         predictions = []
         try:
             for candidate_id, consequence in zip(action.target_ids, consequences):
@@ -701,8 +742,8 @@ def execute_action(store: Any, action: DiscoveryAction, *, created_at: str) -> t
                     method="planner-driven-prediction",
                     method_version="1",
                     rationale=action.rationale,
-                    expected_presence=(action.expected_presences or {}).get(candidate_id),
-                    predicted_numeric_value=action.predicted_numeric_value,
+                    expected_presence=expected_presences.get(candidate_id),
+                    predicted_numeric_value=numeric_values[candidate_id],
                     created_at=created_at,
                 )
                 predictions.append(prediction)
