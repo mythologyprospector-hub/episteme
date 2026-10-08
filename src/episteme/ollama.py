@@ -310,6 +310,13 @@ class OllamaPlanner:
         ]
         if context.predictions and not context.experiments:
             allowed_kinds = ["experiment"]
+        elif context.experiments:
+            # The bounded experiment has completed; permit the post-experiment
+            # evidence/stop decision instead of reopening structural discovery.
+            allowed_kinds = [
+                "request_evidence",
+                "stop",
+            ]
         elif not candidate_findings:
             # Match the core validation boundary in the structured schema so a
             # model cannot spend its retry budget proposing candidate actions
