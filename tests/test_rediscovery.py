@@ -237,25 +237,15 @@ def test_phase29_baseline_reports_property_specific_errors():
 
 
 def test_phase29_numeric_predictions_must_be_distinct():
+    import pytest
     from episteme.autonomy import DiscoveryAction, PlannerActionError
-    from episteme.store import Store
 
-    fixture = build_mendeleev_fixture()
-    finding = detect_positional_gap(
-        Store(),
-        tuple(record.id for record in fixture.pre_discovery_records),
-        "period",
-        1.0,
-        FIXTURE_CAPTURED_AT,
-    )
-    assert finding is None
-
-    action = DiscoveryAction(
-        kind="prediction",
-        target_ids=("one", "two"),
-        conditions="bounded",
-        consequence="numeric forecast",
-        predicted_numeric_values={"one": 73.4, "two": 73.4},
-        rationale="distinctness test",
-    )
-    assert action.predicted_numeric_values == {"one": 73.4, "two": 73.4}
+    with pytest.raises(PlannerActionError, match="distinct predicted values"):
+        DiscoveryAction(
+            kind="prediction",
+            target_ids=("one", "two"),
+            conditions="bounded",
+            consequence="numeric forecast",
+            predicted_numeric_values={"one": 73.4, "two": 73.4},
+            rationale="distinctness test",
+        )
