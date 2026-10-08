@@ -439,7 +439,10 @@ class OllamaPlanner:
         elif pending_findings:
             finding_id = pending_findings[0]
             count = hypothesis_counts[finding_id]
-            allowed_kinds = ["hypothesis", "question"] if count == 0 else ["hypothesis"]
+            if "historical_rediscovery" in self.host_capabilities:
+                allowed_kinds = ["hypothesis"]
+            else:
+                allowed_kinds = ["hypothesis", "question"] if count == 0 else ["hypothesis"]
         elif len(context.hypotheses) >= 2 and not context.predictions:
             # Once competing hypotheses exist, predictions are the only valid next step.
             allowed_kinds = ["prediction"]
