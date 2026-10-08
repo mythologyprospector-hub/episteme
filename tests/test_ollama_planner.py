@@ -40,18 +40,7 @@ def test_ollama_planner_translates_structured_model_output():
     assert captured["format"]["additionalProperties"] is False
     assert "rationale" in captured["format"]["properties"]
     assert captured["format"]["required"] == ["kind", "rationale"]
-    assert captured["format"]["properties"]["kind"]["enum"] == [
-        "scout",
-        "assess_exploration",
-        "admit_exploration",
-        "discover_gap",
-        "question",
-        "hypothesis",
-        "prediction",
-        "experiment",
-        "request_evidence",
-        "stop",
-    ]
+    assert captured["format"]["properties"]["kind"]["enum"] == ["discover_gap"]
     assert "oneOf" not in captured["format"]
     assert captured["format"]["required"] == ["kind", "rationale"]
     assert captured["format"]["properties"]["rationale"]["minLength"] == 1
