@@ -350,6 +350,9 @@ def test_ollama_schema_binds_target_ids_to_pending_discovery_stage():
 
     assert action.kind == "hypothesis"
     assert payload["format"]["properties"]["target_ids"]["items"]["enum"] == ["F1", "F2"]
+    assert "target_ids" in payload["format"]["required"]
+    assert "statement" in payload["format"]["required"]
+    assert "quantitative_rule" in payload["format"]["required"] if "quantitative_rule" in payload["format"]["properties"] else True
 
 
 def test_ollama_historical_rediscovery_uses_distinct_numeric_forecasts_without_presence_flags():
