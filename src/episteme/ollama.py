@@ -154,6 +154,42 @@ class OllamaPlanner:
                     }
                 )
             grounded_observations = blinded
+        # Compute the host-visible action boundary before constructing the
+        # context payload. The schema below recomputes the same boundary for
+        # validation; this copy makes the state signal available to the model.
+        candidate_findings = tuple(
+            item for item in context.findings
+            if item.get("kind") in {"gap", "tension"}
+        )
+        hypothesis_counts = {
+            finding.get("id"): sum(
+                finding.get("id") in hypothesis.get("finding_ids", ())
+                for hypothesis in context.hypotheses
+            )
+            for finding in candidate_findings
+        }
+        pending_findings = tuple(
+            finding_id for finding_id, count in hypothesis_counts.items()
+            if count < 2
+        )
+        if context.predictions and not context.experiments:
+            allowed_next_action_kinds = ["experiment"]
+        elif context.experiments:
+            allowed_next_action_kinds = ["request_evidence", "stop"]
+        elif not candidate_findings:
+            allowed_next_action_kinds = ["discover_gap"]
+        elif pending_findings:
+            count = hypothesis_counts[pending_findings[0]]
+            allowed_next_action_kinds = ["hypothesis", "question"] if count == 0 else ["hypothesis"]
+        elif len(context.hypotheses) >= 2 and not context.predictions:
+            allowed_next_action_kinds = ["prediction"]
+        else:
+            allowed_next_action_kinds = [
+                "scout", "assess_exploration", "admit_exploration",
+                "discover_gap", "question", "hypothesis", "prediction",
+                "experiment", "request_evidence", "stop",
+            ]
+
         context_data = {
             "grounded_input_ids": _alias_value(list(context.grounded_input_ids), aliases),
             "grounded_observations": _alias_value(grounded_observations, aliases),
