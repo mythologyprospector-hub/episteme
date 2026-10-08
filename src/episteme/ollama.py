@@ -338,7 +338,7 @@ class OllamaPlanner:
             "In particular, prediction target_ids MUST use the short planner handles shown in the supplied context; never emit the underlying opaque ids. "
             "Prefer a discriminating experiment when competing hypotheses exist. "
             "The field allowed_next_action_kinds is the host's authoritative next-action boundary for this turn. Choose exactly one kind from that list; never choose a different kind even if another action seems scientifically preferable. "
-            "After a GAP or TENSION finding exists with no hypothesis, the ONLY valid candidate-generation action is hypothesis (or question). "
+            "After a GAP or TENSION finding exists with no hypothesis, the ONLY valid candidate-generation action is hypothesis (or question). A hypothesis must explain the observed pattern behind the gap, not merely restate the gap or its position. For historical rediscovery, each competing hypothesis must propose a different quantitative relationship supported by the supplied observations. "
             "A GAP or TENSION is a finding, NOT a hypothesis. Never propose prediction, experiment, request_evidence, or stop while a candidate finding has zero hypotheses. "
             "After exactly one hypothesis exists for the finding, propose a distinct competing hypothesis for the same finding. "
             "After two or more "
