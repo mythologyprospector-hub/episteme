@@ -665,6 +665,7 @@ def execute_action(store: Any, action: DiscoveryAction, *, created_at: str) -> t
         return tuple(prediction.id for prediction in predictions)
 
     if action.kind == "experiment":
+        _validate_positional_prediction_bindings(store, action)
         if len(action.target_ids) < 2:
             raise PlannerActionError("experiment action requires at least two prediction ids")
         execution_spec = _validate_execution_spec(action.execution_spec)
