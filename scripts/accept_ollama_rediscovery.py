@@ -130,8 +130,10 @@ def run_case(model: str, timeout: float, property_key: str, blinded: bool) -> tu
                 if hypothesis_id in seen_hypotheses:
                     continue
                 seen_hypotheses.add(hypothesis_id)
-                print(f"  {hypothesis_id[:8]}: {hypothesis['statement']}")
-                print(f"    rationale: {hypothesis['rationale']}")
+                print(f"  {hypothesis_id[:8]}: {hypothesis.get('statement', '')}")
+                rationale = hypothesis.get("rationale")
+                if rationale:
+                    print(f"    rationale: {rationale}")
                 assumptions = hypothesis.get("assumptions") or []
                 if assumptions:
                     print(f"    assumptions: {'; '.join(assumptions)}")
