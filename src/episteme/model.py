@@ -1051,6 +1051,7 @@ class Prediction:
                    method_version=data["method_version"], rationale=data["rationale"],
                    comparison_hypothesis_ids=tuple(data.get("comparison_hypothesis_ids", ())),
                    expected_presence=data.get("expected_presence"),
+                   predicted_numeric_value=data.get("predicted_numeric_value"),
                    created_at=data["created_at"],
                    schema_version=data.get("schema_version", SCHEMA_VERSION))
 
