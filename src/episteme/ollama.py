@@ -339,7 +339,7 @@ class OllamaPlanner:
             "In particular, prediction target_ids MUST use the short planner handles shown in the supplied context; never emit the underlying opaque ids. "
             "Prefer a discriminating experiment when competing hypotheses exist. "
             "The field allowed_next_action_kinds is the host's authoritative next-action boundary for this turn. Choose exactly one kind from that list; never choose a different kind even if another action seems scientifically preferable. "
-            "After a GAP or TENSION finding exists with no hypothesis, the ONLY valid candidate-generation action is hypothesis (or question). A hypothesis must explain the observed pattern behind the gap, not merely restate the gap or its position. When historical_rediscovery is available, every hypothesis action MUST include a quantitative_rule object describing the computable rule and its supplied inputs; the rule is structured data, not prose. Use only supplied observation values and name the property and input positions explicitly." For historical rediscovery, each competing hypothesis must propose a different quantitative relationship supported by the supplied observations. A hypothesis is incomplete unless its statement explicitly names the quantitative rule it proposes and identifies the supplied observation values it relates. The period number identifies the missing position; it is not the requested property value. Do not use a period number as a property prediction. Do not propose existence, instability, lifespan, or another qualitative explanation unless it also defines a quantitative relationship for the requested property. Each competing hypothesis must define a different computable rule that can produce a numeric forecast from the supplied observations. "
+            "After a GAP or TENSION finding exists with no hypothesis, the ONLY valid candidate-generation action is hypothesis (or question). A hypothesis must explain the observed pattern behind the gap, not merely restate the gap or its position. When historical_rediscovery is available, every hypothesis action MUST include a quantitative_rule object describing the computable rule and its supplied inputs; the rule is structured data, not prose. Use only supplied observation values and name the property and input positions explicitly. For historical rediscovery, each competing hypothesis must propose a different quantitative relationship supported by the supplied observations. A hypothesis is incomplete unless its statement explicitly names the quantitative rule it proposes and identifies the supplied observation values it relates. The period number identifies the missing position; it is not the requested property value. Do not use a period number as a property prediction. Do not propose existence, instability, lifespan, or another qualitative explanation unless it also defines a quantitative relationship for the requested property. Each competing hypothesis must define a different computable rule that can produce a numeric forecast from the supplied observations. "
             "A GAP or TENSION is a finding, NOT a hypothesis. Never propose prediction, experiment, request_evidence, or stop while a candidate finding has zero hypotheses. "
             "After exactly one hypothesis exists for the finding, propose a distinct competing hypothesis for the same finding. "
             "After two or more "
@@ -398,7 +398,7 @@ class OllamaPlanner:
                 required_fields.extend(
                     ["target_ids", "conditions", "consequence", "expected_presences", "predicted_numeric_value"]
                 )
-        if "historical_rediscovery" in self.host_capabilities and "hypothesis" in allowed_kinds:
+        if "historical_rediscovery" in self.host_capabilities and pending_findings:
             required_fields.append("quantitative_rule")
         if context.predictions and not context.experiments:
             required_fields.extend(
@@ -453,6 +453,16 @@ class OllamaPlanner:
                 },
                 "target_ids": target_ids_schema,
                 "statement": {"type": "string"},
+                "quantitative_rule": {
+                    "type": "object",
+                    "properties": {
+                        "operation": {"type": "string", "minLength": 1},
+                        "property": {"type": "string", "minLength": 1},
+                        "input_positions": {"type": "array", "items": {"type": "number"}, "minItems": 2},
+                    },
+                    "required": ["operation", "property", "input_positions"],
+                    "additionalProperties": False,
+                },
                 "consequence": {"type": "string"},
                 "consequences": {"type": "array", "items": {"type": "string"}},
                 "conditions": {"type": "string"},
