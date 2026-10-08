@@ -241,6 +241,50 @@ def test_ollama_experiment_schema_exposes_required_typed_fields():
 
 
 
+def test_ollama_historical_rediscovery_schema_restricts_execution_operation():
+    payload = {}
+
+    def transport(request):
+        payload.update(request)
+        return {
+            "message": {
+                "content": json.dumps(
+                    {
+                        "kind": "experiment",
+                        "target_ids": ["P1", "P2"],
+                        "conditions": "Under bounded historical conditions.",
+                        "objective": "Discriminate the numeric forecasts.",
+                        "proposed_observation": "Observe the held-out property.",
+                        "discrimination_basis": "The forecasts differ.",
+                        "execution_spec": {"operation": "historical_rediscovery"},
+                        "rationale": "A bounded historical experiment is required.",
+                    }
+                )
+            }
+        }
+
+    context = DiscoveryContext(
+        grounded_input_ids=(),
+        findings=(),
+        hypotheses=(),
+        predictions=(
+            {"id": "prediction-1"},
+            {"id": "prediction-2"},
+        ),
+        experiments=(),
+        actions_taken=(),
+    )
+    action = OllamaPlanner(
+        "gemma3:12b-it-q4_K_M",
+        transport=transport,
+        host_capabilities=("historical_rediscovery",),
+    ).choose(context)
+
+    assert action.execution_spec == {"operation": "historical_rediscovery"}
+    execution_schema = payload["format"]["properties"]["execution_spec"]
+    assert execution_schema["properties"]["operation"]["enum"] == ["historical_rediscovery"]
+
+
 def test_ollama_schema_restricts_kind_to_experiment_after_predictions():
     payload = {}
 
