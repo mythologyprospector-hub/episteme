@@ -99,12 +99,12 @@ def test_ollama_prediction_schema_exposes_required_typed_fields():
                 "content": json.dumps(
                     {
                         "kind": "prediction",
-                        "target_ids": ["hypothesis-1", "hypothesis-2"],
+                        "target_ids": ["H1", "H2"],
                         "conditions": "Under the bounded fixture conditions.",
                         "consequence": "The predicted position is present.",
                         "expected_presences": {
-                            "hypothesis-1": True,
-                            "hypothesis-2": False,
+                            "H1": True,
+                            "H2": False,
                         },
                         "rationale": "The competing hypotheses require a discriminating prediction.",
                     }
@@ -145,6 +145,31 @@ def test_ollama_prediction_schema_exposes_required_typed_fields():
         "expected_presences",
     ]
 
+
+
+def test_ollama_rejects_duplicate_planner_handles():
+    context = DiscoveryContext(
+        grounded_input_ids=(),
+        findings=(),
+        hypotheses=(
+            {"id": "hypothesis-1"},
+            {"id": "hypothesis-2"},
+        ),
+        predictions=(),
+        experiments=(),
+        actions_taken=(),
+    )
+    with pytest.raises(PlannerActionError, match="duplicate planner handles"):
+        _planner(
+            json.dumps({
+                "kind": "prediction",
+                "target_ids": ["H1", "H1"],
+                "conditions": "bounded",
+                "consequence": "test",
+                "expected_presences": {"H1": True},
+                "rationale": "The competing hypotheses require a discriminating prediction.",
+            })
+        ).choose(context)
 
 
 def test_ollama_experiment_schema_exposes_required_typed_fields():
@@ -305,4 +330,4 @@ def test_ollama_schema_binds_target_ids_to_pending_discovery_stage():
     action = OllamaPlanner("qwen3:8b", transport=transport).choose(context)
 
     assert action.kind == "hypothesis"
-    assert payload["format"]["properties"]["target_ids"]["items"]["enum"] == ["gap-1", "gap-2"]
+    assert payload["format"]["properties"]["target_ids"]["items"]["enum"] == ["F1", "F2"]
