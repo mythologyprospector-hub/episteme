@@ -18,6 +18,44 @@ from .evidence_request import resolve_evidence_capability
 Transport = Callable[[dict[str, Any]], dict[str, Any]]
 
 
+def _planner_id_aliases(context: DiscoveryContext) -> tuple[dict[str, str], dict[str, str]]:
+    """Map opaque store ids to short, model-safe handles for one planning turn."""
+    groups = (
+        (context.grounded_observations, "O"),
+        (context.findings, "F"),
+        (context.exploration_observations, "E"),
+        (context.exploration_assessments, "A"),
+        (context.hypotheses, "H"),
+        (context.predictions, "P"),
+        (context.experiments, "X"),
+    )
+    aliases: dict[str, str] = {}
+    for items, prefix in groups:
+        for index, item in enumerate(items, start=1):
+            item_id = item.get("id")
+            if isinstance(item_id, str):
+                aliases[item_id] = f"{prefix}{index}"
+    for index, item_id in enumerate(context.grounded_input_ids, start=1):
+        if isinstance(item_id, str):
+            aliases.setdefault(item_id, f"O{index}")
+    return aliases, {handle: item_id for item_id, handle in aliases.items()}
+
+
+def _alias_value(value: Any, aliases: dict[str, str]) -> Any:
+    if isinstance(value, str):
+        return aliases.get(value, value)
+    if isinstance(value, Mapping):
+        return {
+            aliases.get(key, key) if isinstance(key, str) else key: _alias_value(item, aliases)
+            for key, item in value.items()
+        }
+    if isinstance(value, tuple):
+        return tuple(_alias_value(item, aliases) for item in value)
+    if isinstance(value, list):
+        return [_alias_value(item, aliases) for item in value]
+    return value
+
+
 class OllamaPlanner:
     """Ask a local Ollama model for the next bounded discovery action."""
 
@@ -54,6 +92,25 @@ class OllamaPlanner:
             raise PlannerActionError("Ollama planner returned invalid JSON") from exc
         if not isinstance(action_data, dict):
             raise PlannerActionError("Ollama planner JSON must be an object")
+        _, handle_to_id = _planner_id_aliases(context)
+        if "target_ids" in action_data:
+            values = action_data["target_ids"]
+            if not isinstance(values, list):
+                raise PlannerActionError("target_ids must be an array of planner handles")
+            if len(values) != len(set(values)):
+                raise PlannerActionError("target_ids contains duplicate planner handles")
+            try:
+                action_data["target_ids"] = [handle_to_id[value] for value in values]
+            except (KeyError, TypeError) as exc:
+                raise PlannerActionError("target_ids must contain only supplied planner handles") from exc
+        if "expected_presences" in action_data:
+            expected = action_data["expected_presences"]
+            if not isinstance(expected, dict):
+                raise PlannerActionError("expected_presences must be an object")
+            try:
+                action_data["expected_presences"] = {handle_to_id[key]: value for key, value in expected.items()}
+            except (KeyError, TypeError) as exc:
+                raise PlannerActionError("expected_presences must use supplied planner handles") from exc
         try:
             return DiscoveryAction(**action_data)
         except (TypeError, ValueError) as exc:
@@ -63,12 +120,13 @@ class OllamaPlanner:
             ) from exc
 
     def _request_payload(self, context: DiscoveryContext) -> dict[str, Any]:
+        aliases, _ = _planner_id_aliases(context)
         context_data = {
-            "grounded_input_ids": list(context.grounded_input_ids),
-            "grounded_observations": list(context.grounded_observations),
-            "findings": list(context.findings),
-            "exploration_observations": list(context.exploration_observations),
-            "exploration_assessments": list(context.exploration_assessments),
+            "grounded_input_ids": _alias_value(list(context.grounded_input_ids), aliases),
+            "grounded_observations": _alias_value(list(context.grounded_observations), aliases),
+            "findings": _alias_value(list(context.findings), aliases),
+            "exploration_observations": _alias_value(list(context.exploration_observations), aliases),
+            "exploration_assessments": _alias_value(list(context.exploration_assessments), aliases),
             "available_host_capabilities": list(self.host_capabilities),
             "available_evidence_capabilities": list(self.evidence_capabilities),
             "available_evidence_capability_contracts": [
@@ -79,14 +137,14 @@ class OllamaPlanner:
                 }
                 for name in self.evidence_capabilities
             ],
-            "hypotheses": list(context.hypotheses),
-            "predictions": list(context.predictions),
-            "experiments": list(context.experiments),
+            "hypotheses": _alias_value(list(context.hypotheses), aliases),
+            "predictions": _alias_value(list(context.predictions), aliases),
+            "experiments": _alias_value(list(context.experiments), aliases),
             "feedback": list(context.feedback),
             "actions_taken": [
                 {
                     "kind": action.kind,
-                    "target_ids": list(action.target_ids),
+                    "target_ids": _alias_value(list(action.target_ids), aliases),
                     "statement": action.statement,
                     "consequence": action.consequence,
                     "consequences": list(action.consequences),
@@ -155,8 +213,10 @@ class OllamaPlanner:
         if target_id_candidates:
             target_ids_schema["items"] = {
                 "type": "string",
-                "enum": list(target_id_candidates),
+                "enum": [aliases[item_id] for item_id in target_id_candidates],
             }
+        if len(context.hypotheses) >= 2 and not context.predictions:
+            target_ids_schema.update({"minItems": 2, "maxItems": 2, "uniqueItems": True})
 
         system = (
             "You are the bounded planning component of a scientific inquiry instrument. "
@@ -175,7 +235,7 @@ class OllamaPlanner:
             "generated text is evidence. Use only identifiers present in the supplied "
             "context. For every target_ids field, COPY the exact id string from the matching context object; "
             "never invent, renumber, abbreviate, normalize, or infer an identifier such as HYPOTHESIS_002. "
-            "In particular, prediction target_ids MUST be copied verbatim from the id fields in the supplied hypotheses list. "
+            "In particular, prediction target_ids MUST use the short planner handles shown in the supplied context; never emit the underlying opaque ids. "
             "Prefer a discriminating experiment when competing hypotheses exist. "
             "After a GAP or TENSION finding exists with no hypothesis, the ONLY valid candidate-generation action is hypothesis (or question). "
             "A GAP or TENSION is a finding, NOT a hypothesis. Never propose prediction, experiment, request_evidence, or stop while a candidate finding has zero hypotheses. "
@@ -276,10 +336,16 @@ class OllamaPlanner:
                     "consequence": {"type": "string"},
                     "consequences": {"type": "array", "items": {"type": "string"}},
                     "conditions": {"type": "string"},
-                    "expected_presences": {
-                        "type": "object",
-                        "additionalProperties": {"type": "boolean"},
-                    },
+                    "expected_presences": (
+                        {
+                            "type": "object",
+                            "properties": {aliases[item["id"]]: {"type": "boolean"} for item in context.hypotheses if isinstance(item.get("id"), str)},
+                            "required": [aliases[item["id"]] for item in context.hypotheses if isinstance(item.get("id"), str)],
+                            "additionalProperties": False,
+                        }
+                        if context.hypotheses
+                        else {"type": "object", "additionalProperties": {"type": "boolean"}}
+                    ),
                     "objective": {"type": "string"},
                     "proposed_observation": {"type": "string"},
                     "discrimination_basis": {"type": "string"},
