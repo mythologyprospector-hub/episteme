@@ -376,7 +376,7 @@ def _validate_positional_prediction_bindings(store: Any, action: DiscoveryAction
     predictions = {item.id: item for item in store.iter_predictions()}
     hypotheses = {item.id: item for item in store.iter_hypotheses()}
     position = float(action.execution_spec["position"])
-    pattern = re.compile(r"\\b(not\\s+)?at\\s+position\\s+([-+]?(?:\\d+(?:\\.\\d*)?|\\.\\d+))\\b", re.IGNORECASE)
+    pattern = re.compile(r"\b(not\s+)?at\s+position\s+([-+]?(?:\d+(?:\.\d*)?|\.\d+))\b", re.IGNORECASE)
     for prediction_id in action.target_ids:
         prediction = predictions.get(prediction_id)
         if prediction is None:
