@@ -17,7 +17,7 @@ from .capture import CaptureOutcome
 from .evidence_request import EvidenceRequest, EvidenceRequestRejected
 from .exploration import scout_positional_records
 from .exploration_bridge import admit_exploration_observation, assess_exploration_observation
-from .model import Provenance
+from .model import Provenance, canonical_json
 from .executor import ExecutableExperimentSpec, build_registered_experiment_runtime
 from .model import (DiscoveryFindingKind, ExperimentProposal, KnowledgeStateConsequence, KnowledgeStateConsequenceKind, KnowledgeStateTargetKind, Prediction, PredictionEvaluation)
 from uuid import uuid4
@@ -367,6 +367,38 @@ def _validate_execution_spec(
         "position_key": spec.position_key,
     }
 
+
+
+def _record_content_provenance_key(record: Any) -> tuple[str, tuple[str, ...]]:
+    """Return the identity-independent grounded content/provenance fingerprint."""
+    return (
+        canonical_json(dict(record.payload)),
+        tuple(canonical_json(item.to_dict()) for item in record.provenance),
+    )
+
+
+def _validate_experiment_input_independence(
+    store: Any,
+    grounded_input_ids: tuple[str, ...],
+    experiment_input_ids: tuple[str, ...],
+) -> None:
+    """Reject held-out inputs that duplicate grounded records under new IDs."""
+    grounded_records = [store.get_record(record_id) for record_id in grounded_input_ids]
+    experiment_records = [store.get_record(record_id) for record_id in experiment_input_ids]
+    if any(record is None for record in grounded_records):
+        raise RuntimeError("bounded experiment grounding contains an unknown record")
+    if any(record is None for record in experiment_records):
+        raise RuntimeError("bounded experiment input scope contains an unknown record")
+    grounded_keys = {_record_content_provenance_key(record) for record in grounded_records}
+    duplicated = [
+        record.id for record in experiment_records
+        if _record_content_provenance_key(record) in grounded_keys
+    ]
+    if duplicated:
+        raise RuntimeError(
+            "bounded experiment input scope contains a content/provenance duplicate "
+            "of a discovery input"
+        )
 
 
 def _validate_positional_prediction_bindings(store: Any, action: DiscoveryAction) -> None:
@@ -983,6 +1015,11 @@ def run_autonomous_discovery(
                     raise RuntimeError(
                         "bounded experiment input scope must be disjoint from discovery inputs"
                     )
+                _validate_experiment_input_independence(
+                    store,
+                    grounded_input_ids,
+                    experiment_input_ids,
+                )
                 output_ids = _execute_experiment_cycle(
                     store,
                     proposal,
