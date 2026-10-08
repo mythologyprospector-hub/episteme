@@ -315,6 +315,12 @@ class OllamaPlanner:
             "Do not name a Python callable, command, URL, or evaluator. For kind='stop', rationale is required. "
             "Always include rationale. If feedback is supplied, it describes a rejected prior action; correct the action instead of repeating the same error."
         )
+        if "historical_rediscovery" in self.host_capabilities:
+            system += (
+                " For this historical rediscovery contract, the schema forbids "
+                "expected_presences and the legacy scalar predicted_numeric_value; "
+                "emit only predicted_numeric_values with one distinct value per hypothesis."
+            )
         required_fields = ["kind", "rationale"]
         if len(context.hypotheses) >= 2 and not context.predictions:
             if "historical_rediscovery" in self.host_capabilities:
