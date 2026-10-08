@@ -511,7 +511,14 @@ class OllamaPlanner:
                 "execution_spec": {
                     "type": "object",
                     "properties": {
-                        "operation": {"type": "string", "enum": ["positional_presence", "historical_rediscovery"]},
+                        "operation": {
+                            "type": "string",
+                            "enum": (
+                                ["historical_rediscovery"]
+                                if "historical_rediscovery" in self.host_capabilities
+                                else ["positional_presence"]
+                            ),
+                        },
                         "position": {"type": "number"},
                     },
                     "required": ["operation"],
