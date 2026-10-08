@@ -182,6 +182,8 @@ class DiscoveryAction:
                 for value in self.predicted_numeric_values.values()
             ):
                 raise PlannerActionError("predicted_numeric_values values must be finite numbers")
+            if len(self.predicted_numeric_values) > 1 and len(set(self.predicted_numeric_values.values())) != len(self.predicted_numeric_values):
+                raise PlannerActionError("competing numeric predictions must have distinct predicted values")
         if self.kind == "request_evidence":
             _require(self.evidence_capability, "evidence_capability")
             if self.evidence_parameters is None or not isinstance(self.evidence_parameters, Mapping):
