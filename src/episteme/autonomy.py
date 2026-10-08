@@ -309,6 +309,7 @@ def _hypothesis_view(item: Any) -> dict[str, Any]:
         "statement": item.statement,
         "finding_ids": tuple(item.finding_ids),
         "input_ids": tuple(item.input_ids),
+        "quantitative_rule": dict(item.quantitative_rule) if item.quantitative_rule is not None else None,
     }
 
 
