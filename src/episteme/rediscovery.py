@@ -306,6 +306,7 @@ class RediscoveryPredictionEvaluator:
     """Host-owned deterministic evaluator for the quantitative benchmark."""
 
     pre_discovery_records: tuple[Record, ...]
+    property_key: str = "relative_atomic_mass"
     tolerance: float = 0.05
     method: str = "phase29_rediscovery_evaluation"
     method_version: str = "1"
@@ -320,22 +321,28 @@ class RediscoveryPredictionEvaluator:
             raise ValueError("tolerance must be between 0 and 1")
         if {p.id for p in predictions} != set(proposal.prediction_ids):
             raise ValueError("predictions must exactly match the experiment proposal")
-        observed = float(result.payload["observed_relative_atomic_mass"])
-        expected = derive_mendeleev_mass_prediction(self.pre_discovery_records)
+        observed = float(result.payload["observed_value"])
+        baseline = derive_adjacent_midpoint(
+            self.pre_discovery_records,
+            property_key=self.property_key,
+        )
         evaluations = []
         for prediction in predictions:
             if prediction.predicted_numeric_value is None:
                 raise ValueError("rediscovery prediction requires predicted_numeric_value")
             predicted = float(prediction.predicted_numeric_value)
-            expected_error = abs(predicted - expected.predicted_relative_atomic_mass) / expected.predicted_relative_atomic_mass
-            observed_error = abs(predicted - observed) / observed
-            matched = expected_error <= self.tolerance and observed_error <= self.tolerance
+            baseline_error = abs(baseline - observed) / abs(observed)
+            model_error = abs(predicted - observed) / abs(observed)
+            matched = model_error <= self.tolerance and model_error <= baseline_error
             outcome = PredictionEvaluationOutcome.CONSISTENT if matched else PredictionEvaluationOutcome.INCONSISTENT
             rationale = (
                 "predicted=" + format(predicted, ".6g")
-                + "; expected_pre_discovery=" + format(expected.predicted_relative_atomic_mass, ".6g")
+                + "; baseline=" + format(baseline, ".6g")
+                + "; baseline_error=" + format(baseline_error, ".6g")
                 + "; observed_held_out=" + format(observed, ".6g")
+                + "; model_error=" + format(model_error, ".6g")
                 + "; tolerance=" + format(self.tolerance, ".6g")
+                + "; verdict=" + ("match_or_better_than_baseline" if matched else "not_match_or_better_than_baseline")
             )
             evaluation = PredictionEvaluation(
                 id=str(uuid4()),
