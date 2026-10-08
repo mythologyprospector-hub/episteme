@@ -670,7 +670,7 @@ The implemented Phase 27 behavior satisfies the Phase 27 exit condition:
 
 ## Phase 28 — Autonomous Evidence Request Boundary
 
-**Status:** Design only — not approved for implementation.
+**Status:** Complete.
 
 **Goal:** Define a bounded bridge from planner-driven discovery to the existing host-owned external acquisition and captured-representation boundaries.
 
@@ -682,7 +682,37 @@ The design must preserve the existing separation:
 
 **planner request → host validation/policy → existing AcquisitionRequest → existing provider → existing capture → optional named grounded ingestion**
 
-Implementation is deferred until the design exit condition can be translated into executable tests without creating a second acquisition, capture, provenance, or epistemic model.
+Implementation is complete. The design exit condition was translated into executable tests without creating a second acquisition, capture, provenance, or epistemic model.
+
+### Phase 28 Exit Audit
+
+The implemented Phase 28 behavior satisfies the stated exit condition. The planner can request bounded evidence through a host-owned capability; the host validates and admits the request; the request is translated into the existing acquisition model; exact received content is captured immutably; capture lineage remains inspectable; captured content does not become grounded evidence automatically; bounded retry/step semantics remain intact; and the real Ollama acceptance harness completed a full discovery path ending in `request_evidence` with one complete capture.
+
+**Status:** Complete.
+
+## Phase 29 — Rediscovery
+
+**Status:** Design approved — implementation not started.
+
+**Goal:** Demonstrate a bounded historical scientific rediscovery using the existing discovery, prediction, experiment, evidence, provenance, and evaluation boundaries.
+
+The canonical Phase 29 design is defined in docs/REDISCOVERY.md.
+
+The first benchmark is a bounded Mendeleev-style rediscovery using pre-discovery periodic-table evidence and a later held-out observation. The system must identify a structural vacancy or unresolved pattern, produce a non-trivial quantitative prediction, obtain the later evidence only through the existing host-owned boundary, and evaluate the prediction deterministically.
+
+Phase 29 must not encode the historical answer, expose the held-out record before evaluation, introduce arbitrary network/model authority, or replace explicit evaluation with a universal plausibility or truth score.
+
+Target capabilities:
+
+- [ ] pre-discovery historical fixture with opaque held-out evidence;
+- [ ] executable anti-cheating boundary tests;
+- [ ] host-owned quantitative rediscovery/prediction runtime;
+- [ ] deterministic held-out evaluation with pre-registered tolerances;
+- [ ] autonomous Ollama acceptance through the existing bounded loop;
+- [ ] explicit corrupted-held-out failure proof;
+- [ ] reproducible rediscovery lineage.
+
+**Exit condition:** An executable, reproducible benchmark demonstrates that Episteme can move from pre-discovery historical evidence to a non-trivial quantitative prediction and correctly evaluate that prediction against later held-out evidence while preserving grounded-versus-generated separation, host ownership, bounded execution, provenance, deterministic evaluation, explicit failure, and reproducibility.
 
 ## Roadmap Rules/
 
@@ -706,6 +736,6 @@ If implementation reveals that the roadmap is wrong, revise the roadmap rather t
 
 ## Current Position
 
-**Phase 27 — Bounded Autonomous Discovery — Complete**
+**Phase 28 — Autonomous Evidence Request Boundary — Complete**
 
 

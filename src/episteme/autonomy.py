@@ -7,6 +7,8 @@ control-plane machinery, not an epistemic authority.
 
 from __future__ import annotations
 
+import re
+
 from dataclasses import dataclass
 from typing import Any, Callable, Mapping, Protocol
 
@@ -15,7 +17,7 @@ from .capture import CaptureOutcome
 from .evidence_request import EvidenceRequest, EvidenceRequestRejected
 from .exploration import scout_positional_records
 from .exploration_bridge import admit_exploration_observation, assess_exploration_observation
-from .model import Provenance
+from .model import Provenance, canonical_json
 from .executor import ExecutableExperimentSpec, build_registered_experiment_runtime
 from .model import (DiscoveryFindingKind, ExperimentProposal, KnowledgeStateConsequence, KnowledgeStateConsequenceKind, KnowledgeStateTargetKind, Prediction, PredictionEvaluation)
 from uuid import uuid4
@@ -157,6 +159,7 @@ class DiscoveryAction:
     proposed_observation: str | None = None
     discrimination_basis: str | None = None
     expected_presences: Mapping[str, bool] | None = None
+    predicted_numeric_value: float | None = None
     execution_spec: Mapping[str, Any] | None = None
     evidence_capability: str | None = None
     evidence_parameters: Mapping[str, Any] | None = None
@@ -184,6 +187,7 @@ class DiscoveryContext:
     experiments: tuple[Mapping[str, Any], ...]
     actions_taken: tuple[DiscoveryAction, ...]
     evaluations: tuple[Mapping[str, Any], ...] = ()
+    grounded_observations: tuple[Mapping[str, Any], ...] = ()
     consequences: tuple[Mapping[str, Any], ...] = ()
     feedback: tuple[str, ...] = ()
     exploration_observations: tuple[Mapping[str, Any], ...] = ()
@@ -257,6 +261,15 @@ class DiscoveryRun:
     stop_reason: str | None = None
 
 
+def _grounded_observation_view(record: Any) -> dict[str, Any]:
+    return {
+        "id": record.id,
+        "kind": record.kind.value,
+        "payload": dict(record.payload),
+        "created_at": record.created_at,
+    }
+
+
 def _finding_view(finding: Any) -> dict[str, Any]:
     return {
         "id": finding.id,
@@ -292,6 +305,7 @@ def _prediction_view(item: Any) -> dict[str, Any]:
         "consequence": item.consequence,
         "conditions": item.conditions,
         "comparison_hypothesis_ids": tuple(item.comparison_hypothesis_ids),
+        "predicted_numeric_value": item.predicted_numeric_value,
     }
 
 
@@ -320,8 +334,14 @@ def build_context(
     actions_taken: tuple[DiscoveryAction, ...],
     feedback: tuple[str, ...] = (),
 ) -> DiscoveryContext:
+    grounded_records = tuple(
+        record
+        for record_id in grounded_input_ids
+        if (record := store.get_record(record_id)) is not None
+    )
     return DiscoveryContext(
         grounded_input_ids=tuple(grounded_input_ids),
+        grounded_observations=tuple(_grounded_observation_view(record) for record in grounded_records),
         findings=tuple(_finding_view(item) for item in store.iter_discovery_findings()),
         exploration_observations=tuple(_exploration_observation_view(item) for item in store.iter_exploration_observations()),
         exploration_assessments=tuple(_exploration_assessment_view(item) for item in store.iter_exploration_observation_assessments()),
@@ -357,12 +377,75 @@ def _validate_execution_spec(
         spec = ExecutableExperimentSpec(**dict(raw))
     except (TypeError, ValueError) as exc:
         raise PlannerActionError(f"invalid execution_spec: {exc}") from exc
-    return {
-        "operation": spec.operation,
-        "position": float(spec.position),
-        "position_key": spec.position_key,
-    }
+    result = {"operation": spec.operation}
+    if spec.position is not None:
+        result["position"] = float(spec.position)
+    if spec.operation == "positional_presence":
+        result["position_key"] = spec.position_key
+    return result
 
+
+
+def _record_content_provenance_key(record: Any) -> tuple[str, tuple[str, ...]]:
+    """Return the identity-independent grounded content/provenance fingerprint."""
+    return (
+        canonical_json(dict(record.payload)),
+        tuple(canonical_json(item.to_dict()) for item in record.provenance),
+    )
+
+
+def _validate_experiment_input_independence(
+    store: Any,
+    grounded_input_ids: tuple[str, ...],
+    experiment_input_ids: tuple[str, ...],
+) -> None:
+    """Reject held-out inputs that duplicate grounded records under new IDs."""
+    grounded_records = [store.get_record(record_id) for record_id in grounded_input_ids]
+    experiment_records = [store.get_record(record_id) for record_id in experiment_input_ids]
+    if any(record is None for record in grounded_records):
+        raise RuntimeError("bounded experiment grounding contains an unknown record")
+    if any(record is None for record in experiment_records):
+        raise RuntimeError("bounded experiment input scope contains an unknown record")
+    grounded_keys = {_record_content_provenance_key(record) for record in grounded_records}
+    duplicated = [
+        record.id for record in experiment_records
+        if _record_content_provenance_key(record) in grounded_keys
+    ]
+    if duplicated:
+        raise RuntimeError(
+            "bounded experiment input scope contains a content/provenance duplicate "
+            "of a discovery input"
+        )
+
+
+def _validate_positional_prediction_bindings(store: Any, action: DiscoveryAction) -> None:
+    """Reject positional predictions whose expectation contradicts their hypothesis."""
+    if not action.execution_spec or action.execution_spec.get("operation") != "positional_presence":
+        return
+    predictions = {item.id: item for item in store.iter_predictions()}
+    hypotheses = {item.id: item for item in store.iter_hypotheses()}
+    position = float(action.execution_spec["position"])
+    pattern = re.compile(r"\b(not\s+)?at\s+position\s+([-+]?(?:\d+(?:\.\d*)?|\.\d+))\b", re.IGNORECASE)
+    for prediction_id in action.target_ids:
+        prediction = predictions.get(prediction_id)
+        if prediction is None:
+            continue
+        hypothesis = hypotheses.get(prediction.source_id)
+        if hypothesis is None or prediction.expected_presence is None:
+            continue
+        match = pattern.search(hypothesis.statement)
+        if match is None:
+            continue
+        claimed_position = float(match.group(2))
+        if claimed_position != position:
+            raise PlannerActionError(
+                "positional prediction target does not match its hypothesis position"
+            )
+        expected = match.group(1) is None
+        if prediction.expected_presence is not expected:
+            raise PlannerActionError(
+                "positional prediction expected_presence contradicts its source hypothesis"
+            )
 
 def _validate_action_state(
     store: Any,
@@ -465,6 +548,14 @@ def _validate_action_state(
         # bounded experiment and its deterministic evaluation.
         if candidate_findings:
             raise PlannerActionError("stop is unavailable before a bounded experiment")
+        if enforce_exploration_policy and observations and any(
+            finding.kind is DiscoveryFindingKind.EXPLORATION_OBSERVATION
+            and any(observation.id in finding.context_ids for observation in observations)
+            for finding in findings
+        ):
+            raise PlannerActionError(
+                "structural gap discovery is required after accepted exploration"
+            )
         return
 
     if experiments:
@@ -518,6 +609,7 @@ def _validate_action_state(
         raise PlannerActionError(
             "existing predictions require a bounded experiment before another action"
         )
+    _validate_positional_prediction_bindings(store, action)
 
 def execute_action(store: Any, action: DiscoveryAction, *, created_at: str) -> tuple[str, ...]:
     """Validate and execute one action using existing Episteme primitives."""
@@ -610,6 +702,7 @@ def execute_action(store: Any, action: DiscoveryAction, *, created_at: str) -> t
                     method_version="1",
                     rationale=action.rationale,
                     expected_presence=(action.expected_presences or {}).get(candidate_id),
+                    predicted_numeric_value=action.predicted_numeric_value,
                     created_at=created_at,
                 )
                 predictions.append(prediction)
@@ -621,6 +714,7 @@ def execute_action(store: Any, action: DiscoveryAction, *, created_at: str) -> t
         return tuple(prediction.id for prediction in predictions)
 
     if action.kind == "experiment":
+        _validate_positional_prediction_bindings(store, action)
         if len(action.target_ids) < 2:
             raise PlannerActionError("experiment action requires at least two prediction ids")
         execution_spec = _validate_execution_spec(action.execution_spec)
@@ -830,13 +924,18 @@ def run_autonomous_discovery(
                         raise PlannerActionError("evidence request is unavailable without a host-owned evidence request runtime")
                     if not action.target_ids:
                         raise PlannerActionError("request_evidence action requires at least one motivation id")
-                    request = EvidenceRequest(
-                        capability=_require(action.evidence_capability, "evidence_capability"),
-                        parameters=action.evidence_parameters or {},
-                        rationale=action.rationale,
-                        motivation_ids=action.target_ids,
-                        requested_representation=_require(action.requested_representation, "requested_representation"),
-                    )
+                    try:
+                        request = EvidenceRequest(
+                            capability=_require(action.evidence_capability, "evidence_capability"),
+                            parameters=action.evidence_parameters or {},
+                            rationale=action.rationale,
+                            motivation_ids=action.target_ids,
+                            requested_representation=_require(action.requested_representation, "requested_representation"),
+                        )
+                    except ValueError as exc:
+                        raise PlannerActionError(
+                            f"invalid evidence request: {exc}"
+                        ) from exc
                     try:
                         result = evidence_request_runtime.request_evidence(
                             store, request, created_at=started_at
@@ -847,6 +946,10 @@ def run_autonomous_discovery(
                             steps=tuple(steps),
                             stop_reason=f"bounded evidence request was rejected by host policy: {exc}",
                         )
+                    except ValueError as exc:
+                        raise PlannerActionError(
+                            f"evidence request execution failed validation: {exc}"
+                        ) from exc
                     if not hasattr(result, "outcome") or not hasattr(result, "id"):
                         raise RuntimeError(
                             "host evidence runtime returned an invalid capture result"
@@ -929,6 +1032,11 @@ def run_autonomous_discovery(
                     raise RuntimeError(
                         "bounded experiment input scope must be disjoint from discovery inputs"
                     )
+                _validate_experiment_input_independence(
+                    store,
+                    grounded_input_ids,
+                    experiment_input_ids,
+                )
                 output_ids = _execute_experiment_cycle(
                     store,
                     proposal,

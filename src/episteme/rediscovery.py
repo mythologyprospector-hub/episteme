@@ -1,0 +1,307 @@
+"""Phase 29 historical rediscovery fixture and host-owned benchmark runtime.
+
+The fixture separates pre-discovery observations from later held-out evidence.
+The benchmark runtime derives a quantitative prediction only from the earlier
+observations, then evaluates that prediction against the separately supplied
+held-out observation.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from uuid import uuid4
+
+from episteme.model import Prediction, PredictionEvaluation, PredictionEvaluationOutcome
+from episteme.store import Store
+from enum import Enum
+
+from episteme.model import Provenance, Record, RecordKind
+
+FIXTURE_CAPTURED_AT = "1885-12-31T00:00:00+00:00"
+FIXTURE_SOURCE = "phase29-rsc-historical-fixture"
+FIXTURE_VERSION = "1"
+FIXTURE_LOCATION = "https://www.rsc.org/images/23_The_Periodic_Law_tcm18-30005.pdf"
+
+
+@dataclass(frozen=True)
+class RediscoveryFixture:
+    pre_discovery_records: tuple[Record, ...]
+    held_out_record: Record
+
+
+class RediscoveryOutcome(str, Enum):
+    MATCHED = "matched"
+    PARTIAL = "partial"
+    FAILED = "failed"
+
+
+@dataclass(frozen=True)
+class RediscoveryPrediction:
+    predicted_relative_atomic_mass: float
+    input_ids: tuple[str, ...]
+    method: str
+    method_version: str
+
+
+@dataclass(frozen=True)
+class RediscoveryEvaluation:
+    outcome: RediscoveryOutcome
+    predicted_relative_atomic_mass: float
+    observed_relative_atomic_mass: float
+    absolute_error: float
+    relative_error: float
+    tolerance: float
+
+
+def _provenance() -> tuple[Provenance, ...]:
+    return (
+        Provenance(
+            source_id=FIXTURE_SOURCE,
+            captured_at=FIXTURE_CAPTURED_AT,
+            source_location=FIXTURE_LOCATION,
+            source_version=FIXTURE_VERSION,
+            note="Bounded pre-discovery historical fixture; later discovery data is excluded.",
+        ),
+    )
+
+
+def build_mendeleev_fixture() -> RediscoveryFixture:
+    provenance = _provenance()
+
+    pre_discovery = (
+        Record(
+            id="10000000-0000-4000-8000-000000000001",
+            kind=RecordKind.OBSERVATION,
+            payload={
+                "label": "carbon",
+                "family": "group_14",
+                "period": 2,
+                "relative_atomic_mass": 12.01,
+                "density_g_cm3": 2.26,
+            },
+            provenance=provenance,
+            created_at=FIXTURE_CAPTURED_AT,
+        ),
+        Record(
+            id="10000000-0000-4000-8000-000000000002",
+            kind=RecordKind.OBSERVATION,
+            payload={
+                "label": "silicon",
+                "family": "group_14",
+                "period": 3,
+                "relative_atomic_mass": 28.09,
+                "density_g_cm3": 2.33,
+            },
+            provenance=provenance,
+            created_at=FIXTURE_CAPTURED_AT,
+        ),
+        Record(
+            id="10000000-0000-4000-8000-000000000003",
+            kind=RecordKind.OBSERVATION,
+            payload={
+                "label": "tin",
+                "family": "group_14",
+                "period": 5,
+                "relative_atomic_mass": 118.71,
+                "density_g_cm3": 7.31,
+            },
+            provenance=provenance,
+            created_at=FIXTURE_CAPTURED_AT,
+        ),
+        Record(
+            id="10000000-0000-4000-8000-000000000004",
+            kind=RecordKind.OBSERVATION,
+            payload={
+                "label": "lead",
+                "family": "group_14",
+                "period": 6,
+                "relative_atomic_mass": 207.2,
+                "density_g_cm3": 11.34,
+            },
+            provenance=provenance,
+            created_at=FIXTURE_CAPTURED_AT,
+        ),
+    )
+
+    held_out = Record(
+        id="20000000-0000-4000-8000-000000000001",
+        kind=RecordKind.OBSERVATION,
+        payload={
+            "label": "held_out_element",
+            "family": "group_14",
+            "period": 4,
+            "relative_atomic_mass": 72.32,
+            "density_g_cm3": 5.47,
+        },
+        provenance=provenance,
+        created_at="1886-12-31T00:00:00+00:00",
+    )
+
+    return RediscoveryFixture(
+        pre_discovery_records=pre_discovery,
+        held_out_record=held_out,
+    )
+
+
+def derive_mendeleev_mass_prediction(
+    pre_discovery_records: tuple[Record, ...],
+) -> RediscoveryPrediction:
+    """Derive a bounded mass prediction from the two observations around the gap.
+
+    The runtime is deliberately blind to the held-out record. It selects the
+    adjacent observed periods around the missing period-4 position and takes
+    their midpoint. No later element identity or later measured value is used.
+    """
+
+    candidates = [
+        record
+        for record in pre_discovery_records
+        if record.payload.get("family") == "group_14"
+    ]
+    by_period = {
+        int(record.payload["period"]): record
+        for record in candidates
+    }
+    if 4 in by_period:
+        raise ValueError("pre-discovery inputs must not contain the held-out period")
+    if 3 not in by_period or 5 not in by_period:
+        raise ValueError("pre-discovery inputs must contain periods 3 and 5")
+
+    lower = float(by_period[3].payload["relative_atomic_mass"])
+    upper = float(by_period[5].payload["relative_atomic_mass"])
+    prediction = (lower + upper) / 2.0
+
+    return RediscoveryPrediction(
+        predicted_relative_atomic_mass=prediction,
+        input_ids=(by_period[3].id, by_period[5].id),
+        method="adjacent-period-mass-midpoint",
+        method_version="1",
+    )
+
+
+def evaluate_mendeleev_mass_prediction(
+    prediction: RediscoveryPrediction,
+    held_out_record: Record,
+    tolerance: float = 0.05,
+) -> RediscoveryEvaluation:
+    """Evaluate the prediction against later held-out evidence.
+
+    The evaluator receives the held-out record separately from the prediction
+    inputs. A match is deterministic and uses only the pre-registered relative
+    error tolerance.
+    """
+
+    if not 0 < tolerance < 1:
+        raise ValueError("tolerance must be between 0 and 1")
+
+    observed = float(held_out_record.payload["relative_atomic_mass"])
+    predicted = prediction.predicted_relative_atomic_mass
+    absolute_error = abs(predicted - observed)
+    relative_error = absolute_error / observed
+
+    if relative_error <= tolerance:
+        outcome = RediscoveryOutcome.MATCHED
+    else:
+        outcome = RediscoveryOutcome.FAILED
+
+    return RediscoveryEvaluation(
+        outcome=outcome,
+        predicted_relative_atomic_mass=predicted,
+        observed_relative_atomic_mass=observed,
+        absolute_error=absolute_error,
+        relative_error=relative_error,
+        tolerance=tolerance,
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class RediscoveryExperimentExecutor:
+    """Host-owned executor for the Phase 29 held-out observation."""
+
+    method: str = "phase29_rediscovery"
+    method_version: str = "1"
+
+    def execute(self, store: Store, proposal, *, input_ids: tuple[str, ...], created_at: str) -> Record:
+        if store.get_experiment_proposal(proposal.id) is None:
+            raise ValueError("rediscovery executor requires a persisted proposal: " + proposal.id)
+        if len(input_ids) != 1:
+            raise ValueError("rediscovery experiment requires exactly one held-out input")
+        held_out = store.get_record(input_ids[0])
+        if held_out is None or held_out.kind is not RecordKind.OBSERVATION:
+            raise ValueError("rediscovery experiment requires a held-out observation")
+        observed = float(held_out.payload["relative_atomic_mass"])
+        result = Record(
+            id=str(uuid4()),
+            kind=RecordKind.RESULT,
+            payload={
+                "executor": self.method,
+                "executor_version": self.method_version,
+                "experiment_proposal_id": proposal.id,
+                "input_ids": list(input_ids),
+                "observed_relative_atomic_mass": observed,
+            },
+            provenance=(Provenance(
+                source_id=f"episteme://executor/{self.method}",
+                captured_at=created_at,
+                source_location=f"episteme://executor/{self.method}",
+                source_version=self.method_version,
+                note="Deterministic held-out result for the Phase 29 benchmark.",
+            ),),
+            created_at=created_at,
+        )
+        store.put_record(result)
+        return result
+
+
+@dataclass(frozen=True, slots=True)
+class RediscoveryPredictionEvaluator:
+    """Host-owned deterministic evaluator for the quantitative benchmark."""
+
+    pre_discovery_records: tuple[Record, ...]
+    tolerance: float = 0.05
+    method: str = "phase29_rediscovery_evaluation"
+    method_version: str = "1"
+
+    def evaluate(
+        self, store: Store, result: Record, proposal, predictions: tuple[Prediction, ...],
+        *, comparison_conditions: str, created_at: str,
+    ) -> tuple[PredictionEvaluation, ...]:
+        if result.kind is not RecordKind.RESULT:
+            raise ValueError("rediscovery evaluator requires a RESULT record")
+        if not 0 < self.tolerance < 1:
+            raise ValueError("tolerance must be between 0 and 1")
+        if {p.id for p in predictions} != set(proposal.prediction_ids):
+            raise ValueError("predictions must exactly match the experiment proposal")
+        observed = float(result.payload["observed_relative_atomic_mass"])
+        expected = derive_mendeleev_mass_prediction(self.pre_discovery_records)
+        evaluations = []
+        for prediction in predictions:
+            if prediction.predicted_numeric_value is None:
+                raise ValueError("rediscovery prediction requires predicted_numeric_value")
+            predicted = float(prediction.predicted_numeric_value)
+            expected_error = abs(predicted - expected.predicted_relative_atomic_mass) / expected.predicted_relative_atomic_mass
+            observed_error = abs(predicted - observed) / observed
+            matched = expected_error <= self.tolerance and observed_error <= self.tolerance
+            outcome = PredictionEvaluationOutcome.CONSISTENT if matched else PredictionEvaluationOutcome.INCONSISTENT
+            rationale = (
+                "predicted=" + format(predicted, ".6g")
+                + "; expected_pre_discovery=" + format(expected.predicted_relative_atomic_mass, ".6g")
+                + "; observed_held_out=" + format(observed, ".6g")
+                + "; tolerance=" + format(self.tolerance, ".6g")
+            )
+            evaluation = PredictionEvaluation(
+                id=str(uuid4()),
+                result_id=result.id,
+                prediction_id=prediction.id,
+                experiment_proposal_id=proposal.id,
+                comparison_conditions=comparison_conditions,
+                assumptions=prediction.assumptions,
+                outcome=outcome,
+                rationale=rationale,
+                method=self.method,
+                method_version=self.method_version,
+                created_at=created_at,
+            )
+            store.put_prediction_evaluation(evaluation)
+            evaluations.append(evaluation)
+        return tuple(evaluations)

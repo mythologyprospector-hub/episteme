@@ -591,6 +591,61 @@ class PrematureStopPlanner:
         )
 
 
+def test_host_state_machine_requires_gap_discovery_after_admitted_exploration():
+    records = _records()
+
+    class ExplorationPlanner:
+        def __init__(self):
+            self.calls = 0
+
+        def choose(self, context):
+            self.calls += 1
+            if self.calls == 1:
+                return DiscoveryAction(kind="scout", rationale="Begin the bounded exploration pass.")
+            if self.calls == 2:
+                return DiscoveryAction(
+                    kind="assess_exploration",
+                    target_ids=(context.exploration_observations[0]["id"],),
+                    rationale="Assess the bounded exploration observation.",
+                )
+            if self.calls == 3:
+                return DiscoveryAction(
+                    kind="admit_exploration",
+                    target_ids=(context.exploration_observations[0]["id"],),
+                    rationale="Admit the accepted exploration observation.",
+                )
+            return DiscoveryAction(kind="stop", rationale="Intentionally stop before structural discovery.")
+
+    from episteme.autonomy import ExplorationAdmissionRuntime, ExplorationAssessmentRuntime, PositionalExplorationRuntime, PositionalGapDiscoveryRuntime
+    with Store() as store:
+        for record in records:
+            store.put_record(record)
+        result = run_autonomous_discovery(
+            store,
+            ExplorationPlanner(),
+            grounded_input_ids=tuple(record.id for record in records),
+            started_at=CREATED,
+            exploration_runtime=PositionalExplorationRuntime(
+                input_ids=tuple(record.id for record in records), position_key="position", max_records=3
+            ),
+            structural_discovery_runtime=PositionalGapDiscoveryRuntime(
+                input_ids=tuple(record.id for record in records), position_key="position", step=1.0
+            ),
+            exploration_assessment_runtime=ExplorationAssessmentRuntime(
+                allowed_input_ids=tuple(record.id for record in records),
+                accepted=True,
+                method="fixture", method_version="1", rationale="fixture", provenance=PROVENANCE,
+            ),
+            exploration_admission_runtime=ExplorationAdmissionRuntime(
+                allowed_input_ids=tuple(record.id for record in records)
+            ),
+            max_steps=4,
+            max_retries_per_step=0,
+        )
+        assert result.status == "failed"
+        assert "structural gap discovery is required" in result.stop_reason
+
+
 def test_host_state_machine_rejects_stop_before_experiment():
     records = _records()
     with Store() as store:

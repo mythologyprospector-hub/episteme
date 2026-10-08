@@ -27,12 +27,18 @@ class ExecutableExperimentSpec:
     """
 
     operation: str
-    position: float
+    position: float | None = None
     position_key: str = "position"
 
     def __post_init__(self) -> None:
-        if self.operation != "positional_presence":
+        if self.operation not in {"positional_presence", "historical_rediscovery"}:
             raise ValueError(f"unsupported executable experiment operation: {self.operation}")
+        if self.operation == "historical_rediscovery":
+            if self.position is not None:
+                raise ValueError("historical_rediscovery does not accept position")
+            return
+        if self.position is None:
+            raise ValueError("positional_presence requires position")
         if isinstance(self.position, bool) or not isinstance(self.position, (int, float)):
             raise ValueError("position must be numeric")
         if not math.isfinite(float(self.position)):

@@ -219,6 +219,7 @@ class Store:
                 comparison_hypothesis_ids TEXT NOT NULL,
                 created_at TEXT NOT NULL,
                 expected_presence INTEGER,
+                predicted_numeric_value REAL,
                 schema_version INTEGER NOT NULL
             );
 
@@ -375,6 +376,14 @@ class Store:
             )
 
         self._ensure_prediction_expectation_column()
+        prediction_columns = {
+            row["name"]
+            for row in self._connection.execute("PRAGMA table_info(predictions)")
+        }
+        if "predicted_numeric_value" not in prediction_columns:
+            self._connection.execute(
+                "ALTER TABLE predictions ADD COLUMN predicted_numeric_value REAL"
+            )
         self._connection.commit()
 
     def put_record(self, record: Record) -> None:
@@ -1072,15 +1081,15 @@ class Store:
             """INSERT INTO predictions
                (id, source_id, consequence, conditions, assumptions, method,
                 method_version, rationale, comparison_hypothesis_ids, created_at,
-                expected_presence, schema_version)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                expected_presence, predicted_numeric_value, schema_version)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (prediction.id, prediction.source_id, prediction.consequence,
              prediction.conditions, canonical_json(list(prediction.assumptions)),
              prediction.method, prediction.method_version, prediction.rationale,
              canonical_json(list(prediction.comparison_hypothesis_ids)),
              prediction.created_at,
              None if prediction.expected_presence is None else int(prediction.expected_presence),
-             prediction.schema_version),
+             prediction.predicted_numeric_value, prediction.schema_version),
         )
         self._connection.commit()
 
@@ -1088,7 +1097,8 @@ class Store:
         row = self._connection.execute(
             """SELECT id, source_id, consequence, conditions, assumptions, method,
                       method_version, rationale, comparison_hypothesis_ids,
-                      created_at, expected_presence, schema_version
+                      created_at, expected_presence, predicted_numeric_value,
+                      schema_version
                FROM predictions WHERE id = ?""", (prediction_id,)
         ).fetchone()
         if row is None:
@@ -1101,6 +1111,7 @@ class Store:
             "comparison_hypothesis_ids": json.loads(row["comparison_hypothesis_ids"]),
             "created_at": row["created_at"],
             "expected_presence": None if row["expected_presence"] is None else bool(row["expected_presence"]),
+            "predicted_numeric_value": row["predicted_numeric_value"],
             "schema_version": row["schema_version"],
         })
 
@@ -1108,7 +1119,7 @@ class Store:
         rows = self._connection.execute(
             """SELECT id, source_id, consequence, conditions, assumptions, method,
                       method_version, rationale, comparison_hypothesis_ids,
-                      created_at, expected_presence, schema_version
+                      created_at, expected_presence, predicted_numeric_value, schema_version
                FROM predictions ORDER BY created_at, id"""
         )
         for row in rows:
@@ -1120,6 +1131,7 @@ class Store:
                 "comparison_hypothesis_ids": json.loads(row["comparison_hypothesis_ids"]),
                 "created_at": row["created_at"],
                 "expected_presence": None if row["expected_presence"] is None else bool(row["expected_presence"]),
+                "predicted_numeric_value": row["predicted_numeric_value"],
                 "schema_version": row["schema_version"],
             })
 
