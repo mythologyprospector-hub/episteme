@@ -250,6 +250,16 @@ class OllamaPlanner:
         ]
         if context.predictions and not context.experiments:
             allowed_kinds = ["experiment"]
+        elif not candidate_findings:
+            # Match the core validation boundary in the structured schema so a
+            # model cannot spend its retry budget proposing candidate actions
+            # before the host-owned structural discovery pass has produced a
+            # GAP or TENSION finding.
+            allowed_kinds = ["discover_gap"]
+        elif pending_findings:
+            finding_id = pending_findings[0]
+            count = hypothesis_counts[finding_id]
+            allowed_kinds = ["hypothesis", "question"] if count == 0 else ["hypothesis"]
 
         return {
             "model": self.model,
