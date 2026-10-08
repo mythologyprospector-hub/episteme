@@ -29,6 +29,20 @@ class RediscoveryFixture:
     held_out_record: Record
 
 
+@dataclass(frozen=True)
+class RediscoveryBenchmarkCase:
+    property_key: str
+    display_name: str
+    tolerance: float = 0.05
+
+
+REDISCOVERY_CASES = (
+    RediscoveryBenchmarkCase("relative_atomic_mass", "relative atomic mass"),
+    RediscoveryBenchmarkCase("density_g_cm3", "density (g/cm^3)"),
+    RediscoveryBenchmarkCase("melting_point_c", "melting point (C)"),
+)
+
+
 class RediscoveryOutcome(str, Enum):
     MATCHED = "matched"
     PARTIAL = "partial"
@@ -78,6 +92,7 @@ def build_mendeleev_fixture() -> RediscoveryFixture:
                 "period": 2,
                 "relative_atomic_mass": 12.01,
                 "density_g_cm3": 2.26,
+                "melting_point_c": 3825.0,
             },
             provenance=provenance,
             created_at=FIXTURE_CAPTURED_AT,
@@ -89,8 +104,9 @@ def build_mendeleev_fixture() -> RediscoveryFixture:
                 "label": "silicon",
                 "family": "group_14",
                 "period": 3,
-                "relative_atomic_mass": 28.09,
-                "density_g_cm3": 2.33,
+                "relative_atomic_mass": 28.085,
+                "density_g_cm3": 2.3296,
+                "melting_point_c": 1414.0,
             },
             provenance=provenance,
             created_at=FIXTURE_CAPTURED_AT,
@@ -102,8 +118,9 @@ def build_mendeleev_fixture() -> RediscoveryFixture:
                 "label": "tin",
                 "family": "group_14",
                 "period": 5,
-                "relative_atomic_mass": 118.71,
-                "density_g_cm3": 7.31,
+                "relative_atomic_mass": 118.710,
+                "density_g_cm3": 7.287,
+                "melting_point_c": 231.928,
             },
             provenance=provenance,
             created_at=FIXTURE_CAPTURED_AT,
@@ -116,7 +133,8 @@ def build_mendeleev_fixture() -> RediscoveryFixture:
                 "family": "group_14",
                 "period": 6,
                 "relative_atomic_mass": 207.2,
-                "density_g_cm3": 11.34,
+                "density_g_cm3": 11.3,
+                "melting_point_c": 327.462,
             },
             provenance=provenance,
             created_at=FIXTURE_CAPTURED_AT,
@@ -130,8 +148,9 @@ def build_mendeleev_fixture() -> RediscoveryFixture:
             "label": "held_out_element",
             "family": "group_14",
             "period": 4,
-            "relative_atomic_mass": 72.32,
-            "density_g_cm3": 5.47,
+            "relative_atomic_mass": 72.630,
+            "density_g_cm3": 5.3234,
+            "melting_point_c": 938.25,
         },
         provenance=provenance,
         created_at="1886-12-31T00:00:00+00:00",
