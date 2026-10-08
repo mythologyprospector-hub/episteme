@@ -1,6 +1,6 @@
 # Phase 29 — Rediscovery
 
-**Status:** Design approved — implementation not started
+**Status:** Implementation underway — bounded rediscovery path under active verification
 
 ## Purpose
 
@@ -128,7 +128,15 @@ Phase 29 is complete when an executable, reproducible benchmark demonstrates tha
 
 A successful run is evidence that the architecture can support rediscovery. It is **not** evidence that Episteme has achieved general scientific intelligence.
 
+## Acquisition boundary
+
+Phase 29 deliberately does **not** claim that Episteme can autonomously acquire a genuinely new scientific observation from the outside world. The held-out Mendeleev record is pre-supplied as a benchmark fixture and is revealed only at the host-owned experiment/evaluation boundary. This proves separation, execution, and evaluation; it does not prove that Episteme can operate an instrument, query a live scientific database for a novel measurement, or otherwise create a new observation.
+
+Phase 28 already provides bounded external acquisition, but its currently registered capability is Crossref metadata. That is useful for evidence retrieval, not a general scientific-observation capability. A future observation-acquisition capability should be added only when a concrete benchmark requires one and its source, measurement semantics, provenance, and independence rules can be specified explicitly.
+
+This limitation is therefore a declared Phase 29 boundary, not a hidden success criterion.
+
 ## What comes next
 
-Only after this benchmark passes should the project generalize the rediscovery machinery to another historical domain such as astronomy.
+Only after this benchmark passes should the project generalize the rediscovery machinery to another historical domain such as astronomy, or introduce a concrete observation-acquisition capability for a benchmark that actually requires new observations.
 
