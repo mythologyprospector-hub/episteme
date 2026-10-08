@@ -186,8 +186,10 @@ def test_phase29_runtime_executes_and_evaluates_through_host_experiment_boundary
         assert result.payload["input_ids"] == [fixture.held_out_record.id]
         assert result.payload["observed_relative_atomic_mass"] == 72.63
         assert evaluations[0].outcome is PredictionEvaluationOutcome.CONSISTENT
-        assert "73.4" in evaluations[0].rationale
-        assert "72.32" in evaluations[0].rationale
+        assert "73.3975" in evaluations[0].rationale
+        assert "72.63" in evaluations[0].rationale
+        assert "baseline_error" in evaluations[0].rationale
+        assert "model_error" in evaluations[0].rationale
 
 
 def test_phase29_experiment_rejects_identity_distinct_clone_of_discovery_record():
