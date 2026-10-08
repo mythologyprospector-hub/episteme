@@ -2,6 +2,7 @@ import math
 from dataclasses import replace
 
 from episteme.discovery import detect_positional_gap
+from episteme.autonomy import _validate_experiment_input_independence
 from episteme.model import PredictionEvaluationOutcome
 from episteme.proposals import predict, propose_experiment, complete_structural_gap
 from episteme.discovery import detect_positional_gap
@@ -187,3 +188,32 @@ def test_phase29_runtime_executes_and_evaluates_through_host_experiment_boundary
         assert evaluations[0].outcome is PredictionEvaluationOutcome.CONSISTENT
         assert "73.4" in evaluations[0].rationale
         assert "72.32" in evaluations[0].rationale
+
+
+def test_phase29_experiment_rejects_identity_distinct_clone_of_discovery_record():
+    from dataclasses import replace
+    from episteme.store import Store
+
+    fixture = build_mendeleev_fixture()
+    original = fixture.pre_discovery_records[1]
+    clone = replace(
+        original,
+        id="30000000-0000-4000-8000-000000000001",
+    )
+
+    with Store() as store:
+        store.put_record(original)
+        store.put_record(clone)
+
+        try:
+            _validate_experiment_input_independence(
+                store,
+                (original.id,),
+                (clone.id,),
+            )
+        except RuntimeError as exc:
+            assert "content/provenance duplicate" in str(exc)
+        else:
+            raise AssertionError(
+                "identity-distinct clone must not qualify as independent held-out evidence"
+            )
