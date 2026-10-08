@@ -211,7 +211,7 @@ class OllamaPlanner:
             "prediction MUST include consequence as a non-empty string. Use the singular consequence field; do not use the consequences array. For quantitative predictions, include predicted_numeric_value as the machine-checkable numeric forecast. "
             "Do not emit uncertainty or any other field not listed above. "
             "For kind='experiment', target_ids MUST contain at least two existing "
-            "prediction ids and conditions, objective, proposed_observation, "
+            "prediction ids and conditions, objective, proposed_observation, The experiment target_ids MUST be copied from the predictions list, never from hypotheses, findings, or experiments; when two predictions exist, copy both prediction id strings verbatim. "
             "discrimination_basis, and execution_spec are required. For a historical "
             "rediscovery capability, execution_spec must contain only "
             "operation='historical_rediscovery'; for positional_presence it must contain "
