@@ -251,3 +251,45 @@ def test_phase29_numeric_predictions_must_be_distinct():
             predicted_numeric_values={"one": 73.4, "two": 73.4},
             rationale="distinctness test",
         )
+
+
+def test_phase29_duplicate_competing_hypothesis_is_rejected():
+    import pytest
+    from episteme.autonomy import DiscoveryAction, PlannerActionError, execute_action
+    from episteme.store import Store
+
+    fixture = build_mendeleev_fixture()
+    with Store() as store:
+        for record in fixture.pre_discovery_records:
+            store.put_record(record)
+        finding = detect_positional_gap(
+            store,
+            tuple(record.id for record in fixture.pre_discovery_records),
+            "period",
+            1.0,
+            FIXTURE_CAPTURED_AT,
+        )
+        assert finding is not None
+        store.put_discovery_finding(finding)
+        first = complete_structural_gap(
+            store,
+            gap_id=finding.id,
+            statement="the candidate follows a regular group trend",
+            method="test",
+            method_version="1",
+            rationale="first candidate",
+            created_at=FIXTURE_CAPTURED_AT,
+        )
+        store.put_hypothesis(first)
+
+        with pytest.raises(PlannerActionError, match="duplicate hypothesis statement"):
+            execute_action(
+                store,
+                DiscoveryAction(
+                    kind="hypothesis",
+                    target_ids=(finding.id,),
+                    statement="the candidate follows a regular group trend",
+                    rationale="duplicate candidate",
+                ),
+                created_at=FIXTURE_CAPTURED_AT,
+            )
