@@ -389,7 +389,14 @@ class OllamaPlanner:
                 "emit only predicted_numeric_values with one distinct value per hypothesis."
             )
         required_fields = ["kind", "rationale"]
-        if len(context.hypotheses) >= 2 and not context.predictions:
+        if pending_findings:
+            # Hypothesis actions must carry the finding they complete and the
+            # candidate statement. Without these being schema-required, small
+            # local models can return only kind+rationale and fail at execution.
+            required_fields.extend(["target_ids", "statement"])
+            if "historical_rediscovery" in self.host_capabilities:
+                required_fields.append("quantitative_rule")
+        elif len(context.hypotheses) >= 2 and not context.predictions:
             if "historical_rediscovery" in self.host_capabilities:
                 required_fields.extend(
                     ["target_ids", "conditions", "consequence", "predicted_numeric_values"]
@@ -398,8 +405,6 @@ class OllamaPlanner:
                 required_fields.extend(
                     ["target_ids", "conditions", "consequence", "expected_presences", "predicted_numeric_value"]
                 )
-        if "historical_rediscovery" in self.host_capabilities and pending_findings:
-            required_fields.append("quantitative_rule")
         if context.predictions and not context.experiments:
             required_fields.extend(
                 [
