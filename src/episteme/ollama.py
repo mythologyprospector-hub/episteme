@@ -68,6 +68,8 @@ class OllamaPlanner:
         transport: Transport | None = None,
         evidence_capabilities: tuple[str, ...] = (),
         host_capabilities: tuple[str, ...] = (),
+        rediscovery_property: str = "relative_atomic_mass",
+        blinded_rediscovery: bool = False,
     ) -> None:
         if not model.strip():
             raise ValueError("model must be non-empty")
@@ -79,6 +81,8 @@ class OllamaPlanner:
         self._transport = transport
         self.evidence_capabilities = tuple(evidence_capabilities)
         self.host_capabilities = tuple(host_capabilities)
+        self.rediscovery_property = rediscovery_property
+        self.blinded_rediscovery = blinded_rediscovery
 
     def choose(self, context: DiscoveryContext) -> DiscoveryAction:
         payload = self._request_payload(context)
@@ -103,6 +107,16 @@ class OllamaPlanner:
                 action_data["target_ids"] = [handle_to_id[value] for value in values]
             except (KeyError, TypeError) as exc:
                 raise PlannerActionError("target_ids must contain only supplied planner handles") from exc
+        if "predicted_numeric_values" in action_data:
+            values = action_data["predicted_numeric_values"]
+            if not isinstance(values, dict):
+                raise PlannerActionError("predicted_numeric_values must be an object")
+            try:
+                action_data["predicted_numeric_values"] = {
+                    handle_to_id[key]: value for key, value in values.items()
+                }
+            except (KeyError, TypeError) as exc:
+                raise PlannerActionError("predicted_numeric_values must use supplied planner handles") from exc
         if "expected_presences" in action_data:
             expected = action_data["expected_presences"]
             if not isinstance(expected, dict):
@@ -121,9 +135,30 @@ class OllamaPlanner:
 
     def _request_payload(self, context: DiscoveryContext) -> dict[str, Any]:
         aliases, _ = _planner_id_aliases(context)
+        grounded_observations = list(context.grounded_observations)
+        if self.blinded_rediscovery:
+            blinded = []
+            for index, observation in enumerate(grounded_observations, start=1):
+                payload = dict(observation.get("payload", {}))
+                property_value = payload.get(self.rediscovery_property)
+                blinded.append(
+                    {
+                        "id": observation.get("id"),
+                        "kind": observation.get("kind"),
+                        "payload": {
+                            "entity": f"E{index}",
+                            "position": payload.get("period"),
+                            "property_P": property_value,
+                        },
+                        "created_at": observation.get("created_at"),
+                    }
+                )
+            grounded_observations = blinded
         context_data = {
             "grounded_input_ids": _alias_value(list(context.grounded_input_ids), aliases),
-            "grounded_observations": _alias_value(list(context.grounded_observations), aliases),
+            "grounded_observations": _alias_value(grounded_observations, aliases),
+            "historical_rediscovery_property": self.rediscovery_property if "historical_rediscovery" in self.host_capabilities else None,
+            "blinded_rediscovery": self.blinded_rediscovery,
             "findings": _alias_value(list(context.findings), aliases),
             "exploration_observations": _alias_value(list(context.exploration_observations), aliases),
             "exploration_assessments": _alias_value(list(context.exploration_assessments), aliases),
@@ -231,7 +266,7 @@ class OllamaPlanner:
             "host capability is available; do not stop merely because there are no GAP or "
             "TENSION findings. Do not stop merely because there are no GAP or TENSION "
             "findings while this exploration sequence is pending. "
-            "For quantitative reasoning, use the supplied grounded_observations payloads. These are host-selected discovery inputs and may be used for calculations. Never assume or infer any held-out observation that is not present there. For the historical rediscovery benchmark, the bounded forecast method is the arithmetic midpoint of the relative_atomic_mass values at the observed periods immediately before and after the missing period. Compute that midpoint from the supplied observations; do not guess or use a default numeric value. Do not name or identify the missing element in generated statements; refer to it only as the held-out or missing period position. "            "If 'historical_rediscovery' is listed in available_host_capabilities, make the quantitative forecast from the supplied observations only, include predicted_numeric_value on every quantitative prediction, and use execution_spec.operation='historical_rediscovery' for the bounded held-out test. Do not put the held-out observation into your reasoning unless it is supplied in grounded_observations. "            "You are not an authority over truth. Never claim that "
+            "For quantitative reasoning, use the supplied grounded_observations payloads. These are host-selected discovery inputs and may be used for calculations. Never assume or infer any held-out observation that is not present there. For the historical rediscovery benchmark, the host separately computes a dumb adjacent-neighbour midpoint baseline; do not treat that baseline as the required answer. Produce genuinely competing quantitative forecasts from the supplied observations and the competing hypotheses. The forecasts must be numerically distinct. Do not name or identify the missing element in generated statements; refer to it only as the held-out or missing period position. "            "If 'historical_rediscovery' is listed in available_host_capabilities, make the quantitative forecast from the supplied observations only, provide one predicted_numeric_values entry per hypothesis handle, and use execution_spec.operation='historical_rediscovery' for the bounded held-out test. Do not put the held-out observation into your reasoning unless it is supplied in grounded_observations. "            "You are not an authority over truth. Never claim that "
             "generated text is evidence. Use only identifiers present in the supplied "
             "context. For every target_ids field, COPY the exact id string from the matching context object; "
             "never invent, renumber, abbreviate, normalize, or infer an identifier such as HYPOTHESIS_002. "
@@ -267,8 +302,7 @@ class OllamaPlanner:
             "statement, for example {\"kind\":\"hypothesis\",\"target_ids\":[\"GAP_001\"],\"statement\":\"Candidate explanation\",\"rationale\":\"This creates the first testable candidate for the finding.\"}. "
             "For kind='prediction', target_ids MUST contain at least two existing "
             "hypothesis ids, because a prediction compares hypotheses. For prediction, conditions MUST be a plain JSON string, never an object or array; "
-            "expected_presences MUST be an object mapping each target hypothesis id to a boolean; "
-            "prediction MUST include consequence as a non-empty string. Use the singular consequence field; do not use the consequences array. For quantitative predictions, include predicted_numeric_value as the machine-checkable numeric forecast. "
+            "prediction MUST include consequence as a non-empty string. Use the singular consequence field; do not use the consequences array. For ordinary positional predictions, expected_presences maps each target hypothesis handle to a boolean. For historical rediscovery, do NOT emit expected_presences; emit predicted_numeric_values mapping each target hypothesis handle to its distinct numeric forecast. "
             "Do not emit uncertainty or any other field not listed above. "
             "For kind='experiment', target_ids MUST contain at least two existing "
             "prediction ids and conditions, objective, proposed_observation, The experiment target_ids MUST be copied from the predictions list, never from hypotheses, findings, or experiments; when two predictions exist, copy both prediction id strings verbatim. "
@@ -283,9 +317,14 @@ class OllamaPlanner:
         )
         required_fields = ["kind", "rationale"]
         if len(context.hypotheses) >= 2 and not context.predictions:
-            required_fields.extend(
-                ["target_ids", "conditions", "consequence", "expected_presences", "predicted_numeric_value"]
-            )
+            if "historical_rediscovery" in self.host_capabilities:
+                required_fields.extend(
+                    ["target_ids", "conditions", "consequence", "predicted_numeric_values"]
+                )
+            else:
+                required_fields.extend(
+                    ["target_ids", "conditions", "consequence", "expected_presences", "predicted_numeric_value"]
+                )
         if context.predictions and not context.experiments:
             required_fields.extend(
                 [
@@ -355,7 +394,17 @@ class OllamaPlanner:
                         if context.hypotheses
                         else {"type": "object", "additionalProperties": {"type": "boolean"}}
                     ),
-                    "objective": {"type": "string"},
+                    "predicted_numeric_values": (
+                        {
+                            "type": "object",
+                            "properties": {aliases[item["id"]]: {"type": "number"} for item in context.hypotheses if isinstance(item.get("id"), str)},
+                            "required": [aliases[item["id"]] for item in context.hypotheses if isinstance(item.get("id"), str)],
+                            "additionalProperties": False,
+                        }
+                        if context.hypotheses
+                        else {"type": "object", "additionalProperties": {"type": "number"}}
+                    ),
+**                    "objective": {"type": "string"},
                     "proposed_observation": {"type": "string"},
                     "discrimination_basis": {"type": "string"},
                     "evidence_capability": {"type": "string"},
