@@ -121,6 +121,17 @@ def run_case(model: str, timeout: float, property_key: str, blinded: bool) -> tu
         print(f"held-out value: {fixture.held_out_record.payload[property_key]}")
         print(f"tolerance: {case.tolerance:.3f}")
         print(f"baseline midpoint: {baseline:.6g}")
+        print("hypotheses:")
+        seen_hypotheses: set[str] = set()
+        for context in planner.contexts:
+            for hypothesis in context["hypotheses"]:
+                if hypothesis.id in seen_hypotheses:
+                    continue
+                seen_hypotheses.add(hypothesis.id)
+                print(f"  {hypothesis.id[:8]}: {hypothesis.statement}")
+                print(f"    rationale: {hypothesis.rationale}")
+                if hypothesis.assumptions:
+                    print(f"    assumptions: {'; '.join(hypothesis.assumptions)}")
         print(f"stop reason: {result.stop_reason}")
         for prediction, evaluation in zip(predictions, evaluations):
             print(
