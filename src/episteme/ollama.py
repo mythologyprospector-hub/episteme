@@ -435,8 +435,6 @@ class OllamaPlanner:
 
         return {
             "model": self.model,
-        return {
-            "model": self.model,
             "stream": False,
             "format": schema,
             "messages": [
