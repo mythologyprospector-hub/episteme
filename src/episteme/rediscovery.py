@@ -162,6 +162,29 @@ def build_mendeleev_fixture() -> RediscoveryFixture:
     )
 
 
+def derive_adjacent_midpoint(
+    pre_discovery_records: tuple[Record, ...],
+    *,
+    property_key: str,
+    missing_period: int = 4,
+) -> float:
+    candidates = [
+        record
+        for record in pre_discovery_records
+        if record.payload.get("family") == "group_14"
+    ]
+    by_period = {int(record.payload["period"]): record for record in candidates}
+    if missing_period in by_period:
+        raise ValueError("pre-discovery inputs must not contain the held-out period")
+    if missing_period - 1 not in by_period or missing_period + 1 not in by_period:
+        raise ValueError("pre-discovery inputs must contain the adjacent periods")
+    lower = by_period[missing_period - 1].payload.get(property_key)
+    upper = by_period[missing_period + 1].payload.get(property_key)
+    if lower is None or upper is None:
+        raise ValueError(f"property is missing from adjacent observations: {property_key}")
+    return (float(lower) + float(upper)) / 2.0
+
+
 def derive_mendeleev_mass_prediction(
     pre_discovery_records: tuple[Record, ...],
 ) -> RediscoveryPrediction:
@@ -237,6 +260,7 @@ def evaluate_mendeleev_mass_prediction(
 class RediscoveryExperimentExecutor:
     """Host-owned executor for the Phase 29 held-out observation."""
 
+    property_key: str = "relative_atomic_mass"
     method: str = "phase29_rediscovery"
     method_version: str = "1"
 
@@ -248,7 +272,10 @@ class RediscoveryExperimentExecutor:
         held_out = store.get_record(input_ids[0])
         if held_out is None or held_out.kind is not RecordKind.OBSERVATION:
             raise ValueError("rediscovery experiment requires a held-out observation")
-        observed = float(held_out.payload["relative_atomic_mass"])
+        observed = held_out.payload.get(self.property_key)
+        if observed is None:
+            raise ValueError("rediscovery experiment held-out record lacks property: " + self.property_key)
+        observed = float(observed)
         result = Record(
             id=str(uuid4()),
             kind=RecordKind.RESULT,
@@ -257,6 +284,8 @@ class RediscoveryExperimentExecutor:
                 "executor_version": self.method_version,
                 "experiment_proposal_id": proposal.id,
                 "input_ids": list(input_ids),
+                "property_key": self.property_key,
+                "observed_value": observed,
                 "observed_relative_atomic_mass": observed,
             },
             provenance=(Provenance(
