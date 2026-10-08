@@ -65,6 +65,7 @@ class OllamaPlanner:
     def _request_payload(self, context: DiscoveryContext) -> dict[str, Any]:
         context_data = {
             "grounded_input_ids": list(context.grounded_input_ids),
+            "grounded_observations": list(context.grounded_observations),
             "findings": list(context.findings),
             "exploration_observations": list(context.exploration_observations),
             "exploration_assessments": list(context.exploration_assessments),
@@ -170,7 +171,7 @@ class OllamaPlanner:
             "host capability is available; do not stop merely because there are no GAP or "
             "TENSION findings. Do not stop merely because there are no GAP or TENSION "
             "findings while this exploration sequence is pending. "
-            "You are not an authority over truth. Never claim that "
+            "For quantitative reasoning, use the supplied grounded_observations payloads. These are host-selected discovery inputs and may be used for calculations. Never assume or infer any held-out observation that is not present there. "            "You are not an authority over truth. Never claim that "
             "generated text is evidence. Use only identifiers present in the supplied "
             "context. For every target_ids field, COPY the exact id string from the matching context object; "
             "never invent, renumber, abbreviate, normalize, or infer an identifier such as HYPOTHESIS_002. "
