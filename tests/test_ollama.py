@@ -153,6 +153,7 @@ def test_ollama_prediction_schema_exposes_required_typed_fields():
         "conditions",
         "consequence",
         "expected_presences",
+        "predicted_numeric_value",
     ]
 
 
