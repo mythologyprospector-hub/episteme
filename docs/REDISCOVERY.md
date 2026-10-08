@@ -1,6 +1,6 @@
 # Phase 29 — Rediscovery
 
-**Status:** Implementation underway — bounded rediscovery path under active verification
+**Status:** Phase 29 implementation merged; review-2 hardening is under verification
 
 ## Purpose
 
@@ -135,6 +135,45 @@ Phase 29 deliberately does **not** claim that Episteme can autonomously acquire 
 Phase 28 already provides bounded external acquisition, but its currently registered capability is Crossref metadata. That is useful for evidence retrieval, not a general scientific-observation capability. A future observation-acquisition capability should be added only when a concrete benchmark requires one and its source, measurement semantics, provenance, and independence rules can be specified explicitly.
 
 This limitation is therefore a declared Phase 29 boundary, not a hidden success criterion.
+
+
+## Review-2 benchmark rules
+
+The rediscovery benchmark does not treat model step completion as a scientific pass.
+
+For each property case, the host computes a pre-registered dumb baseline: the arithmetic midpoint of the two observed neighbours immediately surrounding the missing period. The model is allowed to use a different method. A prediction is a benchmark pass only when it is within the pre-registered tolerance and its error is no worse than the host baseline. A tie with the baseline is reported as a tie, not as demonstrated added value.
+
+The initial tolerance is 5% relative error, registered before the held-out value is exposed. This makes a forecast such as 73.4 against a held-out value near 72.6 consistent, while still requiring the same fixed rule for every run.
+
+The benchmark reports, for every prediction:
+
+- held-out value;
+- tolerance;
+- prediction value;
+- deterministic verdict;
+- baseline value and error;
+- model error;
+- whether the model matched or beat the baseline.
+
+The benchmark cases are:
+
+- relative atomic mass;
+- density;
+- melting point, chosen because it is not monotone across the group-14 sequence.
+
+The density and melting-point cases are intentionally harder because the neighbour midpoint is not expected to be as accurate as it is for atomic mass.
+
+### Blinded variant
+
+The ordinary fixture contains historical element labels. The review harness therefore has a blinded mode that replaces those labels with opaque E1-style handles and exposes only the selected property as property_P. The host still retains the real records and the held-out observation.
+
+The held-out record is never included in the planner's grounded observations in either mode.
+
+### Competing numeric predictions
+
+A quantitative discriminating prediction is represented as one numeric forecast per competing hypothesis. Presence flags are not part of the historical-rediscovery numeric contract. The host rejects duplicate numeric forecasts because identical numbers do not discriminate between the competing candidates.
+
+An N=20 mode is available through EPISTEME_OLLAMA_RUNS=20. It reports pass rate and prediction spread rather than reducing repeated stochastic runs to a single step-completion PASS.
 
 ## What comes next
 
