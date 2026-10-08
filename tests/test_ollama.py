@@ -399,3 +399,56 @@ def test_ollama_historical_rediscovery_uses_distinct_numeric_forecasts_without_p
     assert "expected_presences" not in schema["properties"]
     assert "predicted_numeric_values" in schema["required"]
     assert "expected_presences" not in schema["required"]
+
+
+def test_ollama_blinded_rediscovery_context_uses_opaque_entities_and_one_property():
+    payload = {}
+
+    def transport(request):
+        payload.update(request)
+        return {
+            "message": {
+                "content": json.dumps(
+                    {
+                        "kind": "discover_gap",
+                        "rationale": "The host-owned structural pass should identify the missing position.",
+                    }
+                )
+            }
+        }
+
+    context = DiscoveryContext(
+        grounded_input_ids=("observation-1",),
+        findings=(),
+        hypotheses=(),
+        predictions=(),
+        experiments=(),
+        actions_taken=(),
+        grounded_observations=(
+            {
+                "id": "observation-1",
+                "kind": "observation",
+                "payload": {
+                    "label": "silicon",
+                    "family": "group_14",
+                    "period": 3,
+                    "relative_atomic_mass": 28.085,
+                    "density_g_cm3": 2.3296,
+                },
+                "created_at": "1885-12-31T00:00:00+00:00",
+            },
+        ),
+    )
+    OllamaPlanner(
+        "qwen3:8b",
+        transport=transport,
+        host_capabilities=("historical_rediscovery",),
+        rediscovery_property="relative_atomic_mass",
+        blinded_rediscovery=True,
+    ).choose(context)
+
+    user_payload = payload["messages"][1]["content"]
+    assert "silicon" not in user_payload.lower()
+    assert '"entity": "E1"' in user_payload
+    assert '"property_P": 28.085' in user_payload
+    assert '"density_g_cm3"' not in user_payload
