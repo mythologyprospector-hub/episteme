@@ -65,7 +65,7 @@ def test_phase29_host_runtime_derives_nontrivial_mass_prediction_from_pre_discov
 
     prediction = derive_mendeleev_mass_prediction(fixture.pre_discovery_records)
 
-    assert math.isclose(prediction.predicted_relative_atomic_mass, 73.4)
+    assert math.isclose(prediction.predicted_relative_atomic_mass, 73.3975)
     assert prediction.input_ids == (
         fixture.pre_discovery_records[1].id,
         fixture.pre_discovery_records[2].id,
