@@ -171,7 +171,7 @@ class OllamaPlanner:
             "host capability is available; do not stop merely because there are no GAP or "
             "TENSION findings. Do not stop merely because there are no GAP or TENSION "
             "findings while this exploration sequence is pending. "
-            "For quantitative reasoning, use the supplied grounded_observations payloads. These are host-selected discovery inputs and may be used for calculations. Never assume or infer any held-out observation that is not present there. "            "You are not an authority over truth. Never claim that "
+            "For quantitative reasoning, use the supplied grounded_observations payloads. These are host-selected discovery inputs and may be used for calculations. Never assume or infer any held-out observation that is not present there. "            "If 'historical_rediscovery' is listed in available_host_capabilities, make the quantitative forecast from the supplied observations only, include predicted_numeric_value on every quantitative prediction, and use execution_spec.operation='historical_rediscovery' for the bounded held-out test. Do not put the held-out observation into your reasoning unless it is supplied in grounded_observations. "            "You are not an authority over truth. Never claim that "
             "generated text is evidence. Use only identifiers present in the supplied "
             "context. For every target_ids field, COPY the exact id string from the matching context object; "
             "never invent, renumber, abbreviate, normalize, or infer an identifier such as HYPOTHESIS_002. "
@@ -212,9 +212,12 @@ class OllamaPlanner:
             "Do not emit uncertainty or any other field not listed above. "
             "For kind='experiment', target_ids MUST contain at least two existing "
             "prediction ids and conditions, objective, proposed_observation, "
-            "discrimination_basis, and execution_spec are required. execution_spec "
-            "must contain only operation='positional_presence' and numeric position. "
-            "Do not add any other execution_spec fields; the host supplies experiment inputs and prediction expectations. "
+            "discrimination_basis, and execution_spec are required. For a historical "
+            "rediscovery capability, execution_spec must contain only "
+            "operation='historical_rediscovery'; for positional_presence it must contain "
+            "operation='positional_presence' and numeric position. Do not add any other "
+            "execution_spec fields; the host supplies experiment inputs and prediction "
+            "expectations. "
             "Do not name a Python callable, command, URL, or evaluator. For kind='stop', rationale is required. "
             "Always include rationale. If feedback is supplied, it describes a rejected prior action; correct the action instead of repeating the same error."
         )
@@ -284,10 +287,10 @@ class OllamaPlanner:
                     "execution_spec": {
                         "type": "object",
                         "properties": {
-                            "operation": {"type": "string", "enum": ["positional_presence"]},
+                            "operation": {"type": "string", "enum": ["positional_presence", "historical_rediscovery"]},
                             "position": {"type": "number"},
                         },
-                        "required": ["operation", "position"],
+                        "required": ["operation"],
                         "additionalProperties": False,
                     },
                     "rationale": {"type": "string", "minLength": 1},
