@@ -350,3 +350,52 @@ def test_ollama_schema_binds_target_ids_to_pending_discovery_stage():
 
     assert action.kind == "hypothesis"
     assert payload["format"]["properties"]["target_ids"]["items"]["enum"] == ["F1", "F2"]
+
+
+def test_ollama_historical_rediscovery_uses_distinct_numeric_forecasts_without_presence_flags():
+    payload = {}
+
+    def transport(request):
+        payload.update(request)
+        return {
+            "message": {
+                "content": json.dumps(
+                    {
+                        "kind": "prediction",
+                        "target_ids": ["H1", "H2"],
+                        "conditions": "bounded historical fixture",
+                        "consequence": "the missing period has a quantitative property value",
+                        "predicted_numeric_values": {"H1": 71.0, "H2": 74.0},
+                        "rationale": "The competing hypotheses require distinct quantitative forecasts.",
+                    }
+                )
+            }
+        }
+
+    context = DiscoveryContext(
+        grounded_input_ids=(),
+        findings=(),
+        hypotheses=(
+            {"id": "hypothesis-1"},
+            {"id": "hypothesis-2"},
+        ),
+        predictions=(),
+        experiments=(),
+        actions_taken=(),
+    )
+    action = OllamaPlanner(
+        "qwen3:8b",
+        transport=transport,
+        host_capabilities=("historical_rediscovery",),
+    ).choose(context)
+
+    assert action.predicted_numeric_values == {
+        "hypothesis-1": 71.0,
+        "hypothesis-2": 74.0,
+    }
+    assert action.expected_presences is None
+    schema = payload["format"]
+    assert "predicted_numeric_values" in schema["properties"]
+    assert "expected_presences" not in schema["properties"]
+    assert "predicted_numeric_values" in schema["required"]
+    assert "expected_presences" not in schema["required"]
