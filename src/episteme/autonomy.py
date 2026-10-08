@@ -181,6 +181,7 @@ class DiscoveryAction:
 @dataclass(frozen=True, slots=True)
 class DiscoveryContext:
     grounded_input_ids: tuple[str, ...]
+    grounded_observations: tuple[Mapping[str, Any], ...]
     findings: tuple[Mapping[str, Any], ...]
     hypotheses: tuple[Mapping[str, Any], ...]
     predictions: tuple[Mapping[str, Any], ...]
@@ -260,6 +261,15 @@ class DiscoveryRun:
     stop_reason: str | None = None
 
 
+def _grounded_observation_view(record: Any) -> dict[str, Any]:
+    return {
+        "id": record.id,
+        "kind": record.kind.value,
+        "payload": dict(record.payload),
+        "created_at": record.created_at,
+    }
+
+
 def _finding_view(finding: Any) -> dict[str, Any]:
     return {
         "id": finding.id,
@@ -324,8 +334,14 @@ def build_context(
     actions_taken: tuple[DiscoveryAction, ...],
     feedback: tuple[str, ...] = (),
 ) -> DiscoveryContext:
+    grounded_records = tuple(
+        record
+        for record_id in grounded_input_ids
+        if (record := store.get_record(record_id)) is not None
+    )
     return DiscoveryContext(
         grounded_input_ids=tuple(grounded_input_ids),
+        grounded_observations=tuple(_grounded_observation_view(record) for record in grounded_records),
         findings=tuple(_finding_view(item) for item in store.iter_discovery_findings()),
         exploration_observations=tuple(_exploration_observation_view(item) for item in store.iter_exploration_observations()),
         exploration_assessments=tuple(_exploration_assessment_view(item) for item in store.iter_exploration_observation_assessments()),
