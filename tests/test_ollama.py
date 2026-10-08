@@ -114,6 +114,7 @@ def test_ollama_prediction_schema_exposes_required_typed_fields():
                             "H1": True,
                             "H2": False,
                         },
+                        "predicted_numeric_value": 73.4,
                         "rationale": "The competing hypotheses require a discriminating prediction.",
                     }
                 )
