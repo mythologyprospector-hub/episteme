@@ -163,6 +163,7 @@ class OllamaPlanner:
             "exploration_observations": _alias_value(list(context.exploration_observations), aliases),
             "exploration_assessments": _alias_value(list(context.exploration_assessments), aliases),
             "available_host_capabilities": list(self.host_capabilities),
+            "allowed_next_action_kinds": allowed_next_action_kinds,
             "available_evidence_capabilities": list(self.evidence_capabilities),
             "available_evidence_capability_contracts": [
                 {
@@ -244,6 +245,34 @@ class OllamaPlanner:
                 if isinstance(item.get("id"), str)
             )
 
+        # Mirror the core driver's state boundary in the model-visible context.
+        # The JSON schema is still authoritative, but this explicit field gives
+        # smaller local models a simple state-machine signal to follow.
+        if context.predictions and not context.experiments:
+            allowed_next_action_kinds = ["experiment"]
+        elif context.experiments:
+            allowed_next_action_kinds = ["request_evidence", "stop"]
+        elif not candidate_findings:
+            allowed_next_action_kinds = ["discover_gap"]
+        elif pending_findings:
+            count = hypothesis_counts[pending_findings[0]]
+            allowed_next_action_kinds = ["hypothesis", "question"] if count == 0 else ["hypothesis"]
+        elif len(context.hypotheses) >= 2 and not context.predictions:
+            allowed_next_action_kinds = ["prediction"]
+        else:
+            allowed_next_action_kinds = [
+                "scout",
+                "assess_exploration",
+                "admit_exploration",
+                "discover_gap",
+                "question",
+                "hypothesis",
+                "prediction",
+                "experiment",
+                "request_evidence",
+                "stop",
+            ]
+
         target_ids_schema: dict[str, Any] = {"type": "array", "items": {"type": "string"}}
         if target_id_candidates:
             target_ids_schema["items"] = {
@@ -272,6 +301,7 @@ class OllamaPlanner:
             "never invent, renumber, abbreviate, normalize, or infer an identifier such as HYPOTHESIS_002. "
             "In particular, prediction target_ids MUST use the short planner handles shown in the supplied context; never emit the underlying opaque ids. "
             "Prefer a discriminating experiment when competing hypotheses exist. "
+            "The field allowed_next_action_kinds is the host's authoritative next-action boundary for this turn. Choose exactly one kind from that list; never choose a different kind even if another action seems scientifically preferable. "
             "After a GAP or TENSION finding exists with no hypothesis, the ONLY valid candidate-generation action is hypothesis (or question). "
             "A GAP or TENSION is a finding, NOT a hypothesis. Never propose prediction, experiment, request_evidence, or stop while a candidate finding has zero hypotheses. "
             "After exactly one hypothesis exists for the finding, propose a distinct competing hypothesis for the same finding. "
