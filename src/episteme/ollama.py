@@ -369,69 +369,76 @@ class OllamaPlanner:
             count = hypothesis_counts[finding_id]
             allowed_kinds = ["hypothesis", "question"] if count == 0 else ["hypothesis"]
 
+        schema = {
+            "type": "object",
+            "properties": {
+                "kind": {
+                    "type": "string",
+                    "enum": allowed_kinds,
+                },
+                "target_ids": target_ids_schema,
+                "statement": {"type": "string"},
+                "consequence": {"type": "string"},
+                "consequences": {"type": "array", "items": {"type": "string"}},
+                "conditions": {"type": "string"},
+                "expected_presences": (
+                    {
+                        "type": "object",
+                        "properties": {aliases[item["id"]]: {"type": "boolean"} for item in context.hypotheses if isinstance(item.get("id"), str)},
+                        "required": [aliases[item["id"]] for item in context.hypotheses if isinstance(item.get("id"), str)],
+                        "additionalProperties": False,
+                    }
+                    if context.hypotheses
+                    else {"type": "object", "additionalProperties": {"type": "boolean"}}
+                ),
+                "predicted_numeric_values": (
+                    {
+                        "type": "object",
+                        "properties": {aliases[item["id"]]: {"type": "number"} for item in context.hypotheses if isinstance(item.get("id"), str)},
+                        "required": [aliases[item["id"]] for item in context.hypotheses if isinstance(item.get("id"), str)],
+                        "additionalProperties": False,
+                    }
+                    if context.hypotheses
+                    else {"type": "object", "additionalProperties": {"type": "number"}}
+                ),
+                "objective": {"type": "string"},
+                "proposed_observation": {"type": "string"},
+                "discrimination_basis": {"type": "string"},
+                "evidence_capability": {"type": "string"},
+                "evidence_parameters": {
+                    "type": "object",
+                    "properties": {
+                        "rows": {"type": "integer", "minimum": 1, "maximum": 1000},
+                        "query.title": {"type": "string", "minLength": 1},
+                    },
+                    "additionalProperties": False,
+                },
+                "requested_representation": {"type": "string"},
+                "predicted_numeric_value": {"type": "number"},
+                "execution_spec": {
+                    "type": "object",
+                    "properties": {
+                        "operation": {"type": "string", "enum": ["positional_presence", "historical_rediscovery"]},
+                        "position": {"type": "number"},
+                    },
+                    "required": ["operation"],
+                    "additionalProperties": False,
+                },
+                "rationale": {"type": "string", "minLength": 1},
+            },
+            "required": required_fields,
+            "additionalProperties": False,
+        }
+        if "historical_rediscovery" in self.host_capabilities:
+            schema["properties"].pop("expected_presences", None)
+            schema["properties"].pop("predicted_numeric_value", None)
+
+        return {
+            "model": self.model,
         return {
             "model": self.model,
             "stream": False,
-            "format": {
-                "type": "object",
-                "properties": {
-                    "kind": {
-                        "type": "string",
-                        "enum": allowed_kinds,
-                    },
-                    "target_ids": target_ids_schema,
-                    "statement": {"type": "string"},
-                    "consequence": {"type": "string"},
-                    "consequences": {"type": "array", "items": {"type": "string"}},
-                    "conditions": {"type": "string"},
-                    "expected_presences": (
-                        {
-                            "type": "object",
-                            "properties": {aliases[item["id"]]: {"type": "boolean"} for item in context.hypotheses if isinstance(item.get("id"), str)},
-                            "required": [aliases[item["id"]] for item in context.hypotheses if isinstance(item.get("id"), str)],
-                            "additionalProperties": False,
-                        }
-                        if context.hypotheses
-                        else {"type": "object", "additionalProperties": {"type": "boolean"}}
-                    ),
-                    "predicted_numeric_values": (
-                        {
-                            "type": "object",
-                            "properties": {aliases[item["id"]]: {"type": "number"} for item in context.hypotheses if isinstance(item.get("id"), str)},
-                            "required": [aliases[item["id"]] for item in context.hypotheses if isinstance(item.get("id"), str)],
-                            "additionalProperties": False,
-                        }
-                        if context.hypotheses
-                        else {"type": "object", "additionalProperties": {"type": "number"}}
-                    ),
-**                    "objective": {"type": "string"},
-                    "proposed_observation": {"type": "string"},
-                    "discrimination_basis": {"type": "string"},
-                    "evidence_capability": {"type": "string"},
-                    "evidence_parameters": {
-                        "type": "object",
-                        "properties": {
-                            "rows": {"type": "integer", "minimum": 1, "maximum": 1000},
-                            "query.title": {"type": "string", "minLength": 1},
-                        },
-                        "additionalProperties": False,
-                    },
-                    "requested_representation": {"type": "string"},
-                    "predicted_numeric_value": {"type": "number"},
-                    "execution_spec": {
-                        "type": "object",
-                        "properties": {
-                            "operation": {"type": "string", "enum": ["positional_presence", "historical_rediscovery"]},
-                            "position": {"type": "number"},
-                        },
-                        "required": ["operation"],
-                        "additionalProperties": False,
-                    },
-                    "rationale": {"type": "string", "minLength": 1},
-                },
-                "required": required_fields,
-                "additionalProperties": False,
-            },
+            "format": schema,
             "messages": [
                 {"role": "system", "content": system},
                 {
