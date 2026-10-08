@@ -377,11 +377,12 @@ def _validate_execution_spec(
         spec = ExecutableExperimentSpec(**dict(raw))
     except (TypeError, ValueError) as exc:
         raise PlannerActionError(f"invalid execution_spec: {exc}") from exc
-    return {
-        "operation": spec.operation,
-        "position": float(spec.position),
-        "position_key": spec.position_key,
-    }
+    result = {"operation": spec.operation}
+    if spec.position is not None:
+        result["position"] = float(spec.position)
+    if spec.operation == "positional_presence":
+        result["position_key"] = spec.position_key
+    return result
 
 
 
