@@ -1089,7 +1089,7 @@ class Store:
              canonical_json(list(prediction.comparison_hypothesis_ids)),
              prediction.created_at,
              None if prediction.expected_presence is None else int(prediction.expected_presence),
-             prediction.schema_version),
+             prediction.predicted_numeric_value, prediction.schema_version),
         )
         self._connection.commit()
 
@@ -1119,7 +1119,7 @@ class Store:
         rows = self._connection.execute(
             """SELECT id, source_id, consequence, conditions, assumptions, method,
                       method_version, rationale, comparison_hypothesis_ids,
-                      created_at, expected_presence, schema_version
+                      created_at, expected_presence, predicted_numeric_value, schema_version
                FROM predictions ORDER BY created_at, id"""
         )
         for row in rows:
@@ -1131,6 +1131,7 @@ class Store:
                 "comparison_hypothesis_ids": json.loads(row["comparison_hypothesis_ids"]),
                 "created_at": row["created_at"],
                 "expected_presence": None if row["expected_presence"] is None else bool(row["expected_presence"]),
+                "predicted_numeric_value": row["predicted_numeric_value"],
                 "schema_version": row["schema_version"],
             })
 
