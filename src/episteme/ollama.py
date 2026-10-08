@@ -8,7 +8,7 @@ and executes that action.
 from __future__ import annotations
 
 import json
-from typing import Any, Callable
+from typing import Mapping, Any, Callable
 from urllib.request import Request, urlopen
 
 from .autonomy import DiscoveryAction, DiscoveryContext, PlannerActionError
