@@ -78,7 +78,7 @@ def test_ollama_schema_exposes_request_evidence_action():
         findings=(),
         hypotheses=(),
         predictions=({"id": "prediction-1"},),
-        experiments=(),
+        experiments=({"id": "experiment-1"},),
         actions_taken=(),
     )
     action = OllamaPlanner("qwen3:8b", transport=transport, evidence_capabilities=("crossref_works",)).choose(evidence_context)
