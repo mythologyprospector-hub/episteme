@@ -77,6 +77,7 @@ def complete_structural_gap(
         method_version=method_version,
         rationale=rationale,
         assumptions=assumptions,
+        quantitative_rule=quantitative_rule,
         created_at=created_at,
     )
 
