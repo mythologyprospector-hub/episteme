@@ -181,13 +181,13 @@ class DiscoveryAction:
 @dataclass(frozen=True, slots=True)
 class DiscoveryContext:
     grounded_input_ids: tuple[str, ...]
-    grounded_observations: tuple[Mapping[str, Any], ...]
     findings: tuple[Mapping[str, Any], ...]
     hypotheses: tuple[Mapping[str, Any], ...]
     predictions: tuple[Mapping[str, Any], ...]
     experiments: tuple[Mapping[str, Any], ...]
     actions_taken: tuple[DiscoveryAction, ...]
     evaluations: tuple[Mapping[str, Any], ...] = ()
+    grounded_observations: tuple[Mapping[str, Any], ...] = ()
     consequences: tuple[Mapping[str, Any], ...] = ()
     feedback: tuple[str, ...] = ()
     exploration_observations: tuple[Mapping[str, Any], ...] = ()
