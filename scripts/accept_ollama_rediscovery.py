@@ -187,7 +187,8 @@ def run_case(model: str, timeout: float, property_key: str, blinded: bool) -> tu
         successful_forecast = (
             evaluation_integrity_ok
             and experiment_evidence_ok
-            and any(
+            and len(evaluations) == len(predictions)
+            and all(
                 evaluation.outcome is PredictionEvaluationOutcome.CONSISTENT
                 for evaluation in evaluations
             )
@@ -241,7 +242,7 @@ def run_case(model: str, timeout: float, property_key: str, blinded: bool) -> tu
         print(f"evaluation records correctly matched by prediction ID: {evaluation_integrity_ok}")
         print(f"persisted experiment evidence valid: {experiment_evidence_ok}")
         print(
-            "at least one forecast met tolerance and matched or beat baseline: "
+            "every forecast met tolerance and matched or beat baseline: "
             f"{successful_forecast}"
         )
         print(f"held-out hidden: {hidden_ok}; blinded names hidden: {blind_names_ok}")
@@ -256,7 +257,7 @@ def run_case(model: str, timeout: float, property_key: str, blinded: bool) -> tu
             and blind_names_ok
         )
         print(
-            "ACCEPTANCE: PASS — at least one evaluated forecast met tolerance and matched or beat baseline"
+            "ACCEPTANCE: PASS — every evaluated forecast met tolerance and matched or beat baseline"
             if passed else
             "ACCEPTANCE: FAIL"
         )
