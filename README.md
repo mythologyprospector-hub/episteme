@@ -1,4 +1,4 @@
-![Episteme social preview](episteme.jpeg)
+![Episteme social preview](assets/episteme.jpeg)
 
 # Episteme
 
