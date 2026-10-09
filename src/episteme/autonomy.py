@@ -869,6 +869,38 @@ def record_prediction_consequences(
     return tuple(outputs)
 
 
+
+def _host_experiment_assessment(evaluations: tuple[Any, ...]) -> str:
+    """Summarize deterministic prediction evaluations without treating them as truth."""
+    outcomes = [
+        getattr(getattr(item, "outcome", None), "value", getattr(item, "outcome", None))
+        for item in evaluations
+    ]
+    consistent = outcomes.count("consistent")
+    inconsistent = outcomes.count("inconsistent")
+    unresolved = len(outcomes) - consistent - inconsistent
+
+    if not outcomes:
+        return "Host assessment: no prediction evaluations are available."
+    if consistent == len(outcomes):
+        finding = "all evaluated predictions are consistent with the experiment"
+    elif inconsistent == len(outcomes):
+        finding = "all evaluated predictions are contradicted by the experiment"
+    elif consistent and inconsistent:
+        finding = "evaluation outcomes are mixed: some predictions are consistent and others are contradicted"
+    else:
+        finding = "the evaluation does not resolve the predictions"
+
+    details = (
+        f"{consistent} consistent, {inconsistent} inconsistent, "
+        f"{unresolved} unresolved out of {len(outcomes)} evaluation(s)"
+    )
+    return (
+        f"Host-derived experiment assessment: {finding} ({details}). "
+        "Consistency is not proof of truth, and the planner's rationale is not evaluation evidence."
+    )
+
+
 def run_autonomous_discovery(
     store: Any,
     planner: Planner,
@@ -924,10 +956,19 @@ def run_autonomous_discovery(
                     evidence_request_completed=evidence_request_completed,
                 )
                 if action.kind == "stop":
+                    stop_reason = action.rationale
+                    if store.iter_experiment_proposals() if False else False:
+                        pass
+                    evaluations = tuple(store.iter_prediction_evaluations())
+                    if evaluations and tuple(store.iter_experiment_results()):
+                        stop_reason = (
+                            f"{_host_experiment_assessment(evaluations)} "
+                            f"Planner-authored stop rationale (unverified): {action.rationale}"
+                        )
                     return DiscoveryRun(
                         status="stopped",
                         steps=tuple(steps),
-                        stop_reason=action.rationale,
+                        stop_reason=stop_reason,
                     )
                 if action.kind == "scout":
                     if exploration_runtime is None:
