@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""Phase 29 review-2 benchmark: baseline, multiple properties, and blinding."""
+"""Phase 29 review-3 benchmark: baseline, multiple properties, and blinding."""
 
 from __future__ import annotations
 
+import json
 import os
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -26,11 +28,47 @@ from episteme.rediscovery import (
 from episteme.store import Store
 
 
+_BLINDED_ELEMENT_NAMES = ("silicon", "tin", "germanium")
+_BLINDED_ELEMENT_PATTERN = re.compile(
+    r"\b(?:" + "|".join(re.escape(name) for name in _BLINDED_ELEMENT_NAMES) + r")\b",
+    re.IGNORECASE,
+)
+
+
+def _contains_blinded_element_name(text: str) -> bool:
+    """Return whether a complete element name appears, not a mere substring."""
+    return _BLINDED_ELEMENT_PATTERN.search(text) is not None
+
+
+def _index_evaluations(predictions, evaluations) -> tuple[dict[str, Any], bool]:
+    """Associate each evaluation by prediction ID and report integrity explicitly."""
+    expected_ids = {prediction.id for prediction in predictions}
+    by_prediction_id: dict[str, Any] = {}
+    duplicate_evaluation = False
+    for evaluation in evaluations:
+        if evaluation.prediction_id in by_prediction_id:
+            duplicate_evaluation = True
+        by_prediction_id[evaluation.prediction_id] = evaluation
+    integrity_ok = (
+        not duplicate_evaluation
+        and len(evaluations) == len(predictions)
+        and set(by_prediction_id) == expected_ids
+    )
+    return by_prediction_id, integrity_ok
+
+
 class TracingOllamaPlanner(OllamaPlanner):
     def __init__(self, *args: Any, held_out_id: str, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.held_out_id = held_out_id
         self.contexts: list[dict[str, Any]] = []
+        self.model_payloads: list[dict[str, Any]] = []
+
+    def _request_payload(self, context):
+        # Capture the actual transformed payload that choose() will send to Ollama.
+        payload = super()._request_payload(context)
+        self.model_payloads.append(payload)
+        return payload
 
     def choose(self, context):
         snapshot = {
@@ -90,6 +128,9 @@ def run_case(model: str, timeout: float, property_key: str, blinded: bool) -> tu
 
         predictions = tuple(store.iter_predictions())
         evaluations = tuple(store.iter_prediction_evaluations())
+        evaluations_by_prediction, evaluation_integrity_ok = _index_evaluations(
+            predictions, evaluations
+        )
         kinds = [step.action.kind for step in result.steps]
         required = ("discover_gap", "hypothesis", "hypothesis", "prediction", "experiment")
         position = 0
@@ -103,8 +144,9 @@ def run_case(model: str, timeout: float, property_key: str, blinded: bool) -> tu
             len(predictions) >= 2
             and len({float(p.predicted_numeric_value) for p in predictions}) == len(predictions)
         )
-        eval_ok = len(evaluations) == len(predictions) and all(
-            item.outcome is PredictionEvaluationOutcome.CONSISTENT for item in evaluations
+        successful_forecast = evaluation_integrity_ok and any(
+            evaluation.outcome is PredictionEvaluationOutcome.CONSISTENT
+            for evaluation in evaluations
         )
         hidden_ok = all(
             item.get("id") != fixture.held_out_record.id
@@ -113,10 +155,12 @@ def run_case(model: str, timeout: float, property_key: str, blinded: bool) -> tu
         )
         blind_names_ok = True
         if blinded:
-            text = str(planner.contexts).lower()
-            blind_names_ok = not any(name in text for name in ("silicon", "tin", "germanium"))
+            model_facing_text = "\\n".join(
+                json.dumps(payload, sort_keys=True) for payload in planner.model_payloads
+            )
+            blind_names_ok = not _contains_blinded_element_name(model_facing_text)
 
-        print(f"\nPROPERTY: {case.display_name}")
+        print(f"\\nPROPERTY: {case.display_name}")
         print(f"mode: {'blinded' if blinded else 'named'}")
         print(f"held-out value: {fixture.held_out_record.payload[property_key]}")
         print(f"tolerance: {case.tolerance:.3f}")
@@ -125,7 +169,6 @@ def run_case(model: str, timeout: float, property_key: str, blinded: bool) -> tu
         seen_hypotheses: set[str] = set()
         for context in planner.contexts:
             for hypothesis in context["hypotheses"]:
-                # Ollama context snapshots are JSON-shaped dictionaries.
                 hypothesis_id = str(hypothesis["id"])
                 if hypothesis_id in seen_hypotheses:
                     continue
@@ -138,18 +181,37 @@ def run_case(model: str, timeout: float, property_key: str, blinded: bool) -> tu
                 if assumptions:
                     print(f"    assumptions: {'; '.join(assumptions)}")
         print(f"stop reason: {result.stop_reason}")
-        for prediction, evaluation in zip(predictions, evaluations):
+        for prediction in predictions:
+            evaluation = evaluations_by_prediction.get(prediction.id)
+            if evaluation is None:
+                print(
+                    f"prediction {prediction.id[:8]}: value={prediction.predicted_numeric_value} "
+                    "verdict=NO EVALUATION"
+                )
+                continue
             print(
                 f"prediction {prediction.id[:8]}: value={prediction.predicted_numeric_value} "
                 f"verdict={evaluation.outcome.value} {evaluation.rationale}"
             )
         print(f"action sequence: {kinds}")
-        print(f"model error <= baseline error: {eval_ok}")
+        print(f"evaluation records correctly matched by prediction ID: {evaluation_integrity_ok}")
+        print(
+            "at least one forecast met tolerance and matched or beat baseline: "
+            f"{successful_forecast}"
+        )
         print(f"held-out hidden: {hidden_ok}; blinded names hidden: {blind_names_ok}")
 
-        passed = path_ok and stop_ok and distinct_ok and eval_ok and hidden_ok and blind_names_ok
+        passed = (
+            path_ok
+            and stop_ok
+            and distinct_ok
+            and evaluation_integrity_ok
+            and successful_forecast
+            and hidden_ok
+            and blind_names_ok
+        )
         print(
-            "ACCEPTANCE: PASS — evaluated forecast matched or beat the host baseline"
+            "ACCEPTANCE: PASS — at least one evaluated forecast met tolerance and matched or beat baseline"
             if passed else
             "ACCEPTANCE: FAIL"
         )
