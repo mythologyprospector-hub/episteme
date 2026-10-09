@@ -957,10 +957,8 @@ def run_autonomous_discovery(
                 )
                 if action.kind == "stop":
                     stop_reason = action.rationale
-                    if store.iter_experiment_proposals() if False else False:
-                        pass
                     evaluations = tuple(store.iter_prediction_evaluations())
-                    if evaluations and tuple(store.iter_experiment_results()):
+                    if evaluations:
                         stop_reason = (
                             f"{_host_experiment_assessment(evaluations)} "
                             f"Planner-authored stop rationale (unverified): {action.rationale}"
