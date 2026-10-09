@@ -521,9 +521,17 @@ class OllamaPlanner:
                                 else ["positional_presence"]
                             ),
                         },
-                        "position": {"type": "number"},
+                        **(
+                            {}
+                            if "historical_rediscovery" in self.host_capabilities
+                            else {"position": {"type": "number"}}
+                        ),
                     },
-                    "required": ["operation"],
+                    "required": (
+                        ["operation"]
+                        if "historical_rediscovery" in self.host_capabilities
+                        else ["operation", "position"]
+                    ),
                     "additionalProperties": False,
                 },
                 "rationale": {"type": "string", "minLength": 1},

@@ -238,6 +238,8 @@ def test_ollama_experiment_schema_exposes_required_typed_fields():
         "execution_spec",
     ]
     assert "position_key" not in schema["properties"]["execution_spec"]["properties"]
+    assert schema["properties"]["execution_spec"]["properties"]["position"]["type"] == "number"
+    assert schema["properties"]["execution_spec"]["required"] == ["operation", "position"]
 
 
 
@@ -283,6 +285,8 @@ def test_ollama_historical_rediscovery_schema_restricts_execution_operation():
     assert action.execution_spec == {"operation": "historical_rediscovery"}
     execution_schema = payload["format"]["properties"]["execution_spec"]
     assert execution_schema["properties"]["operation"]["enum"] == ["historical_rediscovery"]
+    assert "position" not in execution_schema["properties"]
+    assert execution_schema["required"] == ["operation"]
 
 
 def test_ollama_schema_restricts_kind_to_experiment_after_predictions():
