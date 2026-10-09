@@ -214,6 +214,23 @@ class OllamaPlanner:
             "hypotheses": _alias_value(list(context.hypotheses), aliases),
             "predictions": _alias_value(list(context.predictions), aliases),
             "experiments": _alias_value(list(context.experiments), aliases),
+            # Expose only host-authored categorical outcomes and fixed rationale.
+            # Never forward raw evaluation records, result IDs, or numeric values.
+            "evaluation_feedback": [
+                {
+                    "prediction": aliases.get(item.get("prediction_id"), "unknown_prediction"),
+                    "verdict": item.get("outcome"),
+                    "rationale": {
+                        "consistent": "The host evaluator marked this forecast consistent with the executed result under the registered evaluation rule.",
+                        "inconsistent": "The host evaluator marked this forecast inconsistent with the executed result under the registered evaluation rule.",
+                        "unresolved": "The host evaluator could not resolve this forecast under the registered evaluation rule.",
+                    }[item.get("outcome")],
+                }
+                for item in context.evaluations
+                if context.experiments
+                and isinstance(item.get("prediction_id"), str)
+                and item.get("outcome") in {"consistent", "inconsistent", "unresolved"}
+            ],
             "feedback": list(context.feedback),
             "actions_taken": [
                 {
@@ -346,7 +363,8 @@ class OllamaPlanner:
             "After exactly one hypothesis exists for the finding, propose a distinct competing hypothesis for the same finding. "
             "After two or more "
             "competing hypotheses exist and have no predictions, propose discriminating "
-            "predictions. After competing predictions exist with no experiment, the ONLY "
+            "predictions. The evaluation_feedback field contains only host-authored categorical verdicts and fixed rationales for evaluated predictions. Use it to describe what the registered evaluator concluded; never infer or request the hidden numeric value from it, and never treat a model-generated statement as an evaluation. The planner must not receive held-out result values or hidden entity identity. "
+            "After competing predictions exist with no experiment, the ONLY "
             "valid next action is experiment. If predictions exist and experiments is empty, "
             "NEVER choose request_evidence or stop; choose experiment. Once an experiment has been executed and its result and evaluations are present, request evidence when an explicitly available host capability could materially discriminate the active alternatives; otherwise choose stop. Do not propose another experiment for the same run. Do not stop merely because the GAP has been found; continue "
             "through candidate generation and discrimination until the bounded experiment has "
