@@ -223,13 +223,13 @@ class OllamaPlanner:
                     "rationale": {
                         "consistent": "The host evaluator marked this forecast consistent with the executed result under the registered evaluation rule.",
                         "inconsistent": "The host evaluator marked this forecast inconsistent with the executed result under the registered evaluation rule.",
-                        "unresolved": "The host evaluator could not resolve this forecast under the registered evaluation rule.",
+                        "inconclusive": "The host evaluator could not conclusively evaluate this forecast under the registered evaluation rule.",
                     }[item.get("outcome")],
                 }
                 for item in context.evaluations
                 if context.experiments
                 and isinstance(item.get("prediction_id"), str)
-                and item.get("outcome") in {"consistent", "inconsistent", "unresolved"}
+                and item.get("outcome") in {"consistent", "inconsistent", "inconclusive"}
             ],
             "feedback": list(context.feedback),
             "actions_taken": [
