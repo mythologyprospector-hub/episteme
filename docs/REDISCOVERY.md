@@ -137,11 +137,15 @@ Phase 28 already provides bounded external acquisition, but its currently regist
 This limitation is therefore a declared Phase 29 boundary, not a hidden success criterion.
 
 
-## Review-2 benchmark rules
+## Review-3 benchmark rules
 
 The rediscovery benchmark does not treat model step completion as a scientific pass.
 
-For each property case, the host computes a pre-registered dumb baseline: the arithmetic midpoint of the two observed neighbours immediately surrounding the missing period. The model is allowed to use a different method. A prediction is a benchmark pass only when it is within the pre-registered tolerance and its error is no worse than the host baseline. A tie with the baseline is reported as a tie, not as demonstrated added value.
+For each property case, the host computes a pre-registered baseline: the arithmetic midpoint of the two observed neighbours immediately surrounding the missing period. The model may use a different method. A forecast is individually consistent only when it is within the pre-registered tolerance and its error is no worse than the host baseline.
+
+A competing-hypothesis case passes its forecast criterion when at least one forecast is individually consistent. Every forecast must still receive its own deterministic evaluation, and each evaluation must be associated with its prediction by ID—not by incidental list order. Case acceptance also requires the bounded action path, distinct numeric forecasts, held-out separation, and (in blinded mode) a clean model-facing payload.
+
+The evaluator distinguishes four diagnostic verdicts: `beats_baseline`, `ties_baseline`, `worse_than_baseline`, and `outside_tolerance`. A tie may satisfy the no-worse-than-baseline condition, but it is explicitly **not** evidence of improvement over the baseline.
 
 The initial tolerance is 5% relative error, registered before the held-out value is exposed. This makes a forecast such as 73.4 against a held-out value near 72.6 consistent, while still requiring the same fixed rule for every run.
 
@@ -153,7 +157,7 @@ The benchmark reports, for every prediction:
 - deterministic verdict;
 - baseline value and error;
 - model error;
-- whether the model matched or beat the baseline.
+- whether the forecast beats, ties, or is worse than the baseline.
 
 The benchmark cases are:
 
@@ -166,6 +170,8 @@ The density and melting-point cases are intentionally harder because the neighbo
 ### Blinded variant
 
 The ordinary fixture contains historical element labels. The review harness therefore has a blinded mode that replaces those labels with opaque E1-style handles and exposes only the selected property as property_P. The host still retains the real records and the held-out observation.
+
+The blinding check inspects the transformed payload sent to the model, rather than the host's original internal context. It checks complete element-name tokens so ordinary words containing the same letters (for example, "distinct") do not cause false failures. Model-generated statements are still checked for accidental name leakage.
 
 The held-out record is never included in the planner's grounded observations in either mode.
 
