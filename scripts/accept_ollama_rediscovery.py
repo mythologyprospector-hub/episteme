@@ -30,7 +30,7 @@ from episteme.store import Store
 
 _BLINDED_ELEMENT_NAMES = ("silicon", "tin", "germanium")
 _BLINDED_ELEMENT_PATTERN = re.compile(
-    r"\\b(?:" + "|".join(re.escape(name) for name in _BLINDED_ELEMENT_NAMES) + r")\\b",
+    r"\b(?:" + "|".join(re.escape(name) for name in _BLINDED_ELEMENT_NAMES) + r")\b",
     re.IGNORECASE,
 )
 
