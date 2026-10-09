@@ -334,6 +334,14 @@ class RediscoveryPredictionEvaluator:
             baseline_error = abs(baseline - observed) / abs(observed)
             model_error = abs(predicted - observed) / abs(observed)
             matched = model_error <= self.tolerance and model_error <= baseline_error
+            if model_error > self.tolerance:
+                verdict = "outside_tolerance"
+            elif model_error < baseline_error:
+                verdict = "beats_baseline"
+            elif model_error == baseline_error:
+                verdict = "ties_baseline"
+            else:
+                verdict = "worse_than_baseline"
             outcome = PredictionEvaluationOutcome.CONSISTENT if matched else PredictionEvaluationOutcome.INCONSISTENT
             rationale = (
                 "predicted=" + format(predicted, ".6g")
@@ -342,7 +350,7 @@ class RediscoveryPredictionEvaluator:
                 + "; observed_held_out=" + format(observed, ".6g")
                 + "; model_error=" + format(model_error, ".6g")
                 + "; tolerance=" + format(self.tolerance, ".6g")
-                + "; verdict=" + ("match_or_better_than_baseline" if matched else "not_match_or_better_than_baseline")
+                + "; verdict=" + verdict
             )
             evaluation = PredictionEvaluation(
                 id=str(uuid4()),
