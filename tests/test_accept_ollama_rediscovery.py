@@ -123,17 +123,15 @@ def test_experiment_evidence_rejects_non_finite_forecasts():
 
 
 def test_one_consistent_forecast_cannot_mask_an_inconsistent_forecast():
+    from episteme.model import PredictionEvaluationOutcome
+
     predictions = (
         SimpleNamespace(id="p1"),
         SimpleNamespace(id="p2"),
     )
     evaluations = (
-        SimpleNamespace(prediction_id="p1", outcome=__import__(
-            "episteme.model", fromlist=["PredictionEvaluationOutcome"]
-        ).PredictionEvaluationOutcome.CONSISTENT),
-        SimpleNamespace(prediction_id="p2", outcome=__import__(
-            "episteme.model", fromlist=["PredictionEvaluationOutcome"]
-        ).PredictionEvaluationOutcome.INCONSISTENT),
+        SimpleNamespace(prediction_id="p1", outcome=PredictionEvaluationOutcome.CONSISTENT),
+        SimpleNamespace(prediction_id="p2", outcome=PredictionEvaluationOutcome.INCONSISTENT),
     )
 
     assert not _all_forecasts_consistent(predictions, evaluations)
