@@ -498,3 +498,150 @@ def test_ollama_blinded_rediscovery_context_uses_opaque_entities_and_one_propert
     assert '"entity": "E1"' in user_payload
     assert '"property_P": 28.085' in user_payload
     assert '"density_g_cm3"' not in user_payload
+
+
+def test_ollama_receives_safe_host_evaluation_feedback_without_held_out_details():
+    payload = {}
+
+    def transport(request):
+        payload.update(request)
+        return {
+            "message": {
+                "content": json.dumps(
+                    {
+                        "kind": "stop",
+                        "rationale": "The bounded experiment is complete and no evidence capability is available.",
+                    }
+                )
+            }
+        }
+
+    context = DiscoveryContext(
+        grounded_input_ids=(),
+        findings=(),
+        hypotheses=({"id": "hypothesis-1"},),
+        predictions=({"id": "prediction-1"},),
+        experiments=({"id": "experiment-1"},),
+        actions_taken=(),
+        evaluations=(
+            {
+                "id": "evaluation-secret",
+                "result_id": "result-secret",
+                "prediction_id": "prediction-1",
+                "experiment_proposal_id": "experiment-secret",
+                "outcome": "inconsistent",
+                "observed_value": 938.25,
+                "hidden_identity": "held_out_element",
+            },
+        ),
+    )
+
+    OllamaPlanner("qwen3:8b", transport=transport).choose(context)
+    user_payload = payload["messages"][1]["content"]
+    decoded = json.loads(user_payload)
+
+    assert decoded["evaluation_feedback"] == [
+        {
+            "prediction": "P1",
+            "verdict": "inconsistent",
+            "rationale": (
+                "The host evaluator marked this forecast inconsistent with the executed "
+                "result under the registered evaluation rule."
+            ),
+        }
+    ]
+    assert "938.25" not in user_payload
+    assert "held_out_element" not in user_payload
+    assert "result-secret" not in user_payload
+    assert "evaluation-secret" not in user_payload
+    assert "experiment-secret" not in user_payload
+
+
+def test_ollama_passes_safe_inconclusive_evaluation_feedback():
+    payload = {}
+
+    def transport(request):
+        payload.update(request)
+        return {
+            "message": {
+                "content": json.dumps(
+                    {
+                        "kind": "stop",
+                        "rationale": "The bounded experiment is complete and no evidence capability is available.",
+                    }
+                )
+            }
+        }
+
+    context = DiscoveryContext(
+        grounded_input_ids=(),
+        findings=(),
+        hypotheses=({"id": "hypothesis-1"},),
+        predictions=({"id": "prediction-1"},),
+        experiments=({"id": "experiment-1"},),
+        actions_taken=(),
+        evaluations=(
+            {
+                "id": "evaluation-secret",
+                "result_id": "result-secret",
+                "prediction_id": "prediction-1",
+                "experiment_proposal_id": "experiment-secret",
+                "outcome": "inconclusive",
+                "observed_value": 938.25,
+                "hidden_identity": "held_out_element",
+            },
+        ),
+    )
+
+    OllamaPlanner("qwen3:8b", transport=transport).choose(context)
+    user_payload = payload["messages"][1]["content"]
+    decoded = json.loads(user_payload)
+
+    assert decoded["evaluation_feedback"] == [
+        {
+            "prediction": "P1",
+            "verdict": "inconclusive",
+            "rationale": (
+                "The host evaluator could not conclusively evaluate this forecast "
+                "under the registered evaluation rule."
+            ),
+        }
+    ]
+    assert "938.25" not in user_payload
+    assert "held_out_element" not in user_payload
+    assert "result-secret" not in user_payload
+    assert "evaluation-secret" not in user_payload
+    assert "experiment-secret" not in user_payload
+
+
+def test_ollama_omits_evaluation_feedback_before_an_experiment():
+    payload = {}
+
+    def transport(request):
+        payload.update(request)
+        return {
+            "message": {
+                "content": json.dumps(
+                    {
+                        "kind": "stop",
+                        "rationale": "The bounded exploration has no candidate finding.",
+                    }
+                )
+            }
+        }
+
+    context = DiscoveryContext(
+        grounded_input_ids=(),
+        findings=(),
+        hypotheses=(),
+        predictions=(),
+        experiments=(),
+        actions_taken=(),
+        evaluations=(
+            {"prediction_id": "prediction-1", "outcome": "inconsistent"},
+        ),
+    )
+    OllamaPlanner("qwen3:8b", transport=transport).choose(context)
+    decoded = json.loads(payload["messages"][1]["content"])
+
+    assert decoded["evaluation_feedback"] == []
