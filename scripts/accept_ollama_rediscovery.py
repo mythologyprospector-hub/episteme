@@ -85,6 +85,15 @@ class TracingOllamaPlanner(OllamaPlanner):
         return super().choose(context)
 
 
+def _all_forecasts_consistent(predictions, evaluations) -> bool:
+    """A passing forecast cannot mask another forecast that failed evaluation."""
+    indexed, integrity_ok = _index_evaluations(predictions, evaluations)
+    return bool(predictions) and integrity_ok and all(
+        indexed[prediction.id].outcome is PredictionEvaluationOutcome.CONSISTENT
+        for prediction in predictions
+    )
+
+
 def _validate_experiment_evidence(store, predictions, evaluations, held_out_id: str, property_key: str) -> bool:
     """Require a persisted result for this held-out case and its exact proposal."""
     prediction_ids = {prediction.id for prediction in predictions}
@@ -187,11 +196,7 @@ def run_case(model: str, timeout: float, property_key: str, blinded: bool) -> tu
         successful_forecast = (
             evaluation_integrity_ok
             and experiment_evidence_ok
-            and len(evaluations) == len(predictions)
-            and all(
-                evaluation.outcome is PredictionEvaluationOutcome.CONSISTENT
-                for evaluation in evaluations
-            )
+            and _all_forecasts_consistent(predictions, evaluations)
         )
         hidden_ok = all(
             item.get("id") != fixture.held_out_record.id
