@@ -14,8 +14,16 @@ from episteme.store import Store
 def _evaluation(prediction_id, outcome, evaluation_id=None):
     return SimpleNamespace(
         id=evaluation_id or f"eval-{prediction_id}",
+        result_id=f"result-{prediction_id}",
         prediction_id=prediction_id,
+        experiment_proposal_id="proposal-fixture",
+        comparison_conditions="fixture conditions",
+        assumptions=(),
         outcome=outcome,
+        rationale="fixture evaluation",
+        method="fixture",
+        method_version="1",
+        created_at="2026-10-05T00:00:00Z",
     )
 
 
