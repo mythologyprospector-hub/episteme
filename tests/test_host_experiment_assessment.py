@@ -48,3 +48,34 @@ def test_host_assessment_handles_missing_evaluations():
     summary = _host_experiment_assessment(())
 
     assert summary == "Host assessment: no prediction evaluations are available."
+
+
+
+def test_stop_reason_uses_host_assessment_and_preserves_planner_rationale(monkeypatch):
+    from episteme.autonomy import DiscoveryAction, run_autonomous_discovery
+    from episteme.store import Store
+
+    class StopPlanner:
+        def choose(self, context):
+            return DiscoveryAction(
+                kind="stop",
+                rationale="The model says the experiment succeeded.",
+            )
+
+    with Store() as store:
+        monkeypatch.setattr(
+            store,
+            "iter_prediction_evaluations",
+            lambda: _evaluations("inconsistent"),
+        )
+        result = run_autonomous_discovery(
+            store,
+            StopPlanner(),
+            grounded_input_ids=(),
+            started_at="2026-10-05T00:00:00Z",
+        )
+
+    assert result.status == "stopped"
+    assert "all evaluated predictions are contradicted" in result.stop_reason
+    assert "Planner-authored stop rationale (unverified)" in result.stop_reason
+    assert "The model says the experiment succeeded." in result.stop_reason
