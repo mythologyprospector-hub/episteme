@@ -110,3 +110,14 @@ A repository marked **private** that remains visible to the assistant is to be t
 - Apply this rule even when repository contents are technically accessible through connected tools, local files, search results, prior conversations, or remembered context. Visibility is not authorization.
 
 This rule does not erase the repository's history or declare its ideas worthless. It preserves the record while preventing accidental continuation, reuse, or resurrection of retired work.
+
+
+## Wider-world awareness — standing obligation
+
+Before meaningful design or architecture decisions, inspect relevant repositories in the owner's GitHub landscape, including their canon, actual implementations, capabilities, contracts, and limitations. Use the world-level map as an entry point and follow relationships relevant to the task. Repository state, not conversation memory or assumptions, establishes what currently exists.
+
+Consider other repositories as available capabilities and possible collaborators, not mandatory dependencies. Look for reusable work, complementary capabilities, duplication, and useful bridges; then choose deliberately whether to reuse, connect through an explicit contract, or keep Episteme independent. Independence does not mean isolation; availability does not require integration. Do not manufacture bridges or import another project's authority into Episteme.
+
+**Organs is the shared runtime plumbing for this world.** Account for it when designing and building, and use its actual published contracts when shared runtime capabilities help. This does not make Organs an epistemic authority, replace Episteme's domain truth or provenance, or require every feature to call an organ. Do not duplicate shared capabilities without reason or invent integrations before there is a real need.
+
+Read broadly while respecting project sovereignty. Do not change another repository or create a cross-repository dependency without the authorization required for that consequential change. Record meaningful relationships in the appropriate project documents.
