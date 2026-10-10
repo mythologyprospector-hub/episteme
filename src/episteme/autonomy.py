@@ -10,6 +10,7 @@ from __future__ import annotations
 import re
 
 from dataclasses import dataclass
+from enum import StrEnum
 from typing import Any, Callable, Mapping, Protocol
 
 from .discovery import detect_positional_gap, question_from_finding
@@ -268,7 +269,7 @@ class DiscoveryStep:
     output_ids: tuple[str, ...]
 
 
-class ExperimentAssessmentStatus(str, __import__("enum").Enum):
+class ExperimentAssessmentStatus(StrEnum):
     """Host-derived interpretation of experiment evaluations, not a truth verdict."""
 
     CONSISTENT = "consistent"
