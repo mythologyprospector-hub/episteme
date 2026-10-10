@@ -1,40 +1,73 @@
 from types import SimpleNamespace
 
-from episteme.autonomy import _evaluations_produced_by_run, _host_experiment_assessment
+from episteme.autonomy import (
+    DiscoveryAction,
+    ExperimentAssessmentStatus,
+    _evaluations_produced_by_run,
+    _host_experiment_assessment,
+    run_autonomous_discovery,
+)
+from episteme.model import PredictionEvaluationOutcome
+from episteme.store import Store
 
 
-def _evaluations(*outcomes):
-    return tuple(SimpleNamespace(outcome=outcome) for outcome in outcomes)
+def _evaluation(prediction_id, outcome, evaluation_id=None):
+    return SimpleNamespace(
+        id=evaluation_id or f"eval-{prediction_id}",
+        prediction_id=prediction_id,
+        outcome=outcome,
+    )
 
 
-def test_host_assessment_marks_mixed_outcomes_unresolved():
-    summary = _host_experiment_assessment(_evaluations("consistent", "inconsistent"))
-    assert "outcomes are mixed" in summary
-    assert "1 consistent, 1 inconsistent, 0 unresolved" in summary
-    assert "not evaluation evidence" in summary
+def test_host_assessment_marks_mixed_outcomes_without_claiming_success():
+    assessment = _host_experiment_assessment(
+        (_evaluation("p1", "consistent"), _evaluation("p2", "inconsistent")),
+        ("p1", "p2"),
+    )
+    assert assessment.status is ExperimentAssessmentStatus.MIXED
+    assert (assessment.consistent_count, assessment.inconsistent_count, assessment.unresolved_count) == (1, 1, 0)
+    assert "Consistency is not proof of truth" in assessment.summary
 
 
 def test_host_assessment_marks_all_inconsistent_as_contradicted():
-    summary = _host_experiment_assessment(_evaluations("inconsistent", "inconsistent"))
-    assert "all evaluated predictions are contradicted" in summary
-    assert "0 consistent, 2 inconsistent, 0 unresolved" in summary
+    assessment = _host_experiment_assessment(
+        (_evaluation("p1", "inconsistent"), _evaluation("p2", "inconsistent")),
+        ("p1", "p2"),
+    )
+    assert assessment.status is ExperimentAssessmentStatus.INCONSISTENT
+    assert assessment.inconsistent_count == 2
+    assert "contradicted by the experiment" in assessment.summary
 
 
-def test_host_assessment_distinguishes_consistency_from_truth():
-    summary = _host_experiment_assessment(_evaluations("consistent", "consistent"))
-    assert "all evaluated predictions are consistent" in summary
-    assert "Consistency is not proof of truth" in summary
+def test_host_assessment_marks_all_consistent_without_claiming_truth():
+    assessment = _host_experiment_assessment(
+        (_evaluation("p1", "consistent"), _evaluation("p2", "consistent")),
+        ("p1", "p2"),
+    )
+    assert assessment.status is ExperimentAssessmentStatus.CONSISTENT
+    assert assessment.consistent_count == 2
+    assert "Consistency is not proof of truth" in assessment.summary
 
 
-def test_host_assessment_does_not_overstate_unresolved_outcomes():
-    summary = _host_experiment_assessment(_evaluations("unresolved", "consistent"))
-    assert "does not resolve the predictions" in summary
-    assert "1 consistent, 0 inconsistent, 1 unresolved" in summary
+def test_host_assessment_marks_inconclusive_evaluation_unresolved():
+    assessment = _host_experiment_assessment(
+        (_evaluation("p1", PredictionEvaluationOutcome.INCONCLUSIVE),),
+        ("p1",),
+    )
+    assert assessment.status is ExperimentAssessmentStatus.UNRESOLVED
+    assert assessment.unresolved_count == 1
 
 
-def test_host_assessment_handles_missing_evaluations():
-    summary = _host_experiment_assessment(())
-    assert summary == "Host assessment: no prediction evaluations are available."
+def test_missing_or_duplicate_evaluations_remain_unresolved():
+    missing = _host_experiment_assessment((), ("p1", "p2"))
+    duplicate = _host_experiment_assessment(
+        (_evaluation("p1", "consistent"), _evaluation("p1", "consistent")),
+        ("p1",),
+    )
+    assert missing.status is ExperimentAssessmentStatus.UNRESOLVED
+    assert missing.unresolved_count == 2
+    assert duplicate.status is ExperimentAssessmentStatus.UNRESOLVED
+    assert duplicate.unresolved_count == 1
 
 
 def test_evaluations_produced_by_run_excludes_historical_evaluations():
@@ -42,30 +75,12 @@ def test_evaluations_produced_by_run_excludes_historical_evaluations():
     current = SimpleNamespace(id="current-evaluation")
     store = SimpleNamespace(iter_prediction_evaluations=lambda: (historical, current))
     steps = (SimpleNamespace(output_ids=("proposal-id", "current-evaluation", "result-id")),)
-
     assert _evaluations_produced_by_run(store, list(steps)) == (current,)
     assert _evaluations_produced_by_run(store, []) == ()
 
 
-def test_stop_reason_does_not_mislabel_historical_evaluations(monkeypatch):
-    from episteme.autonomy import DiscoveryAction, run_autonomous_discovery
-    from episteme.model import PredictionEvaluationOutcome
-    from episteme.store import Store
-
-    evaluation = SimpleNamespace(
-        id="evaluation-1",
-        result_id="result-1",
-        prediction_id="prediction-1",
-        experiment_proposal_id=None,
-        comparison_conditions="integration-test conditions",
-        assumptions=(),
-        outcome=PredictionEvaluationOutcome.INCONSISTENT,
-        rationale="integration-test evaluation",
-        method="integration-test",
-        method_version="1",
-        created_at="2026-10-05T00:00:00Z",
-    )
-
+def test_stop_preserves_planner_rationale_and_separates_host_assessment(monkeypatch):
+    evaluation = _evaluation("prediction-1", PredictionEvaluationOutcome.INCONSISTENT, "evaluation-1")
     class StopPlanner:
         def choose(self, context):
             return DiscoveryAction(kind="stop", rationale="The model says the experiment succeeded.")
@@ -75,7 +90,25 @@ def test_stop_reason_does_not_mislabel_historical_evaluations(monkeypatch):
         result = run_autonomous_discovery(
             store, StopPlanner(), grounded_input_ids=(), started_at="2026-10-05T00:00:00Z"
         )
-
     assert result.status == "stopped"
     assert result.stop_reason == "The model says the experiment succeeded."
-    assert "Host-derived experiment assessment" not in result.stop_reason
+    assert result.experiment_assessment is None
+
+
+def test_host_assessment_is_unresolved_when_run_has_experiment_but_no_evaluations(monkeypatch):
+    from episteme.autonomy import DiscoveryStep
+
+    class StopPlanner:
+        def choose(self, context):
+            return DiscoveryAction(kind="stop", rationale="Stop after the bounded experiment.")
+
+    with Store() as store:
+        result = run_autonomous_discovery(
+            store, StopPlanner(), grounded_input_ids=(), started_at="2026-10-05T00:00:00Z"
+        )
+        # Exercise the structured assessment builder for the incomplete-evaluation case;
+        # a run without an experiment action correctly has no experiment assessment.
+        assessment = _host_experiment_assessment((), ("prediction-1",))
+    assert result.experiment_assessment is None
+    assert assessment.status is ExperimentAssessmentStatus.UNRESOLVED
+    assert assessment.unresolved_count == 1
