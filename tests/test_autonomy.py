@@ -320,6 +320,9 @@ def test_experiment_is_executed_evaluated_and_changes_planner_knowledge_state():
         assert len(result.steps[3].output_ids) == 1 + 1 + 2 + 2
         assert planner.state_observed is True
         assert result.stop_reason is not None
+        assert "Host-derived experiment assessment:" in result.stop_reason
+        assert "1 consistent, 1 inconsistent, 0 unresolved out of 2 evaluation(s)" in result.stop_reason
+        assert "Planner-authored stop rationale (unverified):" in result.stop_reason
 
 class RecoveringPlanner:
     def __init__(self):
