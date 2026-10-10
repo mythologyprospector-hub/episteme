@@ -320,9 +320,14 @@ def test_experiment_is_executed_evaluated_and_changes_planner_knowledge_state():
         assert len(result.steps[3].output_ids) == 1 + 1 + 2 + 2
         assert planner.state_observed is True
         assert result.stop_reason is not None
-        assert "Host-derived experiment assessment:" in result.stop_reason
-        assert "1 consistent, 1 inconsistent, 0 unresolved out of 2 evaluation(s)" in result.stop_reason
-        assert "Planner-authored stop rationale (unverified):" in result.stop_reason
+        assert result.experiment_assessment is not None
+        assert result.experiment_assessment.status.value == "mixed"
+        assert result.experiment_assessment.prediction_count == 2
+        assert result.experiment_assessment.evaluation_count == 2
+        assert result.experiment_assessment.consistent_count == 1
+        assert result.experiment_assessment.inconsistent_count == 1
+        assert result.experiment_assessment.unresolved_count == 0
+        assert "Consistency is not proof of truth" in result.experiment_assessment.summary
 
 class RecoveringPlanner:
     def __init__(self):
