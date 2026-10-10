@@ -10,6 +10,7 @@ from __future__ import annotations
 import re
 
 from dataclasses import dataclass
+from enum import StrEnum
 from typing import Any, Callable, Mapping, Protocol
 
 from .discovery import detect_positional_gap, question_from_finding
@@ -268,11 +269,52 @@ class DiscoveryStep:
     output_ids: tuple[str, ...]
 
 
+class ExperimentAssessmentStatus(StrEnum):
+    """Host-derived interpretation of experiment evaluations, not a truth verdict."""
+
+    CONSISTENT = "consistent"
+    INCONSISTENT = "inconsistent"
+    MIXED = "mixed"
+    UNRESOLVED = "unresolved"
+
+
+@dataclass(frozen=True, slots=True)
+class ExperimentAssessment:
+    """Structured host-derived assessment kept separate from execution status."""
+
+    status: ExperimentAssessmentStatus
+    prediction_count: int
+    evaluation_count: int
+    consistent_count: int
+    inconsistent_count: int
+    unresolved_count: int
+    evaluation_ids: tuple[str, ...]
+
+    @property
+    def summary(self) -> str:
+        if self.status is ExperimentAssessmentStatus.CONSISTENT:
+            finding = "all evaluated predictions are consistent with the experiment"
+        elif self.status is ExperimentAssessmentStatus.INCONSISTENT:
+            finding = "all evaluated predictions are contradicted by the experiment"
+        elif self.status is ExperimentAssessmentStatus.MIXED:
+            finding = "evaluation outcomes are mixed"
+        else:
+            finding = "the experiment does not resolve all expected predictions"
+        return (
+            f"Host-derived experiment assessment: {finding} "
+            f"({self.consistent_count} consistent, {self.inconsistent_count} inconsistent, "
+            f"{self.unresolved_count} unresolved out of {self.prediction_count} expected "
+            f"prediction(s); {self.evaluation_count} evaluation record(s)). "
+            "Consistency is not proof of truth."
+        )
+
+
 @dataclass(frozen=True, slots=True)
 class DiscoveryRun:
     status: str
     steps: tuple[DiscoveryStep, ...]
     stop_reason: str | None = None
+    experiment_assessment: ExperimentAssessment | None = None
 
 
 def _grounded_observation_view(record: Any) -> dict[str, Any]:
@@ -869,6 +911,82 @@ def record_prediction_consequences(
     return tuple(outputs)
 
 
+
+def _host_experiment_assessment(
+    evaluations: tuple[Any, ...],
+    expected_prediction_ids: tuple[str, ...],
+) -> ExperimentAssessment:
+    """Build a host-derived assessment; missing or duplicate evaluations remain unresolved."""
+    by_prediction: dict[str, list[Any]] = {}
+    for evaluation in evaluations:
+        by_prediction.setdefault(evaluation.prediction_id, []).append(evaluation)
+
+    consistent = 0
+    inconsistent = 0
+    unresolved = 0
+    for prediction_id in expected_prediction_ids:
+        matches = by_prediction.get(prediction_id, [])
+        if len(matches) != 1:
+            unresolved += 1
+            continue
+        outcome = getattr(
+            getattr(matches[0], "outcome", None),
+            "value",
+            getattr(matches[0], "outcome", None),
+        )
+        if outcome == "consistent":
+            consistent += 1
+        elif outcome == "inconsistent":
+            inconsistent += 1
+        else:
+            unresolved += 1
+
+    if consistent and inconsistent:
+        status = ExperimentAssessmentStatus.MIXED
+    elif unresolved or not expected_prediction_ids:
+        status = ExperimentAssessmentStatus.UNRESOLVED
+    elif consistent == len(expected_prediction_ids):
+        status = ExperimentAssessmentStatus.CONSISTENT
+    else:
+        status = ExperimentAssessmentStatus.INCONSISTENT
+
+    return ExperimentAssessment(
+        status=status,
+        prediction_count=len(expected_prediction_ids),
+        evaluation_count=len(evaluations),
+        consistent_count=consistent,
+        inconsistent_count=inconsistent,
+        unresolved_count=unresolved,
+        evaluation_ids=tuple(item.id for item in evaluations),
+    )
+
+
+def _prediction_ids_produced_by_run(steps: tuple[DiscoveryStep, ...] | list[DiscoveryStep]) -> tuple[str, ...]:
+    """Return prediction IDs emitted by prediction actions in this run."""
+    return tuple(
+        output_id
+        for step in steps
+        if step.action.kind == "prediction"
+        for output_id in step.output_ids
+    )
+
+
+def _evaluations_produced_by_run(store: Any, steps: list[DiscoveryStep]) -> tuple[Any, ...]:
+    """Return only evaluations whose IDs were emitted by this discovery run."""
+    run_output_ids = {
+        output_id
+        for step in steps
+        for output_id in step.output_ids
+    }
+    if not run_output_ids:
+        return ()
+    return tuple(
+        evaluation
+        for evaluation in store.iter_prediction_evaluations()
+        if evaluation.id in run_output_ids
+    )
+
+
 def run_autonomous_discovery(
     store: Any,
     planner: Planner,
@@ -924,10 +1042,19 @@ def run_autonomous_discovery(
                     evidence_request_completed=evidence_request_completed,
                 )
                 if action.kind == "stop":
+                    run_steps = tuple(steps)
+                    experiment_assessment = None
+                    if any(step.action.kind == "experiment" for step in run_steps):
+                        evaluations = _evaluations_produced_by_run(store, steps)
+                        experiment_assessment = _host_experiment_assessment(
+                            evaluations,
+                            _prediction_ids_produced_by_run(run_steps),
+                        )
                     return DiscoveryRun(
                         status="stopped",
-                        steps=tuple(steps),
+                        steps=run_steps,
                         stop_reason=action.rationale,
+                        experiment_assessment=experiment_assessment,
                     )
                 if action.kind == "scout":
                     if exploration_runtime is None:
