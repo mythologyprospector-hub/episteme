@@ -901,6 +901,22 @@ def _host_experiment_assessment(evaluations: tuple[Any, ...]) -> str:
     )
 
 
+def _evaluations_produced_by_run(store: Any, steps: list[DiscoveryStep]) -> tuple[Any, ...]:
+    """Return only evaluations whose IDs were emitted by this discovery run."""
+    run_output_ids = {
+        output_id
+        for step in steps
+        for output_id in step.output_ids
+    }
+    if not run_output_ids:
+        return ()
+    return tuple(
+        evaluation
+        for evaluation in store.iter_prediction_evaluations()
+        if evaluation.id in run_output_ids
+    )
+
+
 def run_autonomous_discovery(
     store: Any,
     planner: Planner,
@@ -957,7 +973,7 @@ def run_autonomous_discovery(
                 )
                 if action.kind == "stop":
                     stop_reason = action.rationale
-                    evaluations = tuple(store.iter_prediction_evaluations())
+                    evaluations = _evaluations_produced_by_run(store, steps)
                     if evaluations:
                         stop_reason = (
                             f"{_host_experiment_assessment(evaluations)} "
