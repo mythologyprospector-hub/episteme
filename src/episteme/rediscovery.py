@@ -29,6 +29,20 @@ class RediscoveryFixture:
     held_out_record: Record
 
 
+@dataclass(frozen=True)
+class RediscoveryBenchmarkCase:
+    property_key: str
+    display_name: str
+    tolerance: float = 0.05
+
+
+REDISCOVERY_CASES = (
+    RediscoveryBenchmarkCase("relative_atomic_mass", "relative atomic mass"),
+    RediscoveryBenchmarkCase("density_g_cm3", "density (g/cm^3)"),
+    RediscoveryBenchmarkCase("melting_point_c", "melting point (C)"),
+)
+
+
 class RediscoveryOutcome(str, Enum):
     MATCHED = "matched"
     PARTIAL = "partial"
@@ -78,6 +92,7 @@ def build_mendeleev_fixture() -> RediscoveryFixture:
                 "period": 2,
                 "relative_atomic_mass": 12.01,
                 "density_g_cm3": 2.26,
+                "melting_point_c": 3825.0,
             },
             provenance=provenance,
             created_at=FIXTURE_CAPTURED_AT,
@@ -89,8 +104,9 @@ def build_mendeleev_fixture() -> RediscoveryFixture:
                 "label": "silicon",
                 "family": "group_14",
                 "period": 3,
-                "relative_atomic_mass": 28.09,
-                "density_g_cm3": 2.33,
+                "relative_atomic_mass": 28.085,
+                "density_g_cm3": 2.3296,
+                "melting_point_c": 1414.0,
             },
             provenance=provenance,
             created_at=FIXTURE_CAPTURED_AT,
@@ -102,8 +118,9 @@ def build_mendeleev_fixture() -> RediscoveryFixture:
                 "label": "tin",
                 "family": "group_14",
                 "period": 5,
-                "relative_atomic_mass": 118.71,
-                "density_g_cm3": 7.31,
+                "relative_atomic_mass": 118.710,
+                "density_g_cm3": 7.287,
+                "melting_point_c": 231.928,
             },
             provenance=provenance,
             created_at=FIXTURE_CAPTURED_AT,
@@ -116,7 +133,8 @@ def build_mendeleev_fixture() -> RediscoveryFixture:
                 "family": "group_14",
                 "period": 6,
                 "relative_atomic_mass": 207.2,
-                "density_g_cm3": 11.34,
+                "density_g_cm3": 11.3,
+                "melting_point_c": 327.462,
             },
             provenance=provenance,
             created_at=FIXTURE_CAPTURED_AT,
@@ -130,8 +148,9 @@ def build_mendeleev_fixture() -> RediscoveryFixture:
             "label": "held_out_element",
             "family": "group_14",
             "period": 4,
-            "relative_atomic_mass": 72.32,
-            "density_g_cm3": 5.47,
+            "relative_atomic_mass": 72.630,
+            "density_g_cm3": 5.3234,
+            "melting_point_c": 938.25,
         },
         provenance=provenance,
         created_at="1886-12-31T00:00:00+00:00",
@@ -141,6 +160,29 @@ def build_mendeleev_fixture() -> RediscoveryFixture:
         pre_discovery_records=pre_discovery,
         held_out_record=held_out,
     )
+
+
+def derive_adjacent_midpoint(
+    pre_discovery_records: tuple[Record, ...],
+    *,
+    property_key: str,
+    missing_period: int = 4,
+) -> float:
+    candidates = [
+        record
+        for record in pre_discovery_records
+        if record.payload.get("family") == "group_14"
+    ]
+    by_period = {int(record.payload["period"]): record for record in candidates}
+    if missing_period in by_period:
+        raise ValueError("pre-discovery inputs must not contain the held-out period")
+    if missing_period - 1 not in by_period or missing_period + 1 not in by_period:
+        raise ValueError("pre-discovery inputs must contain the adjacent periods")
+    lower = by_period[missing_period - 1].payload.get(property_key)
+    upper = by_period[missing_period + 1].payload.get(property_key)
+    if lower is None or upper is None:
+        raise ValueError(f"property is missing from adjacent observations: {property_key}")
+    return (float(lower) + float(upper)) / 2.0
 
 
 def derive_mendeleev_mass_prediction(
@@ -218,6 +260,7 @@ def evaluate_mendeleev_mass_prediction(
 class RediscoveryExperimentExecutor:
     """Host-owned executor for the Phase 29 held-out observation."""
 
+    property_key: str = "relative_atomic_mass"
     method: str = "phase29_rediscovery"
     method_version: str = "1"
 
@@ -229,7 +272,10 @@ class RediscoveryExperimentExecutor:
         held_out = store.get_record(input_ids[0])
         if held_out is None or held_out.kind is not RecordKind.OBSERVATION:
             raise ValueError("rediscovery experiment requires a held-out observation")
-        observed = float(held_out.payload["relative_atomic_mass"])
+        observed = held_out.payload.get(self.property_key)
+        if observed is None:
+            raise ValueError("rediscovery experiment held-out record lacks property: " + self.property_key)
+        observed = float(observed)
         result = Record(
             id=str(uuid4()),
             kind=RecordKind.RESULT,
@@ -238,6 +284,8 @@ class RediscoveryExperimentExecutor:
                 "executor_version": self.method_version,
                 "experiment_proposal_id": proposal.id,
                 "input_ids": list(input_ids),
+                "property_key": self.property_key,
+                "observed_value": observed,
                 "observed_relative_atomic_mass": observed,
             },
             provenance=(Provenance(
@@ -258,6 +306,7 @@ class RediscoveryPredictionEvaluator:
     """Host-owned deterministic evaluator for the quantitative benchmark."""
 
     pre_discovery_records: tuple[Record, ...]
+    property_key: str = "relative_atomic_mass"
     tolerance: float = 0.05
     method: str = "phase29_rediscovery_evaluation"
     method_version: str = "1"
@@ -272,22 +321,28 @@ class RediscoveryPredictionEvaluator:
             raise ValueError("tolerance must be between 0 and 1")
         if {p.id for p in predictions} != set(proposal.prediction_ids):
             raise ValueError("predictions must exactly match the experiment proposal")
-        observed = float(result.payload["observed_relative_atomic_mass"])
-        expected = derive_mendeleev_mass_prediction(self.pre_discovery_records)
+        observed = float(result.payload["observed_value"])
+        baseline = derive_adjacent_midpoint(
+            self.pre_discovery_records,
+            property_key=self.property_key,
+        )
         evaluations = []
         for prediction in predictions:
             if prediction.predicted_numeric_value is None:
                 raise ValueError("rediscovery prediction requires predicted_numeric_value")
             predicted = float(prediction.predicted_numeric_value)
-            expected_error = abs(predicted - expected.predicted_relative_atomic_mass) / expected.predicted_relative_atomic_mass
-            observed_error = abs(predicted - observed) / observed
-            matched = expected_error <= self.tolerance and observed_error <= self.tolerance
+            baseline_error = abs(baseline - observed) / abs(observed)
+            model_error = abs(predicted - observed) / abs(observed)
+            matched = model_error <= self.tolerance and model_error <= baseline_error
             outcome = PredictionEvaluationOutcome.CONSISTENT if matched else PredictionEvaluationOutcome.INCONSISTENT
             rationale = (
                 "predicted=" + format(predicted, ".6g")
-                + "; expected_pre_discovery=" + format(expected.predicted_relative_atomic_mass, ".6g")
+                + "; baseline=" + format(baseline, ".6g")
+                + "; baseline_error=" + format(baseline_error, ".6g")
                 + "; observed_held_out=" + format(observed, ".6g")
+                + "; model_error=" + format(model_error, ".6g")
                 + "; tolerance=" + format(self.tolerance, ".6g")
+                + "; verdict=" + ("match_or_better_than_baseline" if matched else "not_match_or_better_than_baseline")
             )
             evaluation = PredictionEvaluation(
                 id=str(uuid4()),

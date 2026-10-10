@@ -65,7 +65,7 @@ def test_phase29_host_runtime_derives_nontrivial_mass_prediction_from_pre_discov
 
     prediction = derive_mendeleev_mass_prediction(fixture.pre_discovery_records)
 
-    assert math.isclose(prediction.predicted_relative_atomic_mass, 73.4)
+    assert math.isclose(prediction.predicted_relative_atomic_mass, 73.3975)
     assert prediction.input_ids == (
         fixture.pre_discovery_records[1].id,
         fixture.pre_discovery_records[2].id,
@@ -85,7 +85,7 @@ def test_phase29_deterministic_evaluator_matches_later_held_out_observation():
     )
 
     assert evaluation.outcome is RediscoveryOutcome.MATCHED
-    assert evaluation.observed_relative_atomic_mass == 72.32
+    assert evaluation.observed_relative_atomic_mass == 72.63
     assert evaluation.relative_error < 0.02
 
 
@@ -184,10 +184,12 @@ def test_phase29_runtime_executes_and_evaluates_through_host_experiment_boundary
         )
 
         assert result.payload["input_ids"] == [fixture.held_out_record.id]
-        assert result.payload["observed_relative_atomic_mass"] == 72.32
+        assert result.payload["observed_relative_atomic_mass"] == 72.63
         assert evaluations[0].outcome is PredictionEvaluationOutcome.CONSISTENT
-        assert "73.4" in evaluations[0].rationale
-        assert "72.32" in evaluations[0].rationale
+        assert "73.3975" in evaluations[0].rationale
+        assert "72.63" in evaluations[0].rationale
+        assert "baseline_error" in evaluations[0].rationale
+        assert "model_error" in evaluations[0].rationale
 
 
 def test_phase29_experiment_rejects_identity_distinct_clone_of_discovery_record():
@@ -216,4 +218,78 @@ def test_phase29_experiment_rejects_identity_distinct_clone_of_discovery_record(
         else:
             raise AssertionError(
                 "identity-distinct clone must not qualify as independent held-out evidence"
+            )
+
+
+def test_phase29_baseline_reports_property_specific_errors():
+    from episteme.rediscovery import REDISCOVERY_CASES, derive_adjacent_midpoint
+
+    fixture = build_mendeleev_fixture()
+    expected = {
+        "relative_atomic_mass": 73.3975,
+        "density_g_cm3": 4.8083,
+        "melting_point_c": 822.964,
+    }
+    for case in REDISCOVERY_CASES:
+        baseline = derive_adjacent_midpoint(
+            fixture.pre_discovery_records,
+            property_key=case.property_key,
+        )
+        assert math.isclose(baseline, expected[case.property_key])
+
+
+def test_phase29_numeric_predictions_must_be_distinct():
+    import pytest
+    from episteme.autonomy import DiscoveryAction, PlannerActionError
+
+    with pytest.raises(PlannerActionError, match="distinct predicted values"):
+        DiscoveryAction(
+            kind="prediction",
+            target_ids=("one", "two"),
+            conditions="bounded",
+            consequence="numeric forecast",
+            predicted_numeric_values={"one": 73.4, "two": 73.4},
+            rationale="distinctness test",
+        )
+
+
+def test_phase29_duplicate_competing_hypothesis_is_rejected():
+    import pytest
+    from episteme.autonomy import DiscoveryAction, PlannerActionError, execute_action
+    from episteme.store import Store
+
+    fixture = build_mendeleev_fixture()
+    with Store() as store:
+        for record in fixture.pre_discovery_records:
+            store.put_record(record)
+        finding = detect_positional_gap(
+            store,
+            tuple(record.id for record in fixture.pre_discovery_records),
+            "period",
+            1.0,
+            FIXTURE_CAPTURED_AT,
+        )
+        assert finding is not None
+        store.put_discovery_finding(finding)
+        first = complete_structural_gap(
+            store,
+            gap_id=finding.id,
+            statement="the candidate follows a regular group trend",
+            method="test",
+            method_version="1",
+            rationale="first candidate",
+            created_at=FIXTURE_CAPTURED_AT,
+        )
+        store.put_hypothesis(first)
+
+        with pytest.raises(PlannerActionError, match="duplicate hypothesis statement"):
+            execute_action(
+                store,
+                DiscoveryAction(
+                    kind="hypothesis",
+                    target_ids=(finding.id,),
+                    statement="the candidate follows a regular group trend",
+                    rationale="duplicate candidate",
+                ),
+                created_at=FIXTURE_CAPTURED_AT,
             )

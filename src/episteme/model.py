@@ -904,6 +904,7 @@ class Hypothesis:
     rationale: str
     assumptions: tuple[str, ...]
     created_at: str
+    quantitative_rule: Mapping[str, Any] | None = None
     schema_version: int = SCHEMA_VERSION
 
     def __post_init__(self) -> None:
@@ -920,6 +921,10 @@ class Hypothesis:
         _require_text(self.rationale, "rationale")
         for value in self.assumptions:
             _require_text(value, "assumption")
+        if self.quantitative_rule is not None:
+            if not isinstance(self.quantitative_rule, Mapping) or not self.quantitative_rule:
+                raise ValueError("quantitative_rule must be a non-empty mapping when supplied")
+            canonical_json(dict(self.quantitative_rule))
         _require_iso_timestamp(self.created_at, "created_at")
         if self.schema_version != SCHEMA_VERSION:
             raise ValueError(f"unsupported schema_version: {self.schema_version}")
@@ -929,6 +934,7 @@ class Hypothesis:
                 "finding_ids": list(self.finding_ids), "input_ids": list(self.input_ids),
                 "method": self.method, "method_version": self.method_version,
                 "rationale": self.rationale, "assumptions": list(self.assumptions),
+                "quantitative_rule": dict(self.quantitative_rule) if self.quantitative_rule is not None else None,
                 "created_at": self.created_at, "schema_version": self.schema_version}
 
     @classmethod
@@ -938,6 +944,7 @@ class Hypothesis:
                    input_ids=tuple(data.get("input_ids", ())),
                    method=data["method"], method_version=data["method_version"],
                    rationale=data["rationale"], assumptions=tuple(data["assumptions"]),
+                   quantitative_rule=data.get("quantitative_rule"),
                    created_at=data["created_at"],
                    schema_version=data.get("schema_version", SCHEMA_VERSION))
 
