@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from episteme.autonomy import _host_experiment_assessment
+from episteme.autonomy import _evaluations_produced_by_run, _host_experiment_assessment
 
 
 def _evaluations(*outcomes):
@@ -37,7 +37,17 @@ def test_host_assessment_handles_missing_evaluations():
     assert summary == "Host assessment: no prediction evaluations are available."
 
 
-def test_stop_reason_uses_host_assessment_and_preserves_planner_rationale(monkeypatch):
+def test_evaluations_produced_by_run_excludes_historical_evaluations():
+    historical = SimpleNamespace(id="historical-evaluation")
+    current = SimpleNamespace(id="current-evaluation")
+    store = SimpleNamespace(iter_prediction_evaluations=lambda: (historical, current))
+    steps = (SimpleNamespace(output_ids=("proposal-id", "current-evaluation", "result-id")),)
+
+    assert _evaluations_produced_by_run(store, list(steps)) == (current,)
+    assert _evaluations_produced_by_run(store, []) == ()
+
+
+def test_stop_reason_does_not_mislabel_historical_evaluations(monkeypatch):
     from episteme.autonomy import DiscoveryAction, run_autonomous_discovery
     from episteme.model import PredictionEvaluationOutcome
     from episteme.store import Store
@@ -67,6 +77,5 @@ def test_stop_reason_uses_host_assessment_and_preserves_planner_rationale(monkey
         )
 
     assert result.status == "stopped"
-    assert "all evaluated predictions are contradicted" in result.stop_reason
-    assert "Planner-authored stop rationale (unverified)" in result.stop_reason
-    assert "The model says the experiment succeeded." in result.stop_reason
+    assert result.stop_reason == "The model says the experiment succeeded."
+    assert "Host-derived experiment assessment" not in result.stop_reason
