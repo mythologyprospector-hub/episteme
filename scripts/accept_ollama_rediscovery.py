@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import re
 import sys
@@ -84,6 +85,51 @@ class TracingOllamaPlanner(OllamaPlanner):
         return super().choose(context)
 
 
+def _at_least_one_forecast_consistent(predictions, evaluations) -> bool:
+    """Require sound evaluation linkage and at least one qualifying competing forecast."""
+    indexed, integrity_ok = _index_evaluations(predictions, evaluations)
+    return bool(predictions) and integrity_ok and any(
+        indexed[prediction.id].outcome is PredictionEvaluationOutcome.CONSISTENT
+        for prediction in predictions
+    )
+
+
+def _validate_experiment_evidence(store, predictions, evaluations, held_out_id: str, property_key: str) -> bool:
+    """Require a persisted result for this held-out case and its exact proposal."""
+    prediction_ids = {prediction.id for prediction in predictions}
+    if not prediction_ids or any(
+        prediction.predicted_numeric_value is None
+        or not math.isfinite(float(prediction.predicted_numeric_value))
+        for prediction in predictions
+    ):
+        return False
+
+    for result in store.iter_records(kind="result"):
+        payload = result.payload
+        if payload.get("executor") != "phase29_rediscovery":
+            continue
+        if payload.get("property_key") != property_key:
+            continue
+        if payload.get("input_ids") != [held_out_id]:
+            continue
+        proposal_id = payload.get("experiment_proposal_id")
+        if not proposal_id:
+            continue
+        proposal = store.get_experiment_proposal(proposal_id)
+        if proposal is None or set(proposal.prediction_ids) != prediction_ids:
+            continue
+        if len(evaluations) != len(predictions):
+            continue
+        if any(
+            evaluation.result_id != result.id
+            or evaluation.experiment_proposal_id != proposal.id
+            for evaluation in evaluations
+        ):
+            continue
+        return True
+    return False
+
+
 def run_case(model: str, timeout: float, property_key: str, blinded: bool) -> tuple[bool, list[float]]:
     fixture = build_mendeleev_fixture()
     case = next(item for item in REDISCOVERY_CASES if item.property_key == property_key)
@@ -144,9 +190,13 @@ def run_case(model: str, timeout: float, property_key: str, blinded: bool) -> tu
             len(predictions) >= 2
             and len({float(p.predicted_numeric_value) for p in predictions}) == len(predictions)
         )
-        successful_forecast = evaluation_integrity_ok and any(
-            evaluation.outcome is PredictionEvaluationOutcome.CONSISTENT
-            for evaluation in evaluations
+        experiment_evidence_ok = _validate_experiment_evidence(
+            store, predictions, evaluations, fixture.held_out_record.id, property_key
+        )
+        successful_forecast = (
+            evaluation_integrity_ok
+            and experiment_evidence_ok
+            and _at_least_one_forecast_consistent(predictions, evaluations)
         )
         hidden_ok = all(
             item.get("id") != fixture.held_out_record.id
@@ -155,12 +205,12 @@ def run_case(model: str, timeout: float, property_key: str, blinded: bool) -> tu
         )
         blind_names_ok = True
         if blinded:
-            model_facing_text = "\\n".join(
+            model_facing_text = "\n".join(
                 json.dumps(payload, sort_keys=True) for payload in planner.model_payloads
             )
             blind_names_ok = not _contains_blinded_element_name(model_facing_text)
 
-        print(f"\\nPROPERTY: {case.display_name}")
+        print(f"\nPROPERTY: {case.display_name}")
         print(f"mode: {'blinded' if blinded else 'named'}")
         print(f"held-out value: {fixture.held_out_record.payload[property_key]}")
         print(f"tolerance: {case.tolerance:.3f}")
@@ -195,6 +245,7 @@ def run_case(model: str, timeout: float, property_key: str, blinded: bool) -> tu
             )
         print(f"action sequence: {kinds}")
         print(f"evaluation records correctly matched by prediction ID: {evaluation_integrity_ok}")
+        print(f"persisted experiment evidence valid: {experiment_evidence_ok}")
         print(
             "at least one forecast met tolerance and matched or beat baseline: "
             f"{successful_forecast}"
