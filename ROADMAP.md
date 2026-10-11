@@ -716,7 +716,7 @@ Target capabilities:
 
 ### Phase 29 Exit Audit
 
-The original Phase 29 path is implemented and merged. Review-2 hardening is now being verified as a benchmark-quality correction rather than a new architecture phase.
+The original Phase 29 path and benchmark-harness hardening are merged. The live scientific acceptance gate remains unmet: the latest recorded blinded qwen3:8b run passed relative atomic mass but failed density and melting point. Earlier named-mode results also failed density and melting point. The schema and safe-feedback fixes have now landed, so the benchmark must be rerun against the integrated main branch. Green CI is necessary but is not scientific acceptance.
 
 - the pre-discovery fixture and later held-out observation remain separated;
 - the held-out value remains outside planner grounded context;
@@ -751,6 +751,6 @@ If implementation reveals that the roadmap is wrong, revise the roadmap rather t
 
 ## Current Position
 
-**Phase 28 — Autonomous Evidence Request Boundary — Complete**
+**Phase 29 — Historical Rediscovery — live validation in progress**
 
 
