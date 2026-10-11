@@ -137,7 +137,7 @@ def test_one_consistent_forecast_can_satisfy_competing_forecast_gate():
     assert _at_least_one_forecast_consistent(predictions, evaluations)
 
 
-def test_all_forecasts_must_have_consistent_evaluations():
+def test_all_consistent_forecasts_also_satisfy_competing_forecast_gate():
     from episteme.model import PredictionEvaluationOutcome
 
     predictions = (SimpleNamespace(id="p1"), SimpleNamespace(id="p2"))
@@ -147,3 +147,15 @@ def test_all_forecasts_must_have_consistent_evaluations():
     )
 
     assert _at_least_one_forecast_consistent(predictions, evaluations)
+
+
+def test_competing_forecast_gate_fails_when_no_forecast_is_consistent():
+    from episteme.model import PredictionEvaluationOutcome
+
+    predictions = (SimpleNamespace(id="p1"), SimpleNamespace(id="p2"))
+    evaluations = (
+        SimpleNamespace(prediction_id="p1", outcome=PredictionEvaluationOutcome.INCONSISTENT),
+        SimpleNamespace(prediction_id="p2", outcome=PredictionEvaluationOutcome.INCONSISTENT),
+    )
+
+    assert not _at_least_one_forecast_consistent(predictions, evaluations)
