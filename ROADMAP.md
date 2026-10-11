@@ -692,7 +692,7 @@ The implemented Phase 28 behavior satisfies the stated exit condition. The plann
 
 ## Phase 29 — Rediscovery
 
-**Status:** Design approved — implementation not started.
+**Status:** Implementation complete; review-2 benchmark hardening under verification.
 
 **Goal:** Demonstrate a bounded historical scientific rediscovery using the existing discovery, prediction, experiment, evidence, provenance, and evaluation boundaries.
 
@@ -713,6 +713,21 @@ Target capabilities:
 - [ ] reproducible rediscovery lineage.
 
 **Exit condition:** An executable, reproducible benchmark demonstrates that Episteme can move from pre-discovery historical evidence to a non-trivial quantitative prediction and correctly evaluate that prediction against later held-out evidence while preserving grounded-versus-generated separation, host ownership, bounded execution, provenance, deterministic evaluation, explicit failure, and reproducibility.
+
+### Phase 29 Exit Audit
+
+The original Phase 29 path is implemented and merged. Review-2 hardening is now being verified as a benchmark-quality correction rather than a new architecture phase.
+
+- the pre-discovery fixture and later held-out observation remain separated;
+- the held-out value remains outside planner grounded context;
+- the planner cannot execute the held-out experiment directly;
+- duplicate competing hypotheses are rejected;
+- historical quantitative predictions are per-hypothesis and numerically distinct;
+- the host computes a dumb adjacent-neighbour baseline independently of the planner;
+- a benchmark pass requires the forecast to be within the fixed 5% tolerance and no worse than that baseline;
+- atomic mass, density, and non-monotone melting-point cases are available;
+- blinded planner input and repeated-run reporting are available;
+- corrupted held-out evidence remains an explicit failure proof.
 
 ## Roadmap Rules/
 

@@ -24,6 +24,7 @@ def propose_hypothesis(
     method_version: str,
     rationale: str,
     assumptions: tuple[str, ...] = (),
+    quantitative_rule: dict[str, object] | None = None,
     created_at: str,
 ) -> Hypothesis:
     """Construct a candidate hypothesis from explicitly supplied material."""
@@ -36,6 +37,7 @@ def propose_hypothesis(
         method_version=method_version,
         rationale=rationale,
         assumptions=assumptions,
+        quantitative_rule=quantitative_rule,
         created_at=created_at,
         schema_version=SCHEMA_VERSION,
     )
@@ -50,6 +52,7 @@ def complete_structural_gap(
     method_version: str,
     rationale: str,
     assumptions: tuple[str, ...] = (),
+    quantitative_rule: dict[str, object] | None = None,
     created_at: str,
 ) -> Hypothesis:
     """Construct a generated candidate downstream of an established gap.
@@ -74,6 +77,7 @@ def complete_structural_gap(
         method_version=method_version,
         rationale=rationale,
         assumptions=assumptions,
+        quantitative_rule=quantitative_rule,
         created_at=created_at,
     )
 

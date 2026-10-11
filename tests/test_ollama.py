@@ -241,6 +241,50 @@ def test_ollama_experiment_schema_exposes_required_typed_fields():
 
 
 
+def test_ollama_historical_rediscovery_schema_restricts_execution_operation():
+    payload = {}
+
+    def transport(request):
+        payload.update(request)
+        return {
+            "message": {
+                "content": json.dumps(
+                    {
+                        "kind": "experiment",
+                        "target_ids": ["P1", "P2"],
+                        "conditions": "Under bounded historical conditions.",
+                        "objective": "Discriminate the numeric forecasts.",
+                        "proposed_observation": "Observe the held-out property.",
+                        "discrimination_basis": "The forecasts differ.",
+                        "execution_spec": {"operation": "historical_rediscovery"},
+                        "rationale": "A bounded historical experiment is required.",
+                    }
+                )
+            }
+        }
+
+    context = DiscoveryContext(
+        grounded_input_ids=(),
+        findings=(),
+        hypotheses=(),
+        predictions=(
+            {"id": "prediction-1"},
+            {"id": "prediction-2"},
+        ),
+        experiments=(),
+        actions_taken=(),
+    )
+    action = OllamaPlanner(
+        "gemma3:12b-it-q4_K_M",
+        transport=transport,
+        host_capabilities=("historical_rediscovery",),
+    ).choose(context)
+
+    assert action.execution_spec == {"operation": "historical_rediscovery"}
+    execution_schema = payload["format"]["properties"]["execution_spec"]
+    assert execution_schema["properties"]["operation"]["enum"] == ["historical_rediscovery"]
+
+
 def test_ollama_schema_restricts_kind_to_experiment_after_predictions():
     payload = {}
 
@@ -350,3 +394,107 @@ def test_ollama_schema_binds_target_ids_to_pending_discovery_stage():
 
     assert action.kind == "hypothesis"
     assert payload["format"]["properties"]["target_ids"]["items"]["enum"] == ["F1", "F2"]
+    assert "target_ids" in payload["format"]["required"]
+    assert "statement" in payload["format"]["required"]
+
+
+def test_ollama_historical_rediscovery_uses_distinct_numeric_forecasts_without_presence_flags():
+    payload = {}
+
+    def transport(request):
+        payload.update(request)
+        return {
+            "message": {
+                "content": json.dumps(
+                    {
+                        "kind": "prediction",
+                        "target_ids": ["H1", "H2"],
+                        "conditions": "bounded historical fixture",
+                        "consequence": "the missing period has a quantitative property value",
+                        "predicted_numeric_values": {"H1": 71.0, "H2": 74.0},
+                        "rationale": "The competing hypotheses require distinct quantitative forecasts.",
+                    }
+                )
+            }
+        }
+
+    context = DiscoveryContext(
+        grounded_input_ids=(),
+        findings=(),
+        hypotheses=(
+            {"id": "hypothesis-1"},
+            {"id": "hypothesis-2"},
+        ),
+        predictions=(),
+        experiments=(),
+        actions_taken=(),
+    )
+    action = OllamaPlanner(
+        "qwen3:8b",
+        transport=transport,
+        host_capabilities=("historical_rediscovery",),
+    ).choose(context)
+
+    assert action.predicted_numeric_values == {
+        "hypothesis-1": 71.0,
+        "hypothesis-2": 74.0,
+    }
+    assert action.expected_presences is None
+    schema = payload["format"]
+    assert "predicted_numeric_values" in schema["properties"]
+    assert "expected_presences" not in schema["properties"]
+    assert "predicted_numeric_values" in schema["required"]
+    assert "expected_presences" not in schema["required"]
+
+
+def test_ollama_blinded_rediscovery_context_uses_opaque_entities_and_one_property():
+    payload = {}
+
+    def transport(request):
+        payload.update(request)
+        return {
+            "message": {
+                "content": json.dumps(
+                    {
+                        "kind": "discover_gap",
+                        "rationale": "The host-owned structural pass should identify the missing position.",
+                    }
+                )
+            }
+        }
+
+    context = DiscoveryContext(
+        grounded_input_ids=("observation-1",),
+        findings=(),
+        hypotheses=(),
+        predictions=(),
+        experiments=(),
+        actions_taken=(),
+        grounded_observations=(
+            {
+                "id": "observation-1",
+                "kind": "observation",
+                "payload": {
+                    "label": "silicon",
+                    "family": "group_14",
+                    "period": 3,
+                    "relative_atomic_mass": 28.085,
+                    "density_g_cm3": 2.3296,
+                },
+                "created_at": "1885-12-31T00:00:00+00:00",
+            },
+        ),
+    )
+    OllamaPlanner(
+        "qwen3:8b",
+        transport=transport,
+        host_capabilities=("historical_rediscovery",),
+        rediscovery_property="relative_atomic_mass",
+        blinded_rediscovery=True,
+    ).choose(context)
+
+    user_payload = payload["messages"][1]["content"]
+    assert "silicon" not in user_payload.lower()
+    assert '"entity": "E1"' in user_payload
+    assert '"property_P": 28.085' in user_payload
+    assert '"density_g_cm3"' not in user_payload
