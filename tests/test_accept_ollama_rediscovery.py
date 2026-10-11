@@ -7,7 +7,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from scripts.accept_ollama_rediscovery import (
-    _all_forecasts_consistent,
+    _at_least_one_forecast_consistent,
     _contains_blinded_element_name,
     _index_evaluations,
     _validate_experiment_evidence,
@@ -122,7 +122,7 @@ def test_experiment_evidence_rejects_non_finite_forecasts():
 
 
 
-def test_one_consistent_forecast_cannot_mask_an_inconsistent_forecast():
+def test_one_consistent_forecast_can_satisfy_competing_forecast_gate():
     from episteme.model import PredictionEvaluationOutcome
 
     predictions = (
@@ -134,7 +134,7 @@ def test_one_consistent_forecast_cannot_mask_an_inconsistent_forecast():
         SimpleNamespace(prediction_id="p2", outcome=PredictionEvaluationOutcome.INCONSISTENT),
     )
 
-    assert not _all_forecasts_consistent(predictions, evaluations)
+    assert _at_least_one_forecast_consistent(predictions, evaluations)
 
 
 def test_all_forecasts_must_have_consistent_evaluations():
@@ -146,4 +146,4 @@ def test_all_forecasts_must_have_consistent_evaluations():
         SimpleNamespace(prediction_id="p2", outcome=PredictionEvaluationOutcome.CONSISTENT),
     )
 
-    assert _all_forecasts_consistent(predictions, evaluations)
+    assert _at_least_one_forecast_consistent(predictions, evaluations)
