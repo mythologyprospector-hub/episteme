@@ -121,3 +121,16 @@ Consider other repositories as available capabilities and possible collaborators
 **Organs is the shared runtime plumbing for this world.** Account for it when designing and building, and use its actual published contracts when shared runtime capabilities help. This does not make Organs an epistemic authority, replace Episteme's domain truth or provenance, or require every feature to call an organ. Do not duplicate shared capabilities without reason or invent integrations before there is a real need.
 
 Read broadly while respecting project sovereignty. Do not change another repository or create a cross-repository dependency without the authorization required for that consequential change. Record meaningful relationships in the appropriate project documents.
+
+
+## Workspace and terminal safety
+
+- Keep the everyday checkout at the owner's established path and, when practical, on the repository's default branch. Use task branches or worktrees for isolated implementation/review instead of unexpectedly leaving the everyday checkout on a temporary branch.
+- Worktrees are optional. When needed, place them under a dedicated per-repository home beneath the projects root (for example, `~/projects/.worktrees/episteme/`), not as `episteme-*` sibling folders directly in `~/projects`.
+- Inspect branch state, registered worktrees, uncommitted/untracked files, and destination collisions before creating, moving, or removing worktrees. Use Git's `git worktree` commands; never move a registered worktree with ordinary filesystem commands.
+- Preserve uncertain work. Before cleanup, inspect unique commits, untracked files, and changes; do not use `git clean`, hard resets, force-pushes, or history rewrites as a shortcut.
+- GitHub Actions is the normal test gate. Do not ask the owner to run routine full-suite pytest locally when CI can run it. Local tests are for genuinely local-only integrations or diagnostics, and must be justified as such.
+- When giving terminal commands, use a regular, full-size Markdown fenced code block with a language tag. Never use compact command bars or formats that may copy literal fence markers into Bash. Put only executable commands inside the block; keep explanations and prompts outside it.
+- If command output unexpectedly disappears after copy/paste, inspect the pasted command and shell evidence before changing project files or killing processes. Treat the cause as a hypothesis unless evidence confirms it.
+
+
