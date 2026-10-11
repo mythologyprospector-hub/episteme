@@ -205,12 +205,12 @@ def run_case(model: str, timeout: float, property_key: str, blinded: bool) -> tu
         )
         blind_names_ok = True
         if blinded:
-            model_facing_text = "\\n".join(
+            model_facing_text = "\n".join(
                 json.dumps(payload, sort_keys=True) for payload in planner.model_payloads
             )
             blind_names_ok = not _contains_blinded_element_name(model_facing_text)
 
-        print(f"\\nPROPERTY: {case.display_name}")
+        print(f"\nPROPERTY: {case.display_name}")
         print(f"mode: {'blinded' if blinded else 'named'}")
         print(f"held-out value: {fixture.held_out_record.payload[property_key]}")
         print(f"tolerance: {case.tolerance:.3f}")
@@ -262,7 +262,7 @@ def run_case(model: str, timeout: float, property_key: str, blinded: bool) -> tu
             and blind_names_ok
         )
         print(
-            "ACCEPTANCE: PASS — every evaluated forecast met tolerance and matched or beat baseline"
+            "ACCEPTANCE: PASS — at least one evaluated forecast met tolerance and matched or beat baseline"
             if passed else
             "ACCEPTANCE: FAIL"
         )
