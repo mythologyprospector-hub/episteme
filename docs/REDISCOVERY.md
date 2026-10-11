@@ -1,6 +1,6 @@
 # Phase 29 — Rediscovery
 
-**Status:** Phase 29 implementation merged; review-2 hardening is under verification
+**Status:** Benchmark harness and safe planner-feedback hardening merged; live scientific acceptance still fails and must be rerun against the integrated main branch
 
 ## Purpose
 
