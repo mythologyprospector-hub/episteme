@@ -547,6 +547,8 @@ def test_ollama_receives_safe_host_evaluation_feedback_without_held_out_details(
     assert decoded["evaluation_feedback"] == [
         {
             "prediction": "P1",
+            "forecast": None,
+            "compared_hypotheses": [],
             "verdict": "inconsistent",
             "rationale": (
                 "The host evaluator marked this forecast inconsistent with the executed "
@@ -604,6 +606,8 @@ def test_ollama_passes_safe_inconclusive_evaluation_feedback():
     assert decoded["evaluation_feedback"] == [
         {
             "prediction": "P1",
+            "forecast": None,
+            "compared_hypotheses": [],
             "verdict": "inconclusive",
             "rationale": (
                 "The host evaluator could not conclusively evaluate this forecast "
@@ -649,3 +653,71 @@ def test_ollama_omits_evaluation_feedback_before_an_experiment():
     decoded = json.loads(payload["messages"][1]["content"])
 
     assert decoded["evaluation_feedback"] == []
+
+
+def test_ollama_evaluation_feedback_links_each_verdict_to_its_forecast_and_hypotheses():
+    payload = {}
+
+    def transport(request):
+        payload.update(request)
+        return {
+            "message": {
+                "content": json.dumps({
+                    "kind": "stop",
+                    "rationale": "The bounded experiment is complete.",
+                })
+            }
+        }
+
+    context = DiscoveryContext(
+        grounded_input_ids=(),
+        findings=(),
+        hypotheses=(
+            {"id": "hypothesis-1", "statement": "First candidate."},
+            {"id": "hypothesis-2", "statement": "Second candidate."},
+        ),
+        predictions=(
+            {
+                "id": "prediction-1",
+                "predicted_numeric_value": 44.16,
+                "comparison_hypothesis_ids": ("hypothesis-1", "hypothesis-2"),
+            },
+            {
+                "id": "prediction-2",
+                "predicted_numeric_value": 73.3975,
+                "comparison_hypothesis_ids": ("hypothesis-1", "hypothesis-2"),
+            },
+        ),
+        experiments=({"id": "experiment-1"},),
+        actions_taken=(),
+        evaluations=(
+            {"prediction_id": "prediction-1", "outcome": "inconsistent"},
+            {"prediction_id": "prediction-2", "outcome": "consistent"},
+        ),
+    )
+
+    OllamaPlanner("qwen3:8b", transport=transport).choose(context)
+    decoded = json.loads(payload["messages"][1]["content"])
+
+    assert decoded["evaluation_feedback"] == [
+        {
+            "prediction": "P1",
+            "forecast": 44.16,
+            "compared_hypotheses": ["H1", "H2"],
+            "verdict": "inconsistent",
+            "rationale": (
+                "The host evaluator marked this forecast inconsistent with the executed "
+                "result under the registered evaluation rule."
+            ),
+        },
+        {
+            "prediction": "P2",
+            "forecast": 73.3975,
+            "compared_hypotheses": ["H1", "H2"],
+            "verdict": "consistent",
+            "rationale": (
+                "The host evaluator marked this forecast consistent with the executed "
+                "result under the registered evaluation rule."
+            ),
+        },
+    ]
