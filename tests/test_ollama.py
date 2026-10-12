@@ -416,11 +416,19 @@ def test_ollama_historical_rediscovery_prompt_requires_unrounded_numeric_forecas
             }
         }
 
+    context = DiscoveryContext(
+        grounded_input_ids=(),
+        findings=(),
+        hypotheses=(),
+        predictions=(),
+        experiments=({"id": "experiment-1"},),
+        actions_taken=(),
+    )
     OllamaPlanner(
         "qwen3:8b",
         transport=transport,
         host_capabilities=("historical_rediscovery",),
-    ).choose(_context())
+    ).choose(context)
 
     system = payload["messages"][0]["content"]
     assert "Do not round intermediate calculations or numeric forecasts" in system
