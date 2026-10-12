@@ -93,6 +93,33 @@ def _at_least_one_forecast_consistent(predictions, evaluations) -> bool:
         for prediction in predictions
     )
 
+def _prediction_diagnostic_lines(predictions, evaluations_by_prediction, hypotheses_by_id):
+    """Explain each forecast's source hypothesis, quantitative rule, and verdict."""
+    lines = []
+    for prediction in predictions:
+        source = hypotheses_by_id.get(prediction.source_id)
+        compared = [
+            hypotheses_by_id.get(hypothesis_id)
+            for hypothesis_id in prediction.comparison_hypothesis_ids
+        ]
+        lines.append(
+            f"  prediction {prediction.id[:8]} forecast={prediction.predicted_numeric_value!r} "
+            f"source_hypothesis={prediction.source_id[:8]}"
+        )
+        if source is None:
+            lines.append("    source hypothesis: NOT FOUND")
+        else:
+            lines.append(f"    source statement: {source.get('statement', '')}")
+            lines.append(f"    quantitative rule: {source.get('quantitative_rule')!r}")
+        lines.append(f"    compared hypotheses: {[item.get('id', '')[:8] if item else 'NOT FOUND' for item in compared]}")
+        lines.append(f"    arithmetic rationale: {prediction.rationale}")
+        evaluation = evaluations_by_prediction.get(prediction.id)
+        if evaluation is None:
+            lines.append("    evaluator verdict: NO EVALUATION")
+        else:
+            lines.append(f"    evaluator verdict: {evaluation.outcome.value} — {evaluation.rationale}")
+    return lines
+
 
 def _validate_experiment_evidence(store, predictions, evaluations, held_out_id: str, property_key: str) -> bool:
     """Require a persisted result for this held-out case and its exact proposal."""
@@ -231,18 +258,16 @@ def run_case(model: str, timeout: float, property_key: str, blinded: bool) -> tu
                 if assumptions:
                     print(f"    assumptions: {'; '.join(assumptions)}")
         print(f"stop reason: {result.stop_reason}")
-        for prediction in predictions:
-            evaluation = evaluations_by_prediction.get(prediction.id)
-            if evaluation is None:
-                print(
-                    f"prediction {prediction.id[:8]}: value={prediction.predicted_numeric_value} "
-                    "verdict=NO EVALUATION"
-                )
-                continue
-            print(
-                f"prediction {prediction.id[:8]}: value={prediction.predicted_numeric_value} "
-                f"verdict={evaluation.outcome.value} {evaluation.rationale}"
-            )
+        hypotheses_by_id = {
+            hypothesis["id"]: hypothesis
+            for context in planner.contexts
+            for hypothesis in context["hypotheses"]
+        }
+        print("forecast diagnostics:")
+        for line in _prediction_diagnostic_lines(
+            predictions, evaluations_by_prediction, hypotheses_by_id
+        ):
+            print(line)
         print(f"action sequence: {kinds}")
         print(f"evaluation records correctly matched by prediction ID: {evaluation_integrity_ok}")
         print(f"persisted experiment evidence valid: {experiment_evidence_ok}")
