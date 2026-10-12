@@ -402,6 +402,39 @@ def test_ollama_schema_binds_target_ids_to_pending_discovery_stage():
     assert "statement" in payload["format"]["required"]
 
 
+def test_ollama_historical_rediscovery_prompt_requires_unrounded_numeric_forecasts():
+    payload = {}
+
+    def transport(request):
+        payload.update(request)
+        return {
+            "message": {
+                "content": json.dumps({
+                    "kind": "stop",
+                    "rationale": "The bounded process has no further available actions.",
+                })
+            }
+        }
+
+    context = DiscoveryContext(
+        grounded_input_ids=(),
+        findings=(),
+        hypotheses=(),
+        predictions=(),
+        experiments=({"id": "experiment-1"},),
+        actions_taken=(),
+    )
+    OllamaPlanner(
+        "qwen3:8b",
+        transport=transport,
+        host_capabilities=("historical_rediscovery",),
+    ).choose(context)
+
+    system = payload["messages"][0]["content"]
+    assert "Do not round intermediate calculations or numeric forecasts" in system
+    assert "preserve the full precision implied by the supplied values and rule" in system
+
+
 def test_ollama_historical_rediscovery_uses_distinct_numeric_forecasts_without_presence_flags():
     payload = {}
 
