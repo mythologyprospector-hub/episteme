@@ -3,19 +3,19 @@ def test_prediction_diagnostics_link_forecast_to_source_rule_and_evaluation():
 
     prediction = SimpleNamespace(
         id="prediction-123",
-        source_id="hypothesis-111",
-        comparison_hypothesis_ids=("hypothesis-111", "hypothesis-222"),
+        source_id="11111111-1111-4111-8111-111111111111",
+        comparison_hypothesis_ids=("11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222"),
         predicted_numeric_value=5.3197,
         rationale="(7.287 - 2.3296) + 2.3296 = 7.287",
     )
     hypotheses = {
-        "hypothesis-111": {
-            "id": "hypothesis-111",
+        "11111111-1111-4111-8111-111111111111": {
+            "id": "11111111-1111-4111-8111-111111111111",
             "statement": "Extrapolate the prior density difference.",
             "quantitative_rule": {"operation": "linear_extrapolation"},
         },
-        "hypothesis-222": {
-            "id": "hypothesis-222",
+        "22222222-2222-4222-8222-222222222222": {
+            "id": "22222222-2222-4222-8222-222222222222",
             "statement": "Use the adjacent midpoint.",
             "quantitative_rule": {"operation": "midpoint"},
         },
@@ -31,11 +31,11 @@ def test_prediction_diagnostics_link_forecast_to_source_rule_and_evaluation():
     lines = _prediction_diagnostic_lines((prediction,), evaluations, hypotheses)
     output = "\\n".join(lines)
 
-    assert "source_hypothesis=hypothesis-111" in output
+    assert "source_hypothesis=11111111" in output
     assert "linear_extrapolation" in output
     assert "arithmetic rationale:" in output
     assert "evaluator verdict: consistent" in output
-    assert "hypothesis-222" in output
+    assert "22222222" in output
 
 
 import sys
