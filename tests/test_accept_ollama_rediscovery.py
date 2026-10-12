@@ -1,3 +1,43 @@
+def test_prediction_diagnostics_link_forecast_to_source_rule_and_evaluation():
+    from episteme.model import PredictionEvaluationOutcome
+
+    prediction = SimpleNamespace(
+        id="prediction-123",
+        source_id="hypothesis-111",
+        comparison_hypothesis_ids=("hypothesis-111", "hypothesis-222"),
+        predicted_numeric_value=5.3197,
+        rationale="(7.287 - 2.3296) + 2.3296 = 7.287",
+    )
+    hypotheses = {
+        "hypothesis-111": {
+            "id": "hypothesis-111",
+            "statement": "Extrapolate the prior density difference.",
+            "quantitative_rule": {"operation": "linear_extrapolation"},
+        },
+        "hypothesis-222": {
+            "id": "hypothesis-222",
+            "statement": "Use the adjacent midpoint.",
+            "quantitative_rule": {"operation": "midpoint"},
+        },
+    }
+    evaluations = {
+        prediction.id: SimpleNamespace(
+            outcome=PredictionEvaluationOutcome.CONSISTENT,
+            rationale="forecast matches the executed result",
+        )
+    }
+
+    from scripts.accept_ollama_rediscovery import _prediction_diagnostic_lines
+    lines = _prediction_diagnostic_lines((prediction,), evaluations, hypotheses)
+    output = "\\n".join(lines)
+
+    assert "source_hypothesis=hypothesis-111" in output
+    assert "linear_extrapolation" in output
+    assert "arithmetic rationale:" in output
+    assert "evaluator verdict: consistent" in output
+    assert "hypothesis-222" in output
+
+
 import sys
 from pathlib import Path
 from types import SimpleNamespace
