@@ -136,9 +136,13 @@ def test_phase29_runtime_executes_and_evaluates_through_host_experiment_boundary
             method="phase29-fixture",
             method_version="1",
             rationale="fixture hypothesis",
+            quantitative_rule={"operation": "midpoint", "inputs": [1.0, 3.0]},
             created_at=FIXTURE_CAPTURED_AT,
         )
         store.put_hypothesis(hypothesis)
+        expected_rule = {"operation": "midpoint", "inputs": [1.0, 3.0]}
+        assert store.get_hypothesis(hypothesis.id).quantitative_rule == expected_rule
+        assert next(item for item in store.iter_hypotheses() if item.id == hypothesis.id).quantitative_rule == expected_rule
 
         prediction = predict(
             source_id=hypothesis.id,

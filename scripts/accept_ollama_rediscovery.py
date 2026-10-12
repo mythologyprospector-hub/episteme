@@ -242,6 +242,7 @@ def run_case(model: str, timeout: float, property_key: str, blinded: bool) -> tu
         print(f"held-out value: {fixture.held_out_record.payload[property_key]}")
         print(f"tolerance: {case.tolerance:.3f}")
         print(f"baseline midpoint: {baseline:.6g}")
+        quantitative_rules_ok = True
         print("hypotheses:")
         seen_hypotheses: set[str] = set()
         for context in planner.contexts:
@@ -250,6 +251,10 @@ def run_case(model: str, timeout: float, property_key: str, blinded: bool) -> tu
                 if hypothesis_id in seen_hypotheses:
                     continue
                 seen_hypotheses.add(hypothesis_id)
+                rule = hypothesis.get("quantitative_rule")
+                if not isinstance(rule, dict) or not rule:
+                    quantitative_rules_ok = False
+                print(f"    quantitative rule: {rule!r}")
                 print(f"  {hypothesis_id[:8]}: {hypothesis.get('statement', '')}")
                 rationale = hypothesis.get("rationale")
                 if rationale:
@@ -271,6 +276,7 @@ def run_case(model: str, timeout: float, property_key: str, blinded: bool) -> tu
         print(f"action sequence: {kinds}")
         print(f"evaluation records correctly matched by prediction ID: {evaluation_integrity_ok}")
         print(f"persisted experiment evidence valid: {experiment_evidence_ok}")
+        print(f"quantitative rules persisted: {quantitative_rules_ok}")
         print(
             "at least one forecast met tolerance and matched or beat baseline: "
             f"{successful_forecast}"
@@ -282,6 +288,7 @@ def run_case(model: str, timeout: float, property_key: str, blinded: bool) -> tu
             and stop_ok
             and distinct_ok
             and evaluation_integrity_ok
+            and quantitative_rules_ok
             and successful_forecast
             and hidden_ok
             and blind_names_ok

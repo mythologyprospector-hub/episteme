@@ -176,7 +176,8 @@ class Store:
                 rationale TEXT NOT NULL,
                 assumptions TEXT NOT NULL,
                 created_at TEXT NOT NULL,
-                schema_version INTEGER NOT NULL
+                schema_version INTEGER NOT NULL,
+                quantitative_rule TEXT
             );
 
             CREATE TABLE IF NOT EXISTS candidate_constraint_assessments (
@@ -373,6 +374,15 @@ class Store:
         if "expectation" not in discovery_columns:
             self._connection.execute(
                 "ALTER TABLE discovery_findings ADD COLUMN expectation TEXT"
+            )
+
+        hypothesis_columns = {
+            row["name"]
+            for row in self._connection.execute("PRAGMA table_info(hypotheses)")
+        }
+        if "quantitative_rule" not in hypothesis_columns:
+            self._connection.execute(
+                "ALTER TABLE hypotheses ADD COLUMN quantitative_rule TEXT"
             )
 
         self._ensure_prediction_expectation_column()
@@ -847,21 +857,23 @@ class Store:
         self._connection.execute(
             """INSERT INTO hypotheses
                (id, statement, finding_ids, input_ids, method, method_version,
-                rationale, assumptions, created_at, schema_version)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                rationale, assumptions, created_at, schema_version, quantitative_rule)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (hypothesis.id, hypothesis.statement,
              canonical_json(list(hypothesis.finding_ids)),
              canonical_json(list(hypothesis.input_ids)), hypothesis.method,
              hypothesis.method_version, hypothesis.rationale,
              canonical_json(list(hypothesis.assumptions)), hypothesis.created_at,
-             hypothesis.schema_version),
+             hypothesis.schema_version,
+             canonical_json(dict(hypothesis.quantitative_rule))
+             if hypothesis.quantitative_rule is not None else None),
         )
         self._connection.commit()
 
     def get_hypothesis(self, hypothesis_id: str) -> Hypothesis | None:
         row = self._connection.execute(
             """SELECT id, statement, finding_ids, input_ids, method, method_version,
-                      rationale, assumptions, created_at, schema_version
+                      rationale, assumptions, created_at, schema_version, quantitative_rule
                FROM hypotheses WHERE id = ?""", (hypothesis_id,)
         ).fetchone()
         if row is None:
@@ -873,12 +885,13 @@ class Store:
             "method": row["method"], "method_version": row["method_version"],
             "rationale": row["rationale"], "assumptions": json.loads(row["assumptions"]),
             "created_at": row["created_at"], "schema_version": row["schema_version"],
+            "quantitative_rule": json.loads(row["quantitative_rule"]) if row["quantitative_rule"] else None,
         })
 
     def iter_hypotheses(self) -> Iterator[Hypothesis]:
         rows = self._connection.execute(
             """SELECT id, statement, finding_ids, input_ids, method, method_version,
-                      rationale, assumptions, created_at, schema_version
+                      rationale, assumptions, created_at, schema_version, quantitative_rule
                FROM hypotheses ORDER BY created_at, id"""
         )
         for row in rows:
@@ -889,6 +902,7 @@ class Store:
                 "method": row["method"], "method_version": row["method_version"],
                 "rationale": row["rationale"], "assumptions": json.loads(row["assumptions"]),
                 "created_at": row["created_at"], "schema_version": row["schema_version"],
+                "quantitative_rule": json.loads(row["quantitative_rule"]) if row["quantitative_rule"] else None,
             })
 
     def put_candidate_constraint_assessment(
