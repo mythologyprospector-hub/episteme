@@ -176,8 +176,1772 @@ class Store:
                 rationale TEXT NOT NULL,
                 assumptions TEXT NOT NULL,
                 created_at TEXT NOT NULL,
+                schema_version INTEGER NOT NULL,
+                quantitative_rule TEXT
+            );
+
+            CREATE TABLE IF NOT EXISTS candidate_constraint_assessments (
+                id TEXT PRIMARY KEY,
+                candidate_id TEXT NOT NULL,
+                constraint_id TEXT NOT NULL,
+                basis TEXT NOT NULL,
+                status TEXT NOT NULL,
+                input_ids TEXT NOT NULL,
+                assumptions TEXT NOT NULL,
+                explanation TEXT NOT NULL,
+                method TEXT NOT NULL,
+                method_version TEXT NOT NULL,
+                created_at TEXT NOT NULL,
                 schema_version INTEGER NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS models (
+                id TEXT PRIMARY KEY,
+                description TEXT NOT NULL,
+                hypothesis_ids TEXT NOT NULL,
+                input_ids TEXT NOT NULL,
+                assumptions TEXT NOT NULL,
+                method TEXT NOT NULL,
+                method_version TEXT NOT NULL,
+                rationale TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                schema_version INTEGER NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS predictions (
+                id TEXT PRIMARY KEY,
+                source_id TEXT NOT NULL,
+                consequence TEXT NOT NULL,
+                conditions TEXT NOT NULL,
+                assumptions TEXT NOT NULL,
+                method TEXT NOT NULL,
+                method_version TEXT NOT NULL,
+                rationale TEXT NOT NULL,
+                comparison_hypothesis_ids TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                expected_presence INTEGER,
+                predicted_numeric_value REAL,
+                schema_version INTEGER NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS experiment_proposals (
+                id TEXT PRIMARY KEY,
+                prediction_ids TEXT NOT NULL,
+                objective TEXT NOT NULL,
+                proposed_observation TEXT NOT NULL,
+                discrimination_basis TEXT NOT NULL,
+                conditions TEXT NOT NULL,
+                assumptions TEXT NOT NULL,
+                method TEXT NOT NULL,
+                method_version TEXT NOT NULL,
+                rationale TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                schema_version INTEGER NOT NULL,
+                execution_spec TEXT
+            );
+
+            CREATE TABLE IF NOT EXISTS prediction_evaluations (
+                id TEXT PRIMARY KEY,
+                result_id TEXT NOT NULL,
+                prediction_id TEXT NOT NULL,
+                experiment_proposal_id TEXT,
+                comparison_conditions TEXT NOT NULL,
+                assumptions TEXT NOT NULL,
+                outcome TEXT NOT NULL,
+                rationale TEXT NOT NULL,
+                method TEXT NOT NULL,
+                method_version TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                schema_version INTEGER NOT NULL
+            );
+
+
+            CREATE TABLE IF NOT EXISTS reviews (
+                id TEXT PRIMARY KEY,
+                target_kind TEXT NOT NULL,
+                target_id TEXT NOT NULL,
+                reviewer TEXT NOT NULL,
+                disposition TEXT NOT NULL,
+                basis TEXT NOT NULL,
+                rationale TEXT NOT NULL,
+                provenance TEXT NOT NULL,
+                reviewed_at TEXT NOT NULL,
+                schema_version INTEGER NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS transformations (
+                id TEXT PRIMARY KEY,
+                input_ids TEXT NOT NULL,
+                operation TEXT NOT NULL,
+                operation_version TEXT NOT NULL,
+                assumptions TEXT NOT NULL,
+                output_ids TEXT NOT NULL,
+                executed_at TEXT NOT NULL,
+                validation_result TEXT NOT NULL,
+                provenance TEXT NOT NULL,
+                schema_version INTEGER NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS workflow_definitions (
+                id TEXT PRIMARY KEY,
+                definition TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS workflow_executions (
+                id TEXT PRIMARY KEY,
+                workflow_id TEXT NOT NULL,
+                execution TEXT NOT NULL,
+                FOREIGN KEY(workflow_id) REFERENCES workflow_definitions(id)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_workflow_executions_workflow
+                ON workflow_executions(workflow_id);
+
+            CREATE TABLE IF NOT EXISTS captured_representations (
+                id TEXT PRIMARY KEY,
+                source_id TEXT NOT NULL,
+                requested_resource TEXT NOT NULL,
+                request_parameters TEXT NOT NULL,
+                captured_at TEXT NOT NULL,
+                response_status INTEGER,
+                media_type TEXT,
+                source_version TEXT,
+                content_digest TEXT,
+                content_reference TEXT,
+                acquisition_method TEXT NOT NULL,
+                acquisition_method_version TEXT NOT NULL,
+                outcome TEXT NOT NULL,
+                error TEXT,
+                schema_version INTEGER NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_captured_representations_source
+                ON captured_representations(source_id);
+            CREATE INDEX IF NOT EXISTS idx_captured_representations_digest
+                ON captured_representations(content_digest);
+            """
+        )
+        relationship_columns = self._connection.execute(
+            "PRAGMA foreign_key_list(relationships)"
+        ).fetchall()
+        if relationship_columns:
+            self._connection.executescript(
+                """
+                ALTER TABLE relationships RENAME TO relationships_legacy;
+                CREATE TABLE relationships (
+                    id TEXT PRIMARY KEY,
+                    subject_id TEXT NOT NULL,
+                    predicate TEXT NOT NULL,
+                    object_id TEXT NOT NULL,
+                    provenance TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    schema_version INTEGER NOT NULL
+                );
+                INSERT INTO relationships
+                    (id, subject_id, predicate, object_id, provenance, created_at, schema_version)
+                SELECT id, subject_id, predicate, object_id, provenance, created_at, schema_version
+                FROM relationships_legacy;
+                DROP TABLE relationships_legacy;
+                CREATE INDEX IF NOT EXISTS idx_relationships_subject
+                    ON relationships(subject_id);
+                CREATE INDEX IF NOT EXISTS idx_relationships_object
+                    ON relationships(object_id);
+                """
+            )
+
+        capture_columns = {
+            row["name"]
+            for row in self._connection.execute("PRAGMA table_info(captured_representations)")
+        }
+        if "error" not in capture_columns:
+            self._connection.execute(
+                "ALTER TABLE captured_representations ADD COLUMN error TEXT"
+            )
+
+        proposal_columns = {
+            row["name"]
+            for row in self._connection.execute("PRAGMA table_info(experiment_proposals)")
+        }
+        if "execution_spec" not in proposal_columns:
+            self._connection.execute(
+                "ALTER TABLE experiment_proposals ADD COLUMN execution_spec TEXT"
+            )
+
+        discovery_columns = {
+            row["name"]
+            for row in self._connection.execute("PRAGMA table_info(discovery_findings)")
+        }
+        if "expectation" not in discovery_columns:
+            self._connection.execute(
+                "ALTER TABLE discovery_findings ADD COLUMN expectation TEXT"
+            )
+
+        hypothesis_columns = {
+            row["name"]
+            for row in self._connection.execute("PRAGMA table_info(hypotheses)")
+        }
+        if "quantitative_rule" not in hypothesis_columns:
+            self._connection.execute(
+                "ALTER TABLE hypotheses ADD COLUMN quantitative_rule TEXT"
+            )
+
+        self._ensure_prediction_expectation_column()
+        prediction_columns = {
+            row["name"]
+            for row in self._connection.execute("PRAGMA table_info(predictions)")
+        }
+        if "predicted_numeric_value" not in prediction_columns:
+            self._connection.execute(
+                "ALTER TABLE predictions ADD COLUMN predicted_numeric_value REAL"
+            )
+        self._connection.commit()
+
+    def put_record(self, record: Record) -> None:
+        self._connection.execute(
+            """
+            INSERT INTO records
+                (id, kind, payload, provenance, created_at, schema_version)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                record.id,
+                record.kind.value,
+                canonical_json(dict(record.payload)),
+                canonical_json([item.to_dict() for item in record.provenance]),
+                record.created_at,
+                record.schema_version,
+            ),
+        )
+        self._connection.commit()
+
+    def get_record(self, record_id: str) -> Record | None:
+        row = self._connection.execute(
+            """
+            SELECT id, kind, payload, provenance, created_at, schema_version
+            FROM records
+            WHERE id = ?
+            """,
+            (record_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        return Record.from_dict(
+            {
+                "id": row["id"],
+                "kind": row["kind"],
+                "payload": json.loads(row["payload"]),
+                "provenance": json.loads(row["provenance"]),
+                "created_at": row["created_at"],
+                "schema_version": row["schema_version"],
+            }
+        )
+
+    def iter_records(self, kind: str | None = None) -> Iterator[Record]:
+        import json
+
+        if kind is None:
+            rows = self._connection.execute(
+                """
+                SELECT id, kind, payload, provenance, created_at, schema_version
+                FROM records
+                ORDER BY created_at, id
+                """
+            )
+        else:
+            rows = self._connection.execute(
+                """
+                SELECT id, kind, payload, provenance, created_at, schema_version
+                FROM records
+                WHERE kind = ?
+                ORDER BY created_at, id
+                """,
+                (kind,),
+            )
+
+        for row in rows:
+            yield Record.from_dict(
+                {
+                    "id": row["id"],
+                    "kind": row["kind"],
+                    "payload": json.loads(row["payload"]),
+                    "provenance": json.loads(row["provenance"]),
+                    "created_at": row["created_at"],
+                    "schema_version": row["schema_version"],
+                }
+            )
+
+    def _object_exists(self, object_id: str) -> bool:
+        """Return whether an ID exists in any persisted epistemic collection."""
+        tables = (
+            "records",
+            "discovery_findings",
+            "hypotheses",
+            "models",
+            "predictions",
+            "experiment_proposals",
+        )
+        return any(
+            self._connection.execute(
+                f"SELECT 1 FROM {table} WHERE id = ? LIMIT 1",
+                (object_id,),
+            ).fetchone()
+            is not None
+            for table in tables
+        )
+
+    def put_relationship(self, relationship: Relationship) -> None:
+        missing = [
+            object_id
+            for object_id in (relationship.subject_id, relationship.object_id)
+            if not self._object_exists(object_id)
+        ]
+        if missing:
+            raise ValueError(
+                "relationship references missing object(s): "
+                + ", ".join(missing)
+            )
+
+        self._connection.execute(
+            """
+            INSERT INTO relationships
+                (id, subject_id, predicate, object_id, provenance, created_at, schema_version)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                relationship.id,
+                relationship.subject_id,
+                relationship.predicate,
+                relationship.object_id,
+                canonical_json([item.to_dict() for item in relationship.provenance]),
+                relationship.created_at,
+                relationship.schema_version,
+            ),
+        )
+        self._connection.commit()
+
+    def iter_relationships(self, predicate: str | None = None) -> Iterator[Relationship]:
+        if predicate is None:
+            rows = self._connection.execute(
+                """
+                SELECT id, subject_id, predicate, object_id, provenance, created_at, schema_version
+                FROM relationships
+                ORDER BY created_at, id
+                """
+            )
+        else:
+            rows = self._connection.execute(
+                """
+                SELECT id, subject_id, predicate, object_id, provenance, created_at, schema_version
+                FROM relationships
+                WHERE predicate = ?
+                ORDER BY created_at, id
+                """,
+                (predicate,),
+            )
+
+        for row in rows:
+            yield Relationship.from_dict(
+                {
+                    "id": row["id"],
+                    "subject_id": row["subject_id"],
+                    "predicate": row["predicate"],
+                    "object_id": row["object_id"],
+                    "provenance": json.loads(row["provenance"]),
+                    "created_at": row["created_at"],
+                    "schema_version": row["schema_version"],
+                }
+            )
+
+    def get_relationship(self, relationship_id: str) -> Relationship | None:
+        row = self._connection.execute(
+            """
+            SELECT id, subject_id, predicate, object_id, provenance, created_at, schema_version
+            FROM relationships
+            WHERE id = ?
+            """,
+            (relationship_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        return Relationship.from_dict(
+            {
+                "id": row["id"],
+                "subject_id": row["subject_id"],
+                "predicate": row["predicate"],
+                "object_id": row["object_id"],
+                "provenance": json.loads(row["provenance"]),
+                "created_at": row["created_at"],
+                "schema_version": row["schema_version"],
+            }
+        )
+
+
+    def put_discovery_finding(self, finding: DiscoveryFinding) -> None:
+        missing = [
+            input_id
+            for input_id in finding.input_ids
+            if self.get_record(input_id) is None and self.get_relationship(input_id) is None
+        ]
+        if missing:
+            raise ValueError(
+                "discovery finding references missing input(s): " + ", ".join(missing)
+            )
+        missing_context = [
+            context_id
+            for context_id in finding.context_ids
+            if self.get_prediction_evaluation(context_id) is None
+            and self.get_knowledge_state_consequence(context_id) is None
+            and self.get_prediction(context_id) is None
+            and self.get_exploration_observation(context_id) is None
+            and self.get_exploration_observation_assessment(context_id) is None
+        ]
+        if missing_context:
+            raise ValueError(
+                "discovery finding references missing generated context: "
+                + ", ".join(missing_context)
+            )
+        if finding.related_finding_id is not None and self.get_discovery_finding(finding.related_finding_id) is None:
+            raise ValueError(
+                "discovery finding references missing related finding: "
+                + finding.related_finding_id
+            )
+
+        self._connection.execute(
+            """
+            INSERT INTO discovery_findings
+                (id, kind, title, description, input_ids, context_ids, method, method_version,
+                 rationale, measures, created_at, related_finding_id, expectation, schema_version)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                finding.id,
+                finding.kind.value,
+                finding.title,
+                finding.description,
+                canonical_json(list(finding.input_ids)),
+                canonical_json(list(finding.context_ids)),
+                finding.method,
+                finding.method_version,
+                finding.rationale,
+                canonical_json([measure.to_dict() for measure in finding.measures]),
+                finding.created_at,
+                finding.related_finding_id,
+                canonical_json(finding.expectation.to_dict()) if finding.expectation is not None else None,
+                finding.schema_version,
+            ),
+        )
+        self._connection.commit()
+
+    def get_discovery_finding(self, finding_id: str) -> DiscoveryFinding | None:
+        row = self._connection.execute(
+            """
+            SELECT id, kind, title, description, input_ids, context_ids, method, method_version,
+                   rationale, measures, created_at, related_finding_id, expectation, schema_version
+            FROM discovery_findings
+            WHERE id = ?
+            """,
+            (finding_id,),
+        ).fetchone()
+        if row is None:
+            return None
+
+        return DiscoveryFinding.from_dict(
+            {
+                "id": row["id"],
+                "kind": row["kind"],
+                "title": row["title"],
+                "description": row["description"],
+                "input_ids": json.loads(row["input_ids"]),
+                "context_ids": json.loads(row["context_ids"]),
+                "method": row["method"],
+                "method_version": row["method_version"],
+                "rationale": row["rationale"],
+                "measures": json.loads(row["measures"]),
+                "created_at": row["created_at"],
+                "related_finding_id": row["related_finding_id"],
+                "expectation": json.loads(row["expectation"]) if row["expectation"] is not None else None,
+                "schema_version": row["schema_version"],
+            }
+        )
+
+    def iter_discovery_findings(self, kind: str | None = None) -> Iterator[DiscoveryFinding]:
+        if kind is None:
+            rows = self._connection.execute(
+                """
+                SELECT id, kind, title, description, input_ids, context_ids, method, method_version,
+                       rationale, measures, created_at, related_finding_id, expectation, schema_version
+                FROM discovery_findings
+                ORDER BY created_at, id
+                """
+            )
+        else:
+            rows = self._connection.execute(
+                """
+                SELECT id, kind, title, description, input_ids, context_ids, method, method_version,
+                       rationale, measures, created_at, related_finding_id, expectation, schema_version
+                FROM discovery_findings
+                WHERE kind = ?
+                ORDER BY created_at, id
+                """,
+                (kind,),
+            )
+
+        for row in rows:
+            yield DiscoveryFinding.from_dict(
+                {
+                    "id": row["id"],
+                    "kind": row["kind"],
+                    "title": row["title"],
+                    "description": row["description"],
+                    "input_ids": json.loads(row["input_ids"]),
+                    "context_ids": json.loads(row["context_ids"]),
+                    "method": row["method"],
+                    "method_version": row["method_version"],
+                    "rationale": row["rationale"],
+                    "measures": json.loads(row["measures"]),
+                    "created_at": row["created_at"],
+                    "related_finding_id": row["related_finding_id"],
+                    "expectation": json.loads(row["expectation"]) if row["expectation"] is not None else None,
+                    "schema_version": row["schema_version"],
+                }
+            )
+
+    def put_exploration_observation(self, observation: ExplorationObservation) -> None:
+        missing = [input_id for input_id in observation.input_ids
+                   if self.get_record(input_id) is None and self.get_relationship(input_id) is None]
+        if missing:
+            raise ValueError("exploration observation references missing input(s): " + ", ".join(missing))
+        self._connection.execute("""INSERT INTO exploration_observations
+            (id, observation, input_ids, evidence, method, method_version, uncertainty, parameters, created_at, schema_version)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (observation.id, observation.observation, canonical_json(list(observation.input_ids)),
+             canonical_json(list(observation.evidence)), observation.method, observation.method_version,
+             observation.uncertainty, canonical_json(observation.parameters) if observation.parameters is not None else None,
+             observation.created_at, observation.schema_version))
+        self._connection.commit()
+
+    def get_exploration_observation(self, observation_id: str) -> ExplorationObservation | None:
+        row = self._connection.execute("""SELECT id, observation, input_ids, evidence, method, method_version,
+                   uncertainty, parameters, created_at, schema_version
+            FROM exploration_observations WHERE id = ?""", (observation_id,)).fetchone()
+        if row is None:
+            return None
+        return ExplorationObservation.from_dict({
+            "id": row["id"], "observation": row["observation"],
+            "input_ids": json.loads(row["input_ids"]), "evidence": json.loads(row["evidence"]),
+            "method": row["method"], "method_version": row["method_version"],
+            "uncertainty": row["uncertainty"],
+            "parameters": json.loads(row["parameters"]) if row["parameters"] is not None else None,
+            "created_at": row["created_at"], "schema_version": row["schema_version"],
+        })
+
+    def iter_exploration_observations(self) -> Iterator[ExplorationObservation]:
+        rows = self._connection.execute("""SELECT id, observation, input_ids, evidence, method, method_version,
+                   uncertainty, parameters, created_at, schema_version
+            FROM exploration_observations ORDER BY created_at, id""")
+        for row in rows:
+            yield ExplorationObservation.from_dict({
+                "id": row["id"], "observation": row["observation"],
+                "input_ids": json.loads(row["input_ids"]), "evidence": json.loads(row["evidence"]),
+                "method": row["method"], "method_version": row["method_version"],
+                "uncertainty": row["uncertainty"],
+                "parameters": json.loads(row["parameters"]) if row["parameters"] is not None else None,
+                "created_at": row["created_at"], "schema_version": row["schema_version"],
+            })
+
+
+    def put_exploration_observation_assessment(
+        self, assessment: ExplorationObservationAssessment
+    ) -> None:
+        if self.get_exploration_observation(assessment.observation_id) is None:
+            raise ValueError(
+                "exploration observation assessment references missing observation: "
+                + assessment.observation_id
+            )
+        self._connection.execute(
+            """
+            INSERT INTO exploration_observation_assessments
+                (id, observation_id, accepted, method, method_version, rationale,
+                 provenance, assessed_at, schema_version)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                assessment.id,
+                assessment.observation_id,
+                1 if assessment.accepted else 0,
+                assessment.method,
+                assessment.method_version,
+                assessment.rationale,
+                canonical_json([item.to_dict() for item in assessment.provenance]),
+                assessment.assessed_at,
+                assessment.schema_version,
+            ),
+        )
+        self._connection.commit()
+
+    def get_exploration_observation_assessment(
+        self, assessment_id: str
+    ) -> ExplorationObservationAssessment | None:
+        row = self._connection.execute(
+            """
+            SELECT id, observation_id, accepted, method, method_version, rationale,
+                   provenance, assessed_at, schema_version
+            FROM exploration_observation_assessments
+            WHERE id = ?
+            """,
+            (assessment_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        return ExplorationObservationAssessment.from_dict({
+            "id": row["id"],
+            "observation_id": row["observation_id"],
+            "accepted": bool(row["accepted"]),
+            "method": row["method"],
+            "method_version": row["method_version"],
+            "rationale": row["rationale"],
+            "provenance": json.loads(row["provenance"]),
+            "assessed_at": row["assessed_at"],
+            "schema_version": row["schema_version"],
+        })
+
+    def iter_exploration_observation_assessments(
+        self, observation_id: str | None = None
+    ) -> Iterator[ExplorationObservationAssessment]:
+        if observation_id is None:
+            rows = self._connection.execute(
+                """
+                SELECT id, observation_id, accepted, method, method_version, rationale,
+                       provenance, assessed_at, schema_version
+                FROM exploration_observation_assessments
+                ORDER BY assessed_at, id
+                """
+            )
+        else:
+            rows = self._connection.execute(
+                """
+                SELECT id, observation_id, accepted, method, method_version, rationale,
+                       provenance, assessed_at, schema_version
+                FROM exploration_observation_assessments
+                WHERE observation_id = ?
+                ORDER BY assessed_at, id
+                """,
+                (observation_id,),
+            )
+        for row in rows:
+            yield ExplorationObservationAssessment.from_dict({
+                "id": row["id"],
+                "observation_id": row["observation_id"],
+                "accepted": bool(row["accepted"]),
+                "method": row["method"],
+                "method_version": row["method_version"],
+                "rationale": row["rationale"],
+                "provenance": json.loads(row["provenance"]),
+                "assessed_at": row["assessed_at"],
+                "schema_version": row["schema_version"],
+            })
+
+    def put_hypothesis(self, hypothesis: Hypothesis) -> None:
+        missing_findings = [
+            finding_id for finding_id in hypothesis.finding_ids
+            if self.get_discovery_finding(finding_id) is None
+        ]
+        if missing_findings:
+            raise ValueError("hypothesis references missing finding(s): " + ", ".join(missing_findings))
+        missing_inputs = [
+            input_id for input_id in hypothesis.input_ids
+            if self.get_record(input_id) is None and self.get_relationship(input_id) is None
+        ]
+        if missing_inputs:
+            raise ValueError("hypothesis references missing input(s): " + ", ".join(missing_inputs))
+        self._connection.execute(
+            """INSERT INTO hypotheses
+               (id, statement, finding_ids, input_ids, method, method_version,
+                rationale, assumptions, created_at, schema_version, quantitative_rule)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (hypothesis.id, hypothesis.statement,
+             canonical_json(list(hypothesis.finding_ids)),
+             canonical_json(list(hypothesis.input_ids)), hypothesis.method,
+             hypothesis.method_version, hypothesis.rationale,
+             canonical_json(list(hypothesis.assumptions)), hypothesis.created_at,
+             hypothesis.schema_version,
+             canonical_json(dict(hypothesis.quantitative_rule))
+             if hypothesis.quantitative_rule is not None else None),
+        )
+        self._connection.commit()
+
+    def get_hypothesis(self, hypothesis_id: str) -> Hypothesis | None:
+        row = self._connection.execute(
+            """SELECT id, statement, finding_ids, input_ids, method, method_version,
+                      rationale, assumptions, created_at, schema_version, quantitative_rule
+               FROM hypotheses WHERE id = ?""", (hypothesis_id,)
+        ).fetchone()
+        if row is None:
+            return None
+        return Hypothesis.from_dict({
+            "id": row["id"], "statement": row["statement"],
+            "finding_ids": json.loads(row["finding_ids"]),
+            "input_ids": json.loads(row["input_ids"]),
+            "method": row["method"], "method_version": row["method_version"],
+            "rationale": row["rationale"], "assumptions": json.loads(row["assumptions"]),
+            "created_at": row["created_at"], "schema_version": row["schema_version"],
+            "quantitative_rule": json.loads(row["quantitative_rule"]) if row["quantitative_rule"] else None,
+        })
+
+    def iter_hypotheses(self) -> Iterator[Hypothesis]:
+        rows = self._connection.execute(
+            """SELECT id, statement, finding_ids, input_ids, method, method_version,
+                      rationale, assumptions, created_at, schema_version, quantitative_rule
+               FROM hypotheses ORDER BY created_at, id"""
+        )
+        for row in rows:
+            yield Hypothesis.from_dict({
+                "id": row["id"], "statement": row["statement"],
+                "finding_ids": json.loads(row["finding_ids"]),
+                "input_ids": json.loads(row["input_ids"]),
+                "method": row["method"], "method_version": row["method_version"],
+                "rationale": row["rationale"], "assumptions": json.loads(row["assumptions"]),
+                "created_at": row["created_at"], "schema_version": row["schema_version"],
+                "quantitative_rule": json.loads(row["quantitative_rule"]) if row["quantitative_rule"] else None,
+            })
+
+    def put_candidate_constraint_assessment(
+        self, assessment: CandidateConstraintAssessment
+    ) -> None:
+        if self.get_hypothesis(assessment.candidate_id) is None:
+            raise ValueError(
+                "candidate constraint assessment references missing candidate: "
+                + assessment.candidate_id
+            )
+        missing_inputs = [
+            input_id
+            for input_id in assessment.input_ids
+            if self.get_record(input_id) is None and self.get_relationship(input_id) is None
+        ]
+        if missing_inputs:
+            raise ValueError(
+                "candidate constraint assessment references missing input(s): "
+                + ", ".join(missing_inputs)
+            )
+
+        self._connection.execute(
+            """
+            INSERT INTO candidate_constraint_assessments
+                (id, candidate_id, constraint_id, basis, status, input_ids,
+                 assumptions, explanation, method, method_version, created_at, schema_version)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                assessment.id,
+                assessment.candidate_id,
+                assessment.constraint_id,
+                assessment.basis,
+                assessment.status.value,
+                canonical_json(list(assessment.input_ids)),
+                canonical_json(list(assessment.assumptions)),
+                assessment.explanation,
+                assessment.method,
+                assessment.method_version,
+                assessment.created_at,
+                assessment.schema_version,
+            ),
+        )
+        self._connection.commit()
+
+    def get_candidate_constraint_assessment(
+        self, assessment_id: str
+    ) -> CandidateConstraintAssessment | None:
+        row = self._connection.execute(
+            """
+            SELECT id, candidate_id, constraint_id, basis, status, input_ids,
+                   assumptions, explanation, method, method_version, created_at, schema_version
+            FROM candidate_constraint_assessments
+            WHERE id = ?
+            """,
+            (assessment_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        return CandidateConstraintAssessment.from_dict({
+            "id": row["id"],
+            "candidate_id": row["candidate_id"],
+            "constraint_id": row["constraint_id"],
+            "basis": row["basis"],
+            "status": row["status"],
+            "input_ids": json.loads(row["input_ids"]),
+            "assumptions": json.loads(row["assumptions"]),
+            "explanation": row["explanation"],
+            "method": row["method"],
+            "method_version": row["method_version"],
+            "created_at": row["created_at"],
+            "schema_version": row["schema_version"],
+        })
+
+    def iter_candidate_constraint_assessments(
+        self, candidate_id: str | None = None
+    ) -> Iterator[CandidateConstraintAssessment]:
+        if candidate_id is None:
+            rows = self._connection.execute(
+                """
+                SELECT id, candidate_id, constraint_id, basis, status, input_ids,
+                       assumptions, explanation, method, method_version, created_at, schema_version
+                FROM candidate_constraint_assessments
+                ORDER BY created_at, id
+                """
+            )
+        else:
+            rows = self._connection.execute(
+                """
+                SELECT id, candidate_id, constraint_id, basis, status, input_ids,
+                       assumptions, explanation, method, method_version, created_at, schema_version
+                FROM candidate_constraint_assessments
+                WHERE candidate_id = ?
+                ORDER BY created_at, id
+                """,
+                (candidate_id,),
+            )
+        for row in rows:
+            yield CandidateConstraintAssessment.from_dict({
+                "id": row["id"],
+                "candidate_id": row["candidate_id"],
+                "constraint_id": row["constraint_id"],
+                "basis": row["basis"],
+                "status": row["status"],
+                "input_ids": json.loads(row["input_ids"]),
+                "assumptions": json.loads(row["assumptions"]),
+                "explanation": row["explanation"],
+                "method": row["method"],
+                "method_version": row["method_version"],
+                "created_at": row["created_at"],
+                "schema_version": row["schema_version"],
+            })
+
+    def put_model(self, model: Model) -> None:
+        missing_hypotheses = [
+            hypothesis_id for hypothesis_id in model.hypothesis_ids
+            if self.get_hypothesis(hypothesis_id) is None
+        ]
+        if missing_hypotheses:
+            raise ValueError("model references missing hypothesis(es): " + ", ".join(missing_hypotheses))
+        missing_inputs = [
+            input_id for input_id in model.input_ids
+            if self.get_record(input_id) is None and self.get_relationship(input_id) is None
+        ]
+        if missing_inputs:
+            raise ValueError("model references missing input(s): " + ", ".join(missing_inputs))
+        self._connection.execute(
+            """INSERT INTO models
+               (id, description, hypothesis_ids, input_ids, assumptions, method,
+                method_version, rationale, created_at, schema_version)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (model.id, model.description, canonical_json(list(model.hypothesis_ids)),
+             canonical_json(list(model.input_ids)), canonical_json(list(model.assumptions)),
+             model.method, model.method_version, model.rationale, model.created_at,
+             model.schema_version),
+        )
+        self._connection.commit()
+
+    def get_model(self, model_id: str) -> Model | None:
+        row = self._connection.execute(
+            """SELECT id, description, hypothesis_ids, input_ids, assumptions, method,
+                      method_version, rationale, created_at, schema_version
+               FROM models WHERE id = ?""", (model_id,)
+        ).fetchone()
+        if row is None:
+            return None
+        return Model.from_dict({
+            "id": row["id"], "description": row["description"],
+            "hypothesis_ids": json.loads(row["hypothesis_ids"]),
+            "input_ids": json.loads(row["input_ids"]),
+            "assumptions": json.loads(row["assumptions"]),
+            "method": row["method"], "method_version": row["method_version"],
+            "rationale": row["rationale"], "created_at": row["created_at"],
+            "schema_version": row["schema_version"],
+        })
+
+    def iter_models(self) -> Iterator[Model]:
+        rows = self._connection.execute(
+            """SELECT id, description, hypothesis_ids, input_ids, assumptions, method,
+                      method_version, rationale, created_at, schema_version
+               FROM models ORDER BY created_at, id"""
+        )
+        for row in rows:
+            yield Model.from_dict({
+                "id": row["id"], "description": row["description"],
+                "hypothesis_ids": json.loads(row["hypothesis_ids"]),
+                "input_ids": json.loads(row["input_ids"]),
+                "assumptions": json.loads(row["assumptions"]),
+                "method": row["method"], "method_version": row["method_version"],
+                "rationale": row["rationale"], "created_at": row["created_at"],
+                "schema_version": row["schema_version"],
+            })
+
+    def _ensure_prediction_expectation_column(self) -> None:
+        columns = {row["name"] for row in self._connection.execute("PRAGMA table_info(predictions)")}
+        if "expected_presence" not in columns:
+            self._connection.execute("ALTER TABLE predictions ADD COLUMN expected_presence INTEGER")
+            self._connection.commit()
+
+    def put_prediction(self, prediction: Prediction) -> None:
+        if self.get_hypothesis(prediction.source_id) is None and self.get_model(prediction.source_id) is None:
+            raise ValueError("prediction references missing hypothesis or model: " + prediction.source_id)
+        missing_comparisons = [
+            hypothesis_id for hypothesis_id in prediction.comparison_hypothesis_ids
+            if self.get_hypothesis(hypothesis_id) is None
+        ]
+        if missing_comparisons:
+            raise ValueError("prediction references missing comparison hypothesis(es): " + ", ".join(missing_comparisons))
+        self._connection.execute(
+            """INSERT INTO predictions
+               (id, source_id, consequence, conditions, assumptions, method,
+                method_version, rationale, comparison_hypothesis_ids, created_at,
+                expected_presence, predicted_numeric_value, schema_version)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (prediction.id, prediction.source_id, prediction.consequence,
+             prediction.conditions, canonical_json(list(prediction.assumptions)),
+             prediction.method, prediction.method_version, prediction.rationale,
+             canonical_json(list(prediction.comparison_hypothesis_ids)),
+             prediction.created_at,
+             None if prediction.expected_presence is None else int(prediction.expected_presence),
+             prediction.predicted_numeric_value, prediction.schema_version),
+        )
+        self._connection.commit()
+
+    def get_prediction(self, prediction_id: str) -> Prediction | None:
+        row = self._connection.execute(
+            """SELECT id, source_id, consequence, conditions, assumptions, method,
+                      method_version, rationale, comparison_hypothesis_ids,
+                      created_at, expected_presence, predicted_numeric_value,
+                      schema_version
+               FROM predictions WHERE id = ?""", (prediction_id,)
+        ).fetchone()
+        if row is None:
+            return None
+        return Prediction.from_dict({
+            "id": row["id"], "source_id": row["source_id"],
+            "consequence": row["consequence"], "conditions": row["conditions"],
+            "assumptions": json.loads(row["assumptions"]), "method": row["method"],
+            "method_version": row["method_version"], "rationale": row["rationale"],
+            "comparison_hypothesis_ids": json.loads(row["comparison_hypothesis_ids"]),
+            "created_at": row["created_at"],
+            "expected_presence": None if row["expected_presence"] is None else bool(row["expected_presence"]),
+            "predicted_numeric_value": row["predicted_numeric_value"],
+            "schema_version": row["schema_version"],
+        })
+
+    def iter_predictions(self) -> Iterator[Prediction]:
+        rows = self._connection.execute(
+            """SELECT id, source_id, consequence, conditions, assumptions, method,
+                      method_version, rationale, comparison_hypothesis_ids,
+                      created_at, expected_presence, predicted_numeric_value, schema_version
+               FROM predictions ORDER BY created_at, id"""
+        )
+        for row in rows:
+            yield Prediction.from_dict({
+                "id": row["id"], "source_id": row["source_id"],
+                "consequence": row["consequence"], "conditions": row["conditions"],
+                "assumptions": json.loads(row["assumptions"]), "method": row["method"],
+                "method_version": row["method_version"], "rationale": row["rationale"],
+                "comparison_hypothesis_ids": json.loads(row["comparison_hypothesis_ids"]),
+                "created_at": row["created_at"],
+                "expected_presence": None if row["expected_presence"] is None else bool(row["expected_presence"]),
+                "predicted_numeric_value": row["predicted_numeric_value"],
+                "schema_version": row["schema_version"],
+            })
+
+
+    def put_experiment_proposal(self, proposal: ExperimentProposal) -> None:
+        missing = [
+            prediction_id for prediction_id in proposal.prediction_ids
+            if self.get_prediction(prediction_id) is None
+        ]
+        if missing:
+            raise ValueError(
+                "experiment proposal references missing prediction(s): "
+                + ", ".join(missing)
+            )
+        self._connection.execute(
+            """INSERT INTO experiment_proposals
+               (id, prediction_ids, objective, proposed_observation, discrimination_basis, conditions,
+                assumptions, method, method_version, rationale, created_at, schema_version, execution_spec)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (proposal.id, canonical_json(list(proposal.prediction_ids)),
+             proposal.objective, proposal.proposed_observation, proposal.discrimination_basis, proposal.conditions,
+             canonical_json(list(proposal.assumptions)), proposal.method,
+             proposal.method_version, proposal.rationale, proposal.created_at,
+             proposal.schema_version,
+             canonical_json(dict(proposal.execution_spec)) if proposal.execution_spec is not None else None),
+        )
+        self._connection.commit()
+
+    def get_experiment_proposal(self, proposal_id: str) -> ExperimentProposal | None:
+        row = self._connection.execute(
+            """SELECT id, prediction_ids, objective, proposed_observation, discrimination_basis, conditions,
+                      assumptions, method, method_version, rationale, created_at, schema_version, execution_spec
+               FROM experiment_proposals WHERE id = ?""", (proposal_id,)
+        ).fetchone()
+        if row is None:
+            return None
+        return ExperimentProposal.from_dict({
+            "id": row["id"], "prediction_ids": json.loads(row["prediction_ids"]),
+            "objective": row["objective"], "proposed_observation": row["proposed_observation"],
+            "discrimination_basis": row["discrimination_basis"], "conditions": row["conditions"], "assumptions": json.loads(row["assumptions"]),
+            "method": row["method"], "method_version": row["method_version"],
+            "rationale": row["rationale"], "created_at": row["created_at"],
+            "schema_version": row["schema_version"],
+            "execution_spec": json.loads(row["execution_spec"]) if row["execution_spec"] is not None else None,
+        })
+
+    def iter_experiment_proposals(self) -> Iterator[ExperimentProposal]:
+        rows = self._connection.execute(
+            """SELECT id, prediction_ids, objective, proposed_observation, discrimination_basis, conditions,
+                      assumptions, method, method_version, rationale, created_at, schema_version, execution_spec
+               FROM experiment_proposals ORDER BY created_at, id"""
+        )
+        for row in rows:
+            yield ExperimentProposal.from_dict({
+                "id": row["id"], "prediction_ids": json.loads(row["prediction_ids"]),
+                "objective": row["objective"], "proposed_observation": row["proposed_observation"],
+                "discrimination_basis": row["discrimination_basis"], "conditions": row["conditions"], "assumptions": json.loads(row["assumptions"]),
+                "method": row["method"], "method_version": row["method_version"],
+                "rationale": row["rationale"], "created_at": row["created_at"],
+                "schema_version": row["schema_version"],
+                "execution_spec": json.loads(row["execution_spec"]) if row["execution_spec"] is not None else None,
+            })
+
+    def put_prediction_evaluation(self, evaluation: PredictionEvaluation) -> None:
+        result = self.get_record(evaluation.result_id)
+        if result is None or result.kind.value != "result":
+            raise ValueError(
+                "prediction evaluation references missing or non-result record: "
+                + evaluation.result_id
+            )
+        if self.get_prediction(evaluation.prediction_id) is None:
+            raise ValueError(
+                "prediction evaluation references missing prediction: "
+                + evaluation.prediction_id
+            )
+        if evaluation.experiment_proposal_id is not None:
+            proposal = self.get_experiment_proposal(evaluation.experiment_proposal_id)
+            if proposal is None:
+                raise ValueError(
+                    "prediction evaluation references missing experiment proposal: "
+                    + evaluation.experiment_proposal_id
+                )
+            if evaluation.prediction_id not in proposal.prediction_ids:
+                raise ValueError(
+                    "prediction evaluation prediction is not included in experiment proposal: "
+                    + evaluation.prediction_id
+                )
+
+        self._connection.execute(
+            """INSERT INTO prediction_evaluations
+               (id, result_id, prediction_id, experiment_proposal_id,
+                comparison_conditions, assumptions, outcome, rationale,
+                method, method_version, created_at, schema_version)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                evaluation.id,
+                evaluation.result_id,
+                evaluation.prediction_id,
+                evaluation.experiment_proposal_id,
+                evaluation.comparison_conditions,
+                canonical_json(list(evaluation.assumptions)),
+                evaluation.outcome.value,
+                evaluation.rationale,
+                evaluation.method,
+                evaluation.method_version,
+                evaluation.created_at,
+                evaluation.schema_version,
+            ),
+        )
+        self._connection.commit()
+
+    def get_prediction_evaluation(self, evaluation_id: str) -> PredictionEvaluation | None:
+        row = self._connection.execute(
+            """SELECT id, result_id, prediction_id, experiment_proposal_id,
+                      comparison_conditions, assumptions, outcome, rationale,
+                      method, method_version, created_at, schema_version
+               FROM prediction_evaluations
+               WHERE id = ?""",
+            (evaluation_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        return PredictionEvaluation.from_dict(
+            {
+                "id": row["id"],
+                "result_id": row["result_id"],
+                "prediction_id": row["prediction_id"],
+                "experiment_proposal_id": row["experiment_proposal_id"],
+                "comparison_conditions": row["comparison_conditions"],
+                "assumptions": json.loads(row["assumptions"]),
+                "outcome": row["outcome"],
+                "rationale": row["rationale"],
+                "method": row["method"],
+                "method_version": row["method_version"],
+                "created_at": row["created_at"],
+                "schema_version": row["schema_version"],
+            }
+        )
+
+    def iter_prediction_evaluations(self) -> Iterator[PredictionEvaluation]:
+        rows = self._connection.execute(
+            """SELECT id, result_id, prediction_id, experiment_proposal_id,
+                      comparison_conditions, assumptions, outcome, rationale,
+                      method, method_version, created_at, schema_version
+               FROM prediction_evaluations
+               ORDER BY created_at, id"""
+        )
+        for row in rows:
+            yield PredictionEvaluation.from_dict(
+                {
+                    "id": row["id"],
+                    "result_id": row["result_id"],
+                    "prediction_id": row["prediction_id"],
+                    "experiment_proposal_id": row["experiment_proposal_id"],
+                    "comparison_conditions": row["comparison_conditions"],
+                    "assumptions": json.loads(row["assumptions"]),
+                    "outcome": row["outcome"],
+                    "rationale": row["rationale"],
+                    "method": row["method"],
+                    "method_version": row["method_version"],
+                    "created_at": row["created_at"],
+                    "schema_version": row["schema_version"],
+                }
+            )
+
+    def put_knowledge_state_consequence(self, consequence: KnowledgeStateConsequence) -> None:
+        for evaluation_id in consequence.evaluation_ids:
+            if self.get_prediction_evaluation(evaluation_id) is None:
+                raise ValueError(
+                    "knowledge-state consequence references missing prediction evaluation: "
+                    + evaluation_id
+                )
+
+        if consequence.target_kind is KnowledgeStateTargetKind.HYPOTHESIS:
+            target = self.get_hypothesis(consequence.target_id)
+            if target is None:
+                raise ValueError("knowledge-state consequence references missing hypothesis: " + consequence.target_id)
+        elif consequence.target_kind is KnowledgeStateTargetKind.MODEL:
+            target = self.get_model(consequence.target_id)
+            if target is None:
+                raise ValueError("knowledge-state consequence references missing model: " + consequence.target_id)
+        else:
+            target = self.get_prediction(consequence.target_id)
+            if target is None:
+                raise ValueError("knowledge-state consequence references missing prediction: " + consequence.target_id)
+
+        for evaluation_id in consequence.evaluation_ids:
+            evaluation = self.get_prediction_evaluation(evaluation_id)
+            assert evaluation is not None
+            prediction = self.get_prediction(evaluation.prediction_id)
+            assert prediction is not None
+            if consequence.target_kind is KnowledgeStateTargetKind.PREDICTION:
+                related = prediction.id == consequence.target_id
+            elif consequence.target_kind is KnowledgeStateTargetKind.HYPOTHESIS:
+                related = prediction.source_id == consequence.target_id or consequence.target_id in prediction.comparison_hypothesis_ids
+            else:
+                related = prediction.source_id == consequence.target_id
+            if not related:
+                raise ValueError("knowledge-state consequence evaluation does not relate to target: " + evaluation_id)
+
+        self._connection.execute(
+            """INSERT INTO knowledge_state_consequences
+               (id, evaluation_ids, target_kind, target_id, consequence, assumptions,
+                rationale, method, method_version, created_at, schema_version)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                consequence.id,
+                canonical_json(list(consequence.evaluation_ids)),
+                consequence.target_kind.value,
+                consequence.target_id,
+                consequence.consequence.value,
+                canonical_json(list(consequence.assumptions)),
+                consequence.rationale,
+                consequence.method,
+                consequence.method_version,
+                consequence.created_at,
+                consequence.schema_version,
+            ),
+        )
+        self._connection.commit()
+
+    def get_knowledge_state_consequence(self, consequence_id: str) -> KnowledgeStateConsequence | None:
+        row = self._connection.execute(
+            """SELECT id, evaluation_ids, target_kind, target_id, consequence, assumptions,
+                      rationale, method, method_version, created_at, schema_version
+               FROM knowledge_state_consequences WHERE id = ?""",
+            (consequence_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        return KnowledgeStateConsequence.from_dict({
+            "id": row["id"],
+            "evaluation_ids": json.loads(row["evaluation_ids"]),
+            "target_kind": row["target_kind"],
+            "target_id": row["target_id"],
+            "consequence": row["consequence"],
+            "assumptions": json.loads(row["assumptions"]),
+            "rationale": row["rationale"],
+            "method": row["method"],
+            "method_version": row["method_version"],
+            "created_at": row["created_at"],
+            "schema_version": row["schema_version"],
+        })
+
+    def iter_knowledge_state_consequences(self) -> Iterator[KnowledgeStateConsequence]:
+        rows = self._connection.execute(
+            """SELECT id, evaluation_ids, target_kind, target_id, consequence, assumptions,
+                      rationale, method, method_version, created_at, schema_version
+               FROM knowledge_state_consequences ORDER BY created_at, id"""
+        )
+        for row in rows:
+            yield KnowledgeStateConsequence.from_dict({
+                "id": row["id"],
+                "evaluation_ids": json.loads(row["evaluation_ids"]),
+                "target_kind": row["target_kind"],
+                "target_id": row["target_id"],
+                "consequence": row["consequence"],
+                "assumptions": json.loads(row["assumptions"]),
+                "rationale": row["rationale"],
+                "method": row["method"],
+                "method_version": row["method_version"],
+                "created_at": row["created_at"],
+                "schema_version": row["schema_version"],
+            })
+
+    def put_lifecycle_event(self, event: LifecycleEvent) -> None:
+        if self.get_record(event.record_id) is None:
+            raise ValueError(f"lifecycle event references missing record: {event.record_id}")
+        if event.replacement_record_id is not None and self.get_record(event.replacement_record_id) is None:
+            raise ValueError(
+                "lifecycle event references missing replacement record: "
+                + event.replacement_record_id
+            )
+
+        self._connection.execute(
+            """
+            INSERT INTO lifecycle_events
+                (id, record_id, kind, occurred_at, provenance, replacement_record_id, reason, schema_version)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                event.id,
+                event.record_id,
+                event.kind.value,
+                event.occurred_at,
+                canonical_json([item.to_dict() for item in event.provenance]),
+                event.replacement_record_id,
+                event.reason,
+                event.schema_version,
+            ),
+        )
+        self._connection.commit()
+
+    def iter_lifecycle_events(self, record_id: str | None = None) -> Iterator[LifecycleEvent]:
+        if record_id is None:
+            rows = self._connection.execute(
+                """
+                SELECT id, record_id, kind, occurred_at, provenance,
+                       replacement_record_id, reason, schema_version
+                FROM lifecycle_events
+                ORDER BY occurred_at, id
+                """
+            )
+        else:
+            rows = self._connection.execute(
+                """
+                SELECT id, record_id, kind, occurred_at, provenance,
+                       replacement_record_id, reason, schema_version
+                FROM lifecycle_events
+                WHERE record_id = ?
+                ORDER BY occurred_at, id
+                """,
+                (record_id,),
+            )
+
+        for row in rows:
+            yield LifecycleEvent.from_dict(
+                {
+                    "id": row["id"],
+                    "record_id": row["record_id"],
+                    "kind": row["kind"],
+                    "occurred_at": row["occurred_at"],
+                    "provenance": json.loads(row["provenance"]),
+                    "replacement_record_id": row["replacement_record_id"],
+                    "reason": row["reason"],
+                    "schema_version": row["schema_version"],
+                }
+            )
+
+    def put_evidence_assessment(self, assessment: EvidenceAssessment) -> None:
+        if assessment.target_kind is AssessmentTargetKind.RECORD:
+            exists = self.get_record(assessment.target_id) is not None
+        else:
+            exists = self.get_relationship(assessment.target_id) is not None
+
+        if not exists:
+            raise ValueError(
+                f"assessment references missing {assessment.target_kind.value}: "
+                + assessment.target_id
+            )
+
+        self._connection.execute(
+            """
+            INSERT INTO evidence_assessments
+                (id, target_kind, target_id, method, basis, rationale,
+                 provenance, assessed_at, schema_version)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                assessment.id,
+                assessment.target_kind.value,
+                assessment.target_id,
+                assessment.method,
+                assessment.basis,
+                assessment.rationale,
+                canonical_json([item.to_dict() for item in assessment.provenance]),
+                assessment.assessed_at,
+                assessment.schema_version,
+            ),
+        )
+        self._connection.commit()
+
+    def get_evidence_assessment(self, assessment_id: str) -> EvidenceAssessment | None:
+        row = self._connection.execute(
+            """
+            SELECT id, target_kind, target_id, method, basis, rationale,
+                   provenance, assessed_at, schema_version
+            FROM evidence_assessments
+            WHERE id = ?
+            """,
+            (assessment_id,),
+        ).fetchone()
+        if row is None:
+            return None
+
+        return EvidenceAssessment.from_dict(
+            {
+                "id": row["id"],
+                "target_kind": row["target_kind"],
+                "target_id": row["target_id"],
+                "method": row["method"],
+                "basis": row["basis"],
+                "rationale": row["rationale"],
+                "provenance": json.loads(row["provenance"]),
+                "assessed_at": row["assessed_at"],
+                "schema_version": row["schema_version"],
+            }
+        )
+
+    def _review_target_exists(self, target_kind: ReviewTargetKind, target_id: str) -> bool:
+        table_map = {
+            ReviewTargetKind.RECORD: "records",
+            ReviewTargetKind.RELATIONSHIP: "relationships",
+            ReviewTargetKind.DISCOVERY_FINDING: "discovery_findings",
+            ReviewTargetKind.HYPOTHESIS: "hypotheses",
+            ReviewTargetKind.MODEL: "models",
+            ReviewTargetKind.PREDICTION: "predictions",
+            ReviewTargetKind.EXPERIMENT_PROPOSAL: "experiment_proposals",
+            ReviewTargetKind.PREDICTION_EVALUATION: "prediction_evaluations",
+            ReviewTargetKind.KNOWLEDGE_STATE_CONSEQUENCE: "knowledge_state_consequences",
+        }
+        table = table_map[target_kind]
+        return self._connection.execute(
+            f"SELECT 1 FROM {table} WHERE id = ? LIMIT 1", (target_id,)
+        ).fetchone() is not None
+
+    def put_review(self, review: Review) -> None:
+        if not self._review_target_exists(review.target_kind, review.target_id):
+            raise ValueError(
+                f"review references missing {review.target_kind.value}: {review.target_id}"
+            )
+
+        self._connection.execute(
+            """
+            INSERT INTO reviews
+                (id, target_kind, target_id, reviewer, disposition, basis, rationale,
+                 provenance, reviewed_at, schema_version)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                review.id,
+                review.target_kind.value,
+                review.target_id,
+                review.reviewer,
+                review.disposition.value,
+                review.basis,
+                review.rationale,
+                canonical_json([item.to_dict() for item in review.provenance]),
+                review.reviewed_at,
+                review.schema_version,
+            ),
+        )
+        self._connection.commit()
+
+    def get_review(self, review_id: str) -> Review | None:
+        row = self._connection.execute(
+            """
+            SELECT id, target_kind, target_id, reviewer, disposition, basis, rationale,
+                   provenance, reviewed_at, schema_version
+            FROM reviews WHERE id = ?
+            """,
+            (review_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        return Review.from_dict({
+            "id": row["id"],
+            "target_kind": row["target_kind"],
+            "target_id": row["target_id"],
+            "reviewer": row["reviewer"],
+            "disposition": row["disposition"],
+            "basis": row["basis"],
+            "rationale": row["rationale"],
+            "provenance": json.loads(row["provenance"]),
+            "reviewed_at": row["reviewed_at"],
+            "schema_version": row["schema_version"],
+        })
+
+    def iter_reviews(
+        self,
+        target_id: str | None = None,
+        target_kind: ReviewTargetKind | None = None,
+    ) -> Iterator[Review]:
+        clauses: list[str] = []
+        parameters: list[str] = []
+        if target_kind is not None:
+            clauses.append("target_kind = ?")
+            parameters.append(target_kind.value)
+        if target_id is not None:
+            clauses.append("target_id = ?")
+            parameters.append(target_id)
+        where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
+        rows = self._connection.execute(
+            """
+            SELECT id, target_kind, target_id, reviewer, disposition, basis, rationale,
+                   provenance, reviewed_at, schema_version
+            FROM reviews""" + where + " ORDER BY reviewed_at, id",
+            parameters,
+        )
+        for row in rows:
+            yield Review.from_dict({
+                "id": row["id"],
+                "target_kind": row["target_kind"],
+                "target_id": row["target_id"],
+                "reviewer": row["reviewer"],
+                "disposition": row["disposition"],
+                "basis": row["basis"],
+                "rationale": row["rationale"],
+                "provenance": json.loads(row["provenance"]),
+                "reviewed_at": row["reviewed_at"],
+                "schema_version": row["schema_version"],
+            })
+
+    def put_transformation(self, transformation: Transformation) -> None:
+        record_ids = (*transformation.input_ids, *transformation.output_ids)
+        missing = [record_id for record_id in record_ids if self.get_record(record_id) is None]
+        if missing:
+            raise ValueError(
+                "transformation references missing record(s): " + ", ".join(missing)
+            )
+
+        self._connection.execute(
+            """
+            INSERT INTO transformations
+                (id, input_ids, operation, operation_version, assumptions,
+                 output_ids, executed_at, validation_result, provenance, schema_version)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                transformation.id,
+                canonical_json(list(transformation.input_ids)),
+                transformation.operation,
+                transformation.operation_version,
+                canonical_json(list(transformation.assumptions)),
+                canonical_json(list(transformation.output_ids)),
+                transformation.executed_at,
+                transformation.validation_result,
+                canonical_json([item.to_dict() for item in transformation.provenance]),
+                transformation.schema_version,
+            ),
+        )
+        self._connection.commit()
+
+    def get_transformation(self, transformation_id: str) -> Transformation | None:
+        row = self._connection.execute(
+            """
+            SELECT id, input_ids, operation, operation_version, assumptions,
+                   output_ids, executed_at, validation_result, provenance, schema_version
+            FROM transformations
+            WHERE id = ?
+            """,
+            (transformation_id,),
+        ).fetchone()
+        if row is None:
+            return None
+
+        return Transformation.from_dict(
+            {
+                "id": row["id"],
+                "input_ids": json.loads(row["input_ids"]),
+                "operation": row["operation"],
+                "operation_version": row["operation_version"],
+                "assumptions": json.loads(row["assumptions"]),
+                "output_ids": json.loads(row["output_ids"]),
+                "executed_at": row["executed_at"],
+                "validation_result": row["validation_result"],
+                "provenance": json.loads(row["provenance"]),
+                "schema_version": row["schema_version"],
+            }
+        )
+
+    def put_captured_representation(
+        self, capture: CapturedRepresentation, content: bytes | None = None
+    ) -> None:
+        """Persist capture metadata and, when supplied, its immutable content."""
+        if capture.content_reference is not None and self._capture_root is None:
+            raise ValueError("capture_root is required for captures with content")
+        if capture.content_digest is not None and content is None:
+            raise ValueError("captured content is required when content_digest is present")
+        if capture.content_digest is None and content is not None:
+            raise ValueError("captured content requires a content_digest")
+        if self.get_captured_representation(capture.id) is not None:
+            raise ValueError("captured representation already exists: " + capture.id)
+
+        if content is not None:
+            import hashlib
+            if hashlib.sha256(content).hexdigest() != capture.content_digest:
+                raise ValueError("captured content does not match content_digest")
+            assert self._capture_root is not None
+            target = self._capture_root / capture.content_reference
+            target.parent.mkdir(parents=True, exist_ok=True)
+            if target.exists():
+                if target.read_bytes() != content:
+                    raise ValueError("existing captured content does not match digest")
+            else:
+                temporary = target.with_name(target.name + ".tmp")
+                temporary.write_bytes(content)
+                temporary.replace(target)
+
+        self._connection.execute(
+            """
+            INSERT INTO captured_representations
+                (id, source_id, requested_resource, request_parameters, captured_at,
+                 response_status, media_type, source_version, content_digest,
+                 content_reference, acquisition_method, acquisition_method_version,
+                 outcome, error, schema_version)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                capture.id, capture.source_id, capture.requested_resource,
+                canonical_json(dict(capture.request_parameters)), capture.captured_at,
+                capture.response_status, capture.media_type, capture.source_version,
+                capture.content_digest, capture.content_reference,
+                capture.acquisition_method, capture.acquisition_method_version,
+                capture.outcome.value, capture.error, capture.schema_version,
+            ),
+        )
+        self._connection.commit()
+
+    def get_captured_representation(self, capture_id: str) -> CapturedRepresentation | None:
+        row = self._connection.execute(
+            "SELECT * FROM captured_representations WHERE id = ?", (capture_id,)
+        ).fetchone()
+        if row is None:
+            return None
+        return CapturedRepresentation.from_dict({
+            "id": row["id"], "source_id": row["source_id"],
+            "requested_resource": row["requested_resource"],
+            "request_parameters": json.loads(row["request_parameters"]),
+            "captured_at": row["captured_at"], "response_status": row["response_status"],
+            "media_type": row["media_type"], "source_version": row["source_version"],
+            "content_digest": row["content_digest"],
+            "content_reference": row["content_reference"],
+            "acquisition_method": row["acquisition_method"],
+            "acquisition_method_version": row["acquisition_method_version"],
+            "outcome": row["outcome"], "error": row["error"],
+            "schema_version": row["schema_version"],
+        })
+
+    def iter_captured_representations(
+        self, source_id: str | None = None
+    ) -> Iterator[CapturedRepresentation]:
+        if source_id is None:
+            rows = self._connection.execute(
+                "SELECT * FROM captured_representations ORDER BY captured_at, id"
+            )
+        else:
+            rows = self._connection.execute(
+                "SELECT * FROM captured_representations WHERE source_id = ? ORDER BY captured_at, id",
+                (source_id,),
+            )
+        for row in rows:
+            yield CapturedRepresentation.from_dict({
+                "id": row["id"], "source_id": row["source_id"],
+                "requested_resource": row["requested_resource"],
+                "request_parameters": json.loads(row["request_parameters"]),
+                "captured_at": row["captured_at"], "response_status": row["response_status"],
+                "media_type": row["media_type"], "source_version": row["source_version"],
+                "content_digest": row["content_digest"],
+                "content_reference": row["content_reference"],
+                "acquisition_method": row["acquisition_method"],
+                "acquisition_method_version": row["acquisition_method_version"],
+                "outcome": row["outcome"], "error": row["error"],
+                "schema_version": row["schema_version"],
+            })
+
+    def read_captured_content(self, capture_id: str) -> bytes:
+        capture = self.get_captured_representation(capture_id)
+        if capture is None:
+            raise ValueError("captured representation not found: " + capture_id)
+        if capture.content_reference is None or capture.content_digest is None:
+            raise ValueError("captured representation has no content: " + capture_id)
+        if self._capture_root is None:
+            raise ValueError("capture_root is required to read captured content")
+        path = (self._capture_root / capture.content_reference).resolve()
+        if self._capture_root not in path.parents:
+            raise ValueError("captured content reference escapes capture_root")
+        content = path.read_bytes()
+        import hashlib
+        if hashlib.sha256(content).hexdigest() != capture.content_digest:
+            raise ValueError("captured content digest mismatch: " + capture_id)
+        return content
+
+    def put_workflow_definition(self, workflow: "WorkflowDefinition") -> None:
+        from .orchestration import WorkflowDefinition
+
+        if not isinstance(workflow, WorkflowDefinition):
+            raise TypeError("expected WorkflowDefinition")
+        self._connection.execute(
+            "INSERT INTO workflow_definitions (id, definition) VALUES (?, ?)",
+            (workflow.id, canonical_json(workflow.to_dict())),
+        )
+        self._connection.commit()
+
+    def get_workflow_definition(self, workflow_id: str) -> "WorkflowDefinition | None":
+        from .orchestration import WorkflowDefinition
+
+        row = self._connection.execute(
+            "SELECT definition FROM workflow_definitions WHERE id = ?",
+            (workflow_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        return WorkflowDefinition.from_dict(json.loads(row["definition"]))
+
+    def iter_workflow_definitions(self) -> Iterator["WorkflowDefinition"]:
+        from .orchestration import WorkflowDefinition
+
+        rows = self._connection.execute(
+            "SELECT definition FROM workflow_definitions ORDER BY id"
+        )
+        for row in rows:
+            yield WorkflowDefinition.from_dict(json.loads(row["definition"]))
+
+    def _workflow_artifact_exists(self, artifact_id: str) -> bool:
+        tables = (
+            "records", "relationships", "discovery_findings", "hypotheses",
+            "models", "predictions", "experiment_proposals",
+            "prediction_evaluations", "knowledge_state_consequences",
+            "candidate_constraint_assessments", "evidence_assessments",
+            "reviews", "transformations", "captured_representations",
+        )
+        return any(
+            self._connection.execute(
+                f"SELECT 1 FROM {table} WHERE id = ? LIMIT 1", (artifact_id,)
+            ).fetchone()
+            is not None
+            for table in tables
+        )
+
+    def workflow_artifact_exists(self, artifact_id: str) -> bool:
+        """Return whether an identifier resolves to a persisted workflow resource."""
+        return self._workflow_artifact_exists(artifact_id)
+
+    def epistemic_object_exists(self, object_id: str) -> bool:
+        """Return whether an identifier resolves to a persisted epistemic object."""
+        return self._object_exists(object_id)
+
+    def put_workflow_execution(self, execution: "WorkflowExecution") -> None:
+        from .orchestration import WorkflowExecution
+
+        if not isinstance(execution, WorkflowExecution):
+            raise TypeError("expected WorkflowExecution")
+        if self.get_workflow_definition(execution.workflow_id) is None:
+            raise ValueError(
+                "workflow execution references missing workflow definition: "
+                + execution.workflow_id
+            )
+        artifact_ids = [
+            artifact_id
+            for result in execution.step_results
+            for artifact_id in (*result.input_ids, *result.output_ids)
+        ]
+        missing = [
+            artifact_id for artifact_id in artifact_ids
+            if not self._workflow_artifact_exists(artifact_id)
+        ]
+        if missing:
+            raise ValueError(
+                "workflow execution references missing artifact(s): "
+                + ", ".join(dict.fromkeys(missing))
+            )
+        self._connection.execute(
+            "INSERT INTO workflow_executions (id, workflow_id, execution) VALUES (?, ?, ?)",
+            (execution.id, execution.workflow_id, canonical_json(execution.to_dict())),
+        )
+        self._connection.commit()
+
+    def get_workflow_execution(self, execution_id: str) -> "WorkflowExecution | None":
+        from .orchestration import WorkflowExecution
+
+        row = self._connection.execute(
+            "SELECT execution FROM workflow_executions WHERE id = ?",
+            (execution_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        return WorkflowExecution.from_dict(json.loads(row["execution"]))
+
+    def iter_workflow_executions(
+        self, workflow_id: str | None = None
+    ) -> Iterator["WorkflowExecution"]:
+        from .orchestration import WorkflowExecution
+
+        if workflow_id is None:
+            rows = self._connection.execute(
+                "SELECT execution FROM workflow_executions ORDER BY id"
+            )
+        else:
+            rows = self._connection.execute(
+                "SELECT execution FROM workflow_executions WHERE workflow_id = ? ORDER BY id",
+                (workflow_id,),
+            )
+        for row in rows:
+            yield WorkflowExecution.from_dict(json.loads(row["execution"]))
+
+    def iter_workflow_executions_for_artifact(
+        self, artifact_id: str
+    ) -> Iterator["WorkflowExecution"]:
+        from .orchestration import WorkflowExecution
+
+        for execution in self.iter_workflow_executions():
+            if any(
+                artifact_id in result.input_ids or artifact_id in result.output_ids
+                for result in execution.step_results
+            ):
+                yield execution
+
+    def close(self) -> None:
+        self._connection.close()
+
+    def __enter__(self) -> "Store":
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        self.close()
 
             CREATE TABLE IF NOT EXISTS candidate_constraint_assessments (
                 id TEXT PRIMARY KEY,
