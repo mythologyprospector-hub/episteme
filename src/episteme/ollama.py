@@ -192,6 +192,11 @@ class OllamaPlanner:
                 "experiment", "request_evidence", "stop",
             ]
 
+        predictions_by_id = {
+            item.get("id"): item
+            for item in context.predictions
+            if isinstance(item.get("id"), str)
+        }
         context_data = {
             "grounded_input_ids": _alias_value(list(context.grounded_input_ids), aliases),
             "grounded_observations": _alias_value(grounded_observations, aliases),
@@ -219,6 +224,11 @@ class OllamaPlanner:
             "evaluation_feedback": [
                 {
                     "prediction": aliases.get(item.get("prediction_id"), "unknown_prediction"),
+                    "forecast": predictions_by_id.get(item.get("prediction_id"), {}).get("predicted_numeric_value"),
+                    "compared_hypotheses": [
+                        aliases.get(hypothesis_id, "unknown_hypothesis")
+                        for hypothesis_id in predictions_by_id.get(item.get("prediction_id"), {}).get("comparison_hypothesis_ids", ())
+                    ],
                     "verdict": item.get("outcome"),
                     "rationale": {
                         "consistent": "The host evaluator marked this forecast consistent with the executed result under the registered evaluation rule.",
@@ -363,7 +373,7 @@ class OllamaPlanner:
             "After exactly one hypothesis exists for the finding, propose a distinct competing hypothesis for the same finding. "
             "After two or more "
             "competing hypotheses exist and have no predictions, propose discriminating "
-            "predictions. The evaluation_feedback field contains only host-authored categorical verdicts and fixed rationales for evaluated predictions. Use it to describe what the registered evaluator concluded; never infer or request the hidden numeric value from it, and never treat a model-generated statement as an evaluation. The planner must not receive held-out result values or hidden entity identity. "
+            "predictions. The evaluation_feedback field contains host-authored categorical verdicts and fixed rationales, explicitly linked to each prediction's numeric forecast and compared hypothesis handles. Interpret each verdict only for the exact linked forecast and hypotheses; never transfer a verdict between competing predictions, infer or request the hidden numeric value, or treat a model-generated statement as an evaluation. The planner must not receive held-out result values or hidden entity identity. "
             "After competing predictions exist with no experiment, the ONLY "
             "valid next action is experiment. If predictions exist and experiments is empty, "
             "NEVER choose request_evidence or stop; choose experiment. Once an experiment has been executed and its result and evaluations are present, request evidence when an explicitly available host capability could materially discriminate the active alternatives; otherwise choose stop. Do not propose another experiment for the same run. Do not stop merely because the GAP has been found; continue "
