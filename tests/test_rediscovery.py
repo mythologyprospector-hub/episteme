@@ -139,6 +139,8 @@ def test_phase29_runtime_executes_and_evaluates_through_host_experiment_boundary
             created_at=FIXTURE_CAPTURED_AT,
         )
         store.put_hypothesis(hypothesis)
+        assert store.get_hypothesis(hypothesis.id).quantitative_rule is None
+        assert next(item for item in store.iter_hypotheses() if item.id == hypothesis.id).quantitative_rule is None
 
         prediction = predict(
             source_id=hypothesis.id,
