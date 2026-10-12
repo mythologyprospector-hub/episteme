@@ -98,6 +98,31 @@ class OllamaPlanner:
             ) from exc
         if not isinstance(action_data, dict):
             raise PlannerActionError("Ollama planner JSON must be an object")
+        if (
+            "historical_rediscovery" in self.host_capabilities
+            and action_data.get("kind") == "hypothesis"
+        ):
+            rule = action_data.get("quantitative_rule")
+            if not isinstance(rule, dict):
+                raise PlannerActionError(
+                    "historical rediscovery hypothesis requires a quantitative_rule object"
+                )
+            if (
+                not isinstance(rule.get("operation"), str)
+                or not rule["operation"].strip()
+                or not isinstance(rule.get("property"), str)
+                or not rule["property"].strip()
+                or not isinstance(rule.get("input_positions"), list)
+                or len(rule["input_positions"]) < 2
+                or any(
+                    isinstance(position, bool) or not isinstance(position, (int, float))
+                    for position in rule["input_positions"]
+                )
+            ):
+                raise PlannerActionError(
+                    "historical rediscovery quantitative_rule must include a non-empty "
+                    "operation, property, and at least two numeric input_positions"
+                )
         _, handle_to_id = _planner_id_aliases(context)
         if "target_ids" in action_data:
             values = action_data["target_ids"]

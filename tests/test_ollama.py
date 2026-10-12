@@ -53,6 +53,78 @@ def test_ollama_accepts_only_bounded_action_fields():
     assert action.rationale.startswith("The bounded investigation")
 
 
+def test_historical_rediscovery_rejects_hypothesis_without_quantitative_rule():
+    content = json.dumps(
+        {
+            "kind": "hypothesis",
+            "target_ids": ["F1"],
+            "statement": "The missing value follows a midpoint relationship.",
+            "rationale": "A testable quantitative hypothesis is required.",
+        }
+    )
+    context = DiscoveryContext(
+        grounded_input_ids=(),
+        findings=({"id": "gap-1", "kind": "gap"},),
+        hypotheses=(),
+        predictions=(),
+        experiments=(),
+        actions_taken=(),
+    )
+    planner = OllamaPlanner(
+        "qwen3:14b",
+        transport=lambda _payload: {"message": {"content": content}},
+        host_capabilities=("historical_rediscovery",),
+    )
+
+    with pytest.raises(
+        PlannerActionError,
+        match="historical rediscovery hypothesis requires a quantitative_rule object",
+    ):
+        planner.choose(context)
+
+
+def test_historical_rediscovery_preserves_required_quantitative_rule():
+    payload = {}
+    content = json.dumps(
+        {
+            "kind": "hypothesis",
+            "target_ids": ["F1"],
+            "statement": "The missing value is the midpoint of positions 3 and 5.",
+            "quantitative_rule": {
+                "operation": "midpoint",
+                "property": "density",
+                "input_positions": [3, 5],
+            },
+            "rationale": "This rule can be computed from supplied observations.",
+        }
+    )
+    context = DiscoveryContext(
+        grounded_input_ids=(),
+        findings=({"id": "gap-1", "kind": "gap"},),
+        hypotheses=(),
+        predictions=(),
+        experiments=(),
+        actions_taken=(),
+    )
+
+    def transport(request):
+        payload.update(request)
+        return {"message": {"content": content}}
+
+    action = OllamaPlanner(
+        "qwen3:14b",
+        transport=transport,
+        host_capabilities=("historical_rediscovery",),
+    ).choose(context)
+
+    assert action.quantitative_rule == {
+        "operation": "midpoint",
+        "property": "density",
+        "input_positions": [3, 5],
+    }
+    assert "quantitative_rule" in payload["format"]["required"]
+
+
 def test_ollama_schema_exposes_request_evidence_action():
     payload = {}
 
