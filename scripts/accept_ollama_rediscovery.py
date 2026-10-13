@@ -93,8 +93,41 @@ def _at_least_one_forecast_consistent(predictions, evaluations) -> bool:
         for prediction in predictions
     )
 
-def _prediction_diagnostic_lines(predictions, evaluations_by_prediction, hypotheses_by_id):
-    """Explain each forecast's source hypothesis, quantitative rule, and verdict."""
+def _rule_derived_value(rule, pre_discovery_records, property_key: str) -> tuple[float | None, str]:
+    """Independently compute supported rule operations from pre-discovery observations."""
+    if not isinstance(rule, dict):
+        return None, "missing or malformed quantitative rule"
+    operation = rule.get("operation")
+    positions = rule.get("input_positions")
+    if not isinstance(positions, list) or len(positions) < 2:
+        return None, "rule requires at least two input positions"
+    if any(isinstance(position, bool) or not isinstance(position, (int, float)) for position in positions):
+        return None, "input positions must be numeric"
+
+    values_by_position = {
+        float(record.payload["period"]): float(record.payload[property_key])
+        for record in pre_discovery_records
+        if record.payload.get("period") is not None and record.payload.get(property_key) is not None
+    }
+    try:
+        values = [values_by_position[float(position)] for position in positions]
+    except KeyError as exc:
+        return None, f"input position {exc.args[0]:g} is not available in pre-discovery data"
+
+    if operation == "midpoint" and len(values) == 2:
+        return (values[0] + values[1]) / 2.0, "midpoint"
+    if operation == "average":
+        return sum(values) / len(values), "average"
+    if operation == "addition_with_previous_interval" and len(values) == 2:
+        return values[1] + (values[1] - values[0]), "addition with previous interval"
+    return None, f"unsupported operation/arity: {operation!r}/{len(values)}"
+
+
+def _prediction_diagnostic_lines(
+    predictions, evaluations_by_prediction, hypotheses_by_id,
+    pre_discovery_records, property_key: str,
+):
+    """Show host-computed rule checks separately from model-authored rationale."""
     lines = []
     for prediction in predictions:
         source = hypotheses_by_id.get(prediction.source_id)
@@ -110,9 +143,25 @@ def _prediction_diagnostic_lines(predictions, evaluations_by_prediction, hypothe
             lines.append("    source hypothesis: NOT FOUND")
         else:
             lines.append(f"    source statement: {source.get('statement', '')}")
-            lines.append(f"    quantitative rule: {source.get('quantitative_rule')!r}")
+            rule = source.get("quantitative_rule")
+            lines.append(f"    quantitative rule: {rule!r}")
+            computed, detail = _rule_derived_value(rule, pre_discovery_records, property_key)
+            if computed is None:
+                lines.append(f"    host rule check: UNVERIFIED — {detail}")
+            else:
+                matches = (
+                    prediction.predicted_numeric_value is not None
+                    and math.isclose(
+                        float(prediction.predicted_numeric_value), computed,
+                        rel_tol=1e-12, abs_tol=1e-9,
+                    )
+                )
+                lines.append(
+                    f"    host rule check: {detail}={computed:.12g}; "
+                    f"forecast_matches_rule={matches}"
+                )
         lines.append(f"    compared hypotheses: {[item.get('id', '')[:8] if item else 'NOT FOUND' for item in compared]}")
-        lines.append(f"    arithmetic rationale: {prediction.rationale}")
+        lines.append(f"    model-authored rationale (not independently verified): {prediction.rationale}")
         evaluation = evaluations_by_prediction.get(prediction.id)
         if evaluation is None:
             lines.append("    evaluator verdict: NO EVALUATION")
@@ -270,7 +319,8 @@ def run_case(model: str, timeout: float, property_key: str, blinded: bool) -> tu
         }
         print("forecast diagnostics:")
         for line in _prediction_diagnostic_lines(
-            predictions, evaluations_by_prediction, hypotheses_by_id
+            predictions, evaluations_by_prediction, hypotheses_by_id,
+            fixture.pre_discovery_records, property_key,
         ):
             print(line)
         print(f"action sequence: {kinds}")

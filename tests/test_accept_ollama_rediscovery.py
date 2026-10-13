@@ -27,13 +27,20 @@ def test_prediction_diagnostics_link_forecast_to_source_rule_and_evaluation():
         )
     }
 
+    from episteme.rediscovery import build_mendeleev_fixture
     from scripts.accept_ollama_rediscovery import _prediction_diagnostic_lines
-    lines = _prediction_diagnostic_lines((prediction,), evaluations, hypotheses)
+
+    fixture = build_mendeleev_fixture()
+    lines = _prediction_diagnostic_lines(
+        (prediction,), evaluations, hypotheses,
+        fixture.pre_discovery_records, "density_g_cm3",
+    )
     output = "\\n".join(lines)
 
     assert "source_hypothesis=11111111" in output
     assert "linear_extrapolation" in output
-    assert "arithmetic rationale:" in output
+    assert "model-authored rationale (not independently verified):" in output
+    assert "host rule check: UNVERIFIED" in output
     assert "evaluator verdict: consistent" in output
     assert "22222222" in output
 

@@ -298,3 +298,58 @@ def test_phase29_duplicate_competing_hypothesis_is_rejected():
                 ),
                 created_at=FIXTURE_CAPTURED_AT,
             )
+
+
+def test_rediscovery_diagnostic_independently_computes_supported_quantitative_rules():
+    from scripts.accept_ollama_rediscovery import _rule_derived_value
+    from episteme.rediscovery import build_mendeleev_fixture
+
+    fixture = build_mendeleev_fixture()
+    records = fixture.pre_discovery_records
+
+    midpoint, detail = _rule_derived_value(
+        {"operation": "midpoint", "input_positions": [3, 5]},
+        records,
+        "relative_atomic_mass",
+    )
+    assert math.isclose(midpoint, 73.3975)
+    assert detail == "midpoint"
+
+    average, detail = _rule_derived_value(
+        {"operation": "average", "input_positions": [2, 3, 5, 6]},
+        records,
+        "melting_point_c",
+    )
+    assert math.isclose(average, 1449.5975)
+    assert detail == "average"
+
+    interval, detail = _rule_derived_value(
+        {"operation": "addition_with_previous_interval", "input_positions": [2, 3]},
+        records,
+        "density_g_cm3",
+    )
+    assert math.isclose(interval, 2.3992)
+    assert detail == "addition with previous interval"
+
+
+def test_rediscovery_diagnostic_does_not_guess_unsupported_or_unavailable_rules():
+    from scripts.accept_ollama_rediscovery import _rule_derived_value
+    from episteme.rediscovery import build_mendeleev_fixture
+
+    records = build_mendeleev_fixture().pre_discovery_records
+
+    value, detail = _rule_derived_value(
+        {"operation": "midpoint", "input_positions": [3, 4]},
+        records,
+        "relative_atomic_mass",
+    )
+    assert value is None
+    assert "not available" in detail
+
+    value, detail = _rule_derived_value(
+        {"operation": "polynomial_extrapolation", "input_positions": [2, 3]},
+        records,
+        "relative_atomic_mass",
+    )
+    assert value is None
+    assert "unsupported operation" in detail
