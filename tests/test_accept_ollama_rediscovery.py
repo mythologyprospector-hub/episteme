@@ -1,3 +1,6 @@
+import math
+from dataclasses import replace
+
 def test_prediction_diagnostics_link_forecast_to_source_rule_and_evaluation():
     from episteme.model import PredictionEvaluationOutcome
 
