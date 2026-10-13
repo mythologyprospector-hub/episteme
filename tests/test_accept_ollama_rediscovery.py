@@ -237,6 +237,31 @@ def test_rule_derived_value_verifies_exponential_interpolation():
     assert detail == "exponential interpolation"
 
 
+def test_rule_derived_value_verifies_model_operation_aliases_and_extrapolation():
+    from scripts.accept_ollama_rediscovery import _rule_derived_value
+    from episteme.rediscovery import build_mendeleev_fixture
+
+    fixture = build_mendeleev_fixture()
+    values = {
+        record.payload["period"]: record.payload["relative_atomic_mass"]
+        for record in fixture.pre_discovery_records
+    }
+
+    linear, linear_detail = _rule_derived_value(
+        {"operation": "linear_extrapolation", "input_positions": [2, 3]},
+        fixture.pre_discovery_records, "relative_atomic_mass",
+    )
+    assert math.isclose(linear, values[3] + (values[3] - values[2]))
+    assert linear_detail == "linear extrapolation"
+
+    subtraction, subtraction_detail = _rule_derived_value(
+        {"operation": "difference_subtraction", "input_positions": [5, 6]},
+        fixture.pre_discovery_records, "relative_atomic_mass",
+    )
+    assert math.isclose(subtraction, values[5] - (values[6] - values[5]))
+    assert subtraction_detail == "subtract difference"
+
+
 def test_rule_derived_value_verifies_subtract_difference():
     from scripts.accept_ollama_rediscovery import _rule_derived_value
     from episteme.rediscovery import build_mendeleev_fixture

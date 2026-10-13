@@ -127,21 +127,30 @@ def _rule_derived_value(rule, pre_discovery_records, property_key: str) -> tuple
         return computed, "geometric mean"
     if operation == "addition_with_previous_interval" and len(values) == 2:
         return values[1] + (values[1] - values[0]), "addition with previous interval"
-    if operation == "subtract_difference" and len(values) == 2:
+    if operation in {"subtract_difference", "difference_subtraction"} and len(values) == 2:
         return values[0] - (values[1] - values[0]), "subtract difference"
-    if operation in {"linear_regression", "exponential_regression"} and len(values) == 2:
+    if operation in {"linear_regression", "linear_extrapolation", "exponential_regression"} and len(values) == 2:
         numeric_positions = [float(position) for position in positions]
         if any(not math.isfinite(position) for position in numeric_positions):
             return None, "input positions must be finite"
         if numeric_positions[0] == numeric_positions[1]:
             return None, f"{operation} requires two distinct input positions"
-        # This benchmark's missing position is the midpoint of the two input positions.
-        fraction = 0.5
-        if operation == "linear_regression":
-            return values[0] + fraction * (values[1] - values[0]), "linear interpolation"
+        # The benchmark target is the missing period-4 position. Use its actual
+        # position relative to the supplied inputs; it may lie between or beyond them.
+        target_position = 4.0
+        fraction = (target_position - numeric_positions[0]) / (numeric_positions[1] - numeric_positions[0])
+        if operation in {"linear_regression", "linear_extrapolation"}:
+            return values[0] + fraction * (values[1] - values[0]), (
+                "linear interpolation" if 0.0 <= fraction <= 1.0 else "linear extrapolation"
+            )
         if any(value <= 0 or not math.isfinite(value) for value in values):
             return None, "exponential regression requires positive finite input values"
-        return math.exp(math.log(values[0]) + fraction * (math.log(values[1]) - math.log(values[0]))), "exponential interpolation"
+        computed = math.exp(math.log(values[0]) + fraction * (math.log(values[1]) - math.log(values[0])))
+        if not math.isfinite(computed):
+            return None, "exponential regression result is not finite"
+        return computed, (
+            "exponential interpolation" if 0.0 <= fraction <= 1.0 else "exponential extrapolation"
+        )
     return None, f"unsupported operation/arity: {operation!r}/{len(values)}"
 
 
