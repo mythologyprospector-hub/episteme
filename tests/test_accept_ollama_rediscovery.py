@@ -1,3 +1,6 @@
+import math
+from dataclasses import replace
+
 def test_prediction_diagnostics_link_forecast_to_source_rule_and_evaluation():
     from episteme.model import PredictionEvaluationOutcome
 
@@ -206,3 +209,59 @@ def test_competing_forecast_gate_fails_when_no_forecast_is_consistent():
     )
 
     assert not _at_least_one_forecast_consistent(predictions, evaluations)
+
+
+def test_rule_derived_value_verifies_linear_interpolation():
+    from scripts.accept_ollama_rediscovery import _rule_derived_value
+    from episteme.rediscovery import build_mendeleev_fixture
+    fixture = build_mendeleev_fixture()
+    value, detail = _rule_derived_value(
+        {"operation": "linear_regression", "input_positions": [3, 5]},
+        fixture.pre_discovery_records, "density_g_cm3",
+    )
+    values = {r.payload["period"]: r.payload["density_g_cm3"] for r in fixture.pre_discovery_records}
+    assert math.isclose(value, (values[3] + values[5]) / 2)
+    assert detail == "linear interpolation"
+
+
+def test_rule_derived_value_verifies_exponential_interpolation():
+    from scripts.accept_ollama_rediscovery import _rule_derived_value
+    from episteme.rediscovery import build_mendeleev_fixture
+    fixture = build_mendeleev_fixture()
+    value, detail = _rule_derived_value(
+        {"operation": "exponential_regression", "input_positions": [3, 5]},
+        fixture.pre_discovery_records, "density_g_cm3",
+    )
+    values = {r.payload["period"]: r.payload["density_g_cm3"] for r in fixture.pre_discovery_records}
+    assert math.isclose(value, math.sqrt(values[3] * values[5]))
+    assert detail == "exponential interpolation"
+
+
+def test_rule_derived_value_verifies_subtract_difference():
+    from scripts.accept_ollama_rediscovery import _rule_derived_value
+    from episteme.rediscovery import build_mendeleev_fixture
+    fixture = build_mendeleev_fixture()
+    value, detail = _rule_derived_value(
+        {"operation": "subtract_difference", "input_positions": [5, 6]},
+        fixture.pre_discovery_records, "melting_point_c",
+    )
+    values = {r.payload["period"]: r.payload["melting_point_c"] for r in fixture.pre_discovery_records}
+    assert math.isclose(value, 2 * values[5] - values[6])
+    assert detail == "subtract difference"
+
+
+def test_exponential_rule_rejects_non_positive_inputs():
+    from scripts.accept_ollama_rediscovery import _rule_derived_value
+    from episteme.rediscovery import build_mendeleev_fixture
+    fixture = build_mendeleev_fixture()
+    records = tuple(
+        replace(record, payload={**record.payload, "density_g_cm3": 0.0})
+        if record.payload.get("period") == 3 else record
+        for record in fixture.pre_discovery_records
+    )
+    value, detail = _rule_derived_value(
+        {"operation": "exponential_regression", "input_positions": [3, 5]},
+        records, "density_g_cm3",
+    )
+    assert value is None
+    assert "positive finite" in detail
