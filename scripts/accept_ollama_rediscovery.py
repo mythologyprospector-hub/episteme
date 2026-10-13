@@ -118,6 +118,13 @@ def _rule_derived_value(rule, pre_discovery_records, property_key: str) -> tuple
         return (values[0] + values[1]) / 2.0, "midpoint"
     if operation == "average":
         return sum(values) / len(values), "average"
+    if operation == "geometric_mean" and len(values) == 2:
+        if any(value <= 0 or not math.isfinite(value) for value in values):
+            return None, "geometric mean requires positive finite input values"
+        computed = math.exp(sum(math.log(value) for value in values) / len(values))
+        if not math.isfinite(computed):
+            return None, "geometric mean result is not finite"
+        return computed, "geometric mean"
     if operation == "addition_with_previous_interval" and len(values) == 2:
         return values[1] + (values[1] - values[0]), "addition with previous interval"
     if operation == "subtract_difference" and len(values) == 2:
@@ -326,7 +333,21 @@ def run_case(model: str, timeout: float, property_key: str, blinded: bool) -> tu
                 assumptions = hypothesis.get("assumptions") or []
                 if assumptions:
                     print(f"    assumptions: {'; '.join(assumptions)}")
-        print(f"stop reason: {result.stop_reason}")
+        print(f"planner-authored stop reason (not independently verified): {result.stop_reason}")
+        host_results = [
+            record for record in store.iter_records(kind="result")
+            if record.payload.get("executor") == "phase29_rediscovery"
+            and record.payload.get("property_key") == property_key
+            and record.payload.get("input_ids") == [fixture.held_out_record.id]
+        ]
+        for host_result in host_results:
+            observed = host_result.payload.get("observed_value")
+            held_out_value = fixture.held_out_record.payload[property_key]
+            print(
+                f"host result: observed_value={observed!r}; "
+                f"fixture_held_out_value={held_out_value!r}; "
+                f"matches={observed == held_out_value}"
+            )
         hypotheses_by_id = {
             hypothesis["id"]: hypothesis
             for context in planner.contexts

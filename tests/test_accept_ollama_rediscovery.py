@@ -265,3 +265,42 @@ def test_exponential_rule_rejects_non_positive_inputs():
     )
     assert value is None
     assert "positive finite" in detail
+
+
+
+def test_rule_derived_value_verifies_geometric_mean():
+    from scripts.accept_ollama_rediscovery import _rule_derived_value
+    from episteme.rediscovery import build_mendeleev_fixture
+
+    fixture = build_mendeleev_fixture()
+    values = {
+        record.payload["period"]: record.payload["density_g_cm3"]
+        for record in fixture.pre_discovery_records
+    }
+    value, detail = _rule_derived_value(
+        {"operation": "geometric_mean", "input_positions": [3, 5]},
+        fixture.pre_discovery_records, "density_g_cm3",
+    )
+    assert math.isclose(value, math.sqrt(values[3] * values[5]))
+    assert detail == "geometric mean"
+
+
+def test_geometric_mean_rule_rejects_non_positive_or_non_finite_inputs():
+    from scripts.accept_ollama_rediscovery import _rule_derived_value
+    from episteme.rediscovery import build_mendeleev_fixture
+
+    fixture = build_mendeleev_fixture()
+    # Episteme records enforce strict JSON and reject NaN/Infinity at construction,
+    # so exercise non-positive values here; non-finite values cannot enter via records.
+    for invalid in (0.0, -1.0):
+        records = tuple(
+            replace(record, payload={**record.payload, "density_g_cm3": invalid})
+            if record.payload.get("period") == 3 else record
+            for record in fixture.pre_discovery_records
+        )
+        value, detail = _rule_derived_value(
+            {"operation": "geometric_mean", "input_positions": [3, 5]},
+            records, "density_g_cm3",
+        )
+        assert value is None
+        assert "positive finite" in detail
