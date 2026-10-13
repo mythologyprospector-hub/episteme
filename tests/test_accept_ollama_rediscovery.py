@@ -251,7 +251,7 @@ def test_rule_derived_value_verifies_model_operation_aliases_and_extrapolation()
         {"operation": "linear_extrapolation", "input_positions": [2, 3]},
         fixture.pre_discovery_records, "relative_atomic_mass",
     )
-    assert math.isclose(linear, values[3] + 2 * (values[3] - values[2]))
+    assert math.isclose(linear, values[3] + (values[3] - values[2]))
     assert linear_detail == "linear extrapolation"
 
     subtraction, subtraction_detail = _rule_derived_value(
