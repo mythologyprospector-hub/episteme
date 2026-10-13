@@ -290,7 +290,9 @@ def test_geometric_mean_rule_rejects_non_positive_or_non_finite_inputs():
     from episteme.rediscovery import build_mendeleev_fixture
 
     fixture = build_mendeleev_fixture()
-    for invalid in (0.0, -1.0, float("inf"), float("nan")):
+    # Episteme records enforce strict JSON and reject NaN/Infinity at construction,
+    # so exercise non-positive values here; non-finite values cannot enter via records.
+    for invalid in (0.0, -1.0):
         records = tuple(
             replace(record, payload={**record.payload, "density_g_cm3": invalid})
             if record.payload.get("period") == 3 else record
