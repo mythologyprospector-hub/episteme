@@ -60,7 +60,7 @@ The full local log is at `/tmp/episteme-pr59-acceptance.log` on Bucky; it is not
 - The Ollama prompt's allowed field list includes `quantitative_rule`.
 - Regression tests cover relevant validation and prompt contracts.
 
-The retry-feedback change did not fix live behavior: the model still repeats a duplicate rule after rejection. Code inspection confirms the rejected-action details are appended to `DiscoveryContext.feedback`, and `src/episteme/ollama.py` serializes that list into the model-visible JSON payload. Existing tests verify the autonomy layer constructs rejection feedback, but the inspected `tests/test_ollama.py` feedback tests primarily cover post-experiment evaluation feedback, not an end-to-end assertion that a duplicate-rule rejection is present in the next Ollama request. The focused adapter-level regression test has been added to verify the rejection message and quantitative rule fields appear in the next Ollama request. It does not prove the model can act on that feedback. CI #1091 must pass before proceeding; then investigate a structural (not merely wording-based) correction path based on the evidence. Do not claim that improved feedback alone fixes model behavior.
+The retry-feedback change did not fix live behavior: the model still repeats a duplicate rule after rejection. Code inspection confirms the rejected-action details are appended to `DiscoveryContext.feedback`, and `src/episteme/ollama.py` serializes that list into the model-visible JSON payload. Existing tests verify the autonomy layer constructs rejection feedback, but the inspected `tests/test_ollama.py` feedback tests primarily cover post-experiment evaluation feedback, not an end-to-end assertion that a duplicate-rule rejection is present in the next Ollama request. The focused adapter-level regression test verifies the rejection message and quantitative rule fields appear in the next Ollama request. CI #1091 passed after correcting the test assertion, and CI #1092 also passed on the documentation update. This proves the feedback is serialized into the model-visible request; it does not prove the model can act on that feedback. Next investigate a structural (not merely wording-based) correction path based on the evidence. Do not claim that improved feedback alone fixes model behavior.
 
 ## Next work
 
@@ -82,7 +82,7 @@ The retry-feedback change did not fix live behavior: the model still repeats a d
 
 ## Durable record
 
-Current handoff document status update is pending the current test commit. CI #1088 passed on the handoff-only commit `9f033b7f3ea239b4659a3f94dfa0872e9a7f0b27`. The adapter-level feedback transport regression test is now in `tests/test_ollama.py` at branch head `c934abb461a314bd372c649c10edf49ac462fd1a`; CI #1091 is running.
+CI #1088 passed on the handoff-only commit `9f033b7f3ea239b4659a3f94dfa0872e9a7f0b27`. The adapter-level feedback transport regression test is in `tests/test_ollama.py`; CI #1091 passed on code commit `c934abb461a314bd372c649c10edf49ac462fd1a`, and CI #1092 passed on the subsequent handoff update commit `e17681eb6fb93eb6c5d8dbbfa04135820fccb844`.
 
 The PR discussion contains prior live failures and implementation notes:
 https://github.com/mythologyprospector-hub/episteme/pull/59
