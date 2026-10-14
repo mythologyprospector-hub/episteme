@@ -380,9 +380,9 @@ def test_ollama_historical_hypothesis_schema_excludes_existing_quantitative_rule
     context = DiscoveryContext(
         grounded_input_ids=("observation-2", "observation-3", "observation-5"),
         grounded_observations=(
-            {"id": "observation-2", "payload": {"position": 2.0, "value": 10.0}},
-            {"id": "observation-3", "payload": {"position": 3.0, "value": 20.0}},
-            {"id": "observation-5", "payload": {"position": 5.0, "value": 40.0}},
+            {"id": "observation-2", "payload": {"position": 2.0, "period": 2.0, "value": 10.0}},
+            {"id": "observation-3", "payload": {"position": 3.0, "period": 3.0, "value": 20.0}},
+            {"id": "observation-5", "payload": {"position": 5.0, "period": 5.0, "value": 40.0}},
         ),
         findings=({"id": "gap-1", "kind": "gap"},),
         hypotheses=({
@@ -432,8 +432,8 @@ def test_ollama_historical_hypothesis_fails_closed_when_no_distinct_rule_exists(
     context = DiscoveryContext(
         grounded_input_ids=("observation-3", "observation-5"),
         grounded_observations=(
-            {"id": "observation-3", "payload": {"position": 3.0, "value": 20.0}},
-            {"id": "observation-5", "payload": {"position": 5.0, "value": 40.0}},
+            {"id": "observation-3", "payload": {"position": 3.0, "period": 3.0, "value": 20.0}},
+            {"id": "observation-5", "payload": {"position": 5.0, "period": 5.0, "value": 40.0}},
         ),
         findings=({"id": "gap-1", "kind": "gap"},),
         hypotheses=hypotheses,
