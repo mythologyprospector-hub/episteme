@@ -91,6 +91,54 @@ class TracingOllamaPlanner(OllamaPlanner):
         return super().choose(context)
 
 
+def _validate_quantitative_hypothesis_action(
+    store: Store,
+    action: DiscoveryAction,
+    grounded_input_ids: tuple[str, ...],
+    *,
+    property_key: str,
+    expected_rule_property: str,
+) -> None:
+    """Require each rediscovery hypothesis to carry a distinct executable rule."""
+    if action.kind != "hypothesis":
+        return
+    rule = action.quantitative_rule
+    if not isinstance(rule, dict) or rule.get("property") != expected_rule_property:
+        raise PlannerActionError(
+            "historical rediscovery hypothesis requires a quantitative rule for "
+            f"the host-mapped property {expected_rule_property!r}"
+        )
+    records = tuple(
+        record
+        for record_id in grounded_input_ids
+        if (record := store.get_record(record_id)) is not None
+    )
+    computed, detail = _rule_derived_value(rule, records, property_key)
+    if computed is None or not math.isfinite(computed):
+        raise PlannerActionError(
+            "quantitative hypothesis rule cannot be verified from permitted "
+            f"pre-discovery observations: {detail}; choose an executable rule"
+        )
+
+    target_findings = set(action.target_ids)
+    existing = tuple(
+        hypothesis
+        for hypothesis in store.iter_hypotheses()
+        if target_findings.intersection(hypothesis.finding_ids)
+    )
+    proposed_rule = json.dumps(rule, sort_keys=True, separators=(",", ":"))
+    for hypothesis in existing:
+        existing_rule = hypothesis.quantitative_rule
+        if isinstance(existing_rule, dict) and json.dumps(
+            existing_rule, sort_keys=True, separators=(",", ":")
+        ) == proposed_rule:
+            raise PlannerActionError(
+                "competing hypotheses must use distinct quantitative rules; "
+                "the proposed rule duplicates an existing hypothesis. "
+                "Choose a different executable operation or input relationship."
+            )
+
+
 def _validate_numeric_prediction_action(
     store: Store,
     action: DiscoveryAction,
@@ -390,6 +438,15 @@ def run_case(model: str, timeout: float, property_key: str, blinded: bool) -> tu
             ),
             numeric_prediction_validator=lambda active_store, action, input_ids: (
                 _validate_numeric_prediction_action(
+                    active_store,
+                    action,
+                    input_ids,
+                    property_key=property_key,
+                    expected_rule_property="property_P" if blinded else property_key,
+                )
+            ),
+            hypothesis_validator=lambda active_store, action, input_ids: (
+                _validate_quantitative_hypothesis_action(
                     active_store,
                     action,
                     input_ids,
