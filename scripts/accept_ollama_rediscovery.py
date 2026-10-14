@@ -211,6 +211,22 @@ def _rule_derived_value(rule, pre_discovery_records, property_key: str) -> tuple
         return None, f"input position {exc.args[0]:g} is not available in pre-discovery data"
 
     if operation == "midpoint" and len(values) == 2:
+        numeric_positions = [float(position) for position in positions]
+        if any(not math.isfinite(position) for position in numeric_positions):
+            return None, "midpoint input positions must be finite"
+        # A midpoint forecast for the missing period must use observations
+        # equally spaced around that target, not merely any two values.
+        target_position = 4.0
+        if not math.isclose(
+            (numeric_positions[0] + numeric_positions[1]) / 2.0,
+            target_position,
+            rel_tol=0.0,
+            abs_tol=1e-12,
+        ):
+            return None, (
+                "midpoint requires two input positions symmetric around "
+                "the missing target period 4 (for example, positions [3, 5])"
+            )
         return (values[0] + values[1]) / 2.0, "midpoint"
     if operation == "average":
         return sum(values) / len(values), "average"
