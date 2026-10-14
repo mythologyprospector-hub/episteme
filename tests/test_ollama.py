@@ -741,6 +741,14 @@ def test_ollama_historical_rediscovery_uses_distinct_numeric_forecasts_without_p
     assert "expected_presences" not in schema["properties"]
     assert "predicted_numeric_values" in schema["required"]
     assert "expected_presences" not in schema["required"]
+    system_prompt = payload["messages"][0]["content"]
+    allowed_fields = system_prompt.split(
+        "The only allowed JSON fields for this request are: ", 1
+    )[1].split(". Do not invent other field names.", 1)[0]
+    assert "predicted_numeric_values" in allowed_fields
+    assert "expected_presences" not in allowed_fields
+    assert "predicted_numeric_value" not in allowed_fields
+    assert "schema forbids expected_presences and the legacy scalar predicted_numeric_value" in system_prompt
 
 
 def test_ollama_blinded_rediscovery_context_uses_opaque_entities_and_one_property():
