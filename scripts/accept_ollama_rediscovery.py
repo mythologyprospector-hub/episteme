@@ -130,7 +130,9 @@ def _validate_experiment_evidence(store, predictions, evaluations, held_out_id: 
     return False
 
 
-def run_case(model: str, timeout: float, property_key: str, blinded: bool) -> tuple[bool, list[float]]:
+def run_case(
+    model: str, timeout: float, property_key: str, blinded: bool, think: bool | None = None
+) -> tuple[bool, list[float]]:
     fixture = build_mendeleev_fixture()
     case = next(item for item in REDISCOVERY_CASES if item.property_key == property_key)
     baseline = derive_adjacent_midpoint(fixture.pre_discovery_records, property_key=property_key)
@@ -142,6 +144,7 @@ def run_case(model: str, timeout: float, property_key: str, blinded: bool) -> tu
         planner = TracingOllamaPlanner(
             model,
             timeout=timeout,
+            think=think,
             host_capabilities=("historical_rediscovery",),
             rediscovery_property=property_key,
             blinded_rediscovery=blinded,
@@ -278,6 +281,10 @@ def main() -> int:
     timeout = float(os.environ.get("EPISTEME_OLLAMA_TIMEOUT", "300"))
     runs = int(os.environ.get("EPISTEME_OLLAMA_RUNS", "1"))
     blind = os.environ.get("EPISTEME_OLLAMA_BLIND", "0") == "1"
+    think_setting = os.environ.get("EPISTEME_OLLAMA_THINK", "").strip().lower()
+    if think_setting not in {"", "true", "false"}:
+        raise SystemExit("EPISTEME_OLLAMA_THINK must be true, false, or unset")
+    think = None if think_setting == "" else think_setting == "true"
     if runs < 1:
         raise SystemExit("EPISTEME_OLLAMA_RUNS must be >= 1")
 
@@ -286,7 +293,7 @@ def main() -> int:
         outcomes = []
         values = []
         for _ in range(runs):
-            passed, predictions = run_case(model, timeout, case.property_key, blind)
+            passed, predictions = run_case(model, timeout, case.property_key, blind, think)
             outcomes.append(passed)
             values.extend(predictions)
         pass_rate = sum(outcomes) / len(outcomes)
@@ -298,6 +305,7 @@ def main() -> int:
         overall = overall and all(outcomes)
 
     print(f"MODEL: {model}")
+    print(f"THINK: {'default' if think is None else str(think).lower()}")
     print(f"OVERALL: {'PASS' if overall else 'FAIL'}")
     return 0 if overall else 1
 
