@@ -441,7 +441,7 @@ class OllamaPlanner:
             "is the correct next bounded step. Never omit rationale. For example, a prediction "
             "must include kind, target_ids, conditions, consequence or consequences, and "
             "rationale. The only allowed JSON fields are: kind, target_ids, "
-            "statement, consequence, consequences, conditions, objective, "
+            "statement, quantitative_rule, consequence, consequences, conditions, objective, "
             "proposed_observation, discrimination_basis, expected_presences, execution_spec, evidence_capability, "
             "evidence_parameters, requested_representation, rationale. Do not invent other field names. A hypothesis action creates a NEW hypothesis about a finding. "
             "For kind='question' or kind='hypothesis', target_ids MUST contain exactly "
