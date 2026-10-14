@@ -172,43 +172,69 @@ def test_experiment_evidence_rejects_non_finite_forecasts():
 
 
 
+def _verified_competing_forecast_gate_inputs(first_outcome, second_outcome):
+    from episteme.rediscovery import build_mendeleev_fixture
+
+    fixture = build_mendeleev_fixture()
+    predictions = (
+        SimpleNamespace(id="p1", source_id="h1", predicted_numeric_value=73.3975),
+        SimpleNamespace(id="p2", source_id="h2", predicted_numeric_value=91.50125),
+    )
+    hypotheses = {
+        "h1": {"quantitative_rule": {
+            "operation": "midpoint", "property": "property_P", "input_positions": [3, 5],
+        }},
+        "h2": {"quantitative_rule": {
+            "operation": "average", "property": "property_P", "input_positions": [2, 3, 5, 6],
+        }},
+    }
+    evaluations = (
+        SimpleNamespace(prediction_id="p1", outcome=first_outcome),
+        SimpleNamespace(prediction_id="p2", outcome=second_outcome),
+    )
+    return fixture, predictions, hypotheses, evaluations
+
+
 def test_one_consistent_forecast_can_satisfy_competing_forecast_gate():
     from episteme.model import PredictionEvaluationOutcome
 
-    predictions = (
-        SimpleNamespace(id="p1"),
-        SimpleNamespace(id="p2"),
-    )
-    evaluations = (
-        SimpleNamespace(prediction_id="p1", outcome=PredictionEvaluationOutcome.CONSISTENT),
-        SimpleNamespace(prediction_id="p2", outcome=PredictionEvaluationOutcome.INCONSISTENT),
+    fixture, predictions, hypotheses, evaluations = _verified_competing_forecast_gate_inputs(
+        PredictionEvaluationOutcome.CONSISTENT,
+        PredictionEvaluationOutcome.INCONSISTENT,
     )
 
-    assert _at_least_one_forecast_consistent(predictions, evaluations)
+    assert _at_least_one_forecast_consistent(
+        predictions, evaluations, hypotheses, fixture.pre_discovery_records,
+        "relative_atomic_mass", "property_P",
+    )
 
 
 def test_all_consistent_forecasts_also_satisfy_competing_forecast_gate():
     from episteme.model import PredictionEvaluationOutcome
 
-    predictions = (SimpleNamespace(id="p1"), SimpleNamespace(id="p2"))
-    evaluations = (
-        SimpleNamespace(prediction_id="p1", outcome=PredictionEvaluationOutcome.CONSISTENT),
-        SimpleNamespace(prediction_id="p2", outcome=PredictionEvaluationOutcome.CONSISTENT),
+    fixture, predictions, hypotheses, evaluations = _verified_competing_forecast_gate_inputs(
+        PredictionEvaluationOutcome.CONSISTENT,
+        PredictionEvaluationOutcome.CONSISTENT,
     )
 
-    assert _at_least_one_forecast_consistent(predictions, evaluations)
+    assert _at_least_one_forecast_consistent(
+        predictions, evaluations, hypotheses, fixture.pre_discovery_records,
+        "relative_atomic_mass", "property_P",
+    )
 
 
 def test_competing_forecast_gate_fails_when_no_forecast_is_consistent():
     from episteme.model import PredictionEvaluationOutcome
 
-    predictions = (SimpleNamespace(id="p1"), SimpleNamespace(id="p2"))
-    evaluations = (
-        SimpleNamespace(prediction_id="p1", outcome=PredictionEvaluationOutcome.INCONSISTENT),
-        SimpleNamespace(prediction_id="p2", outcome=PredictionEvaluationOutcome.INCONSISTENT),
+    fixture, predictions, hypotheses, evaluations = _verified_competing_forecast_gate_inputs(
+        PredictionEvaluationOutcome.INCONSISTENT,
+        PredictionEvaluationOutcome.INCONSISTENT,
     )
 
-    assert not _at_least_one_forecast_consistent(predictions, evaluations)
+    assert not _at_least_one_forecast_consistent(
+        predictions, evaluations, hypotheses, fixture.pre_discovery_records,
+        "relative_atomic_mass", "property_P",
+    )
 
 
 def test_rule_derived_value_verifies_linear_interpolation():
