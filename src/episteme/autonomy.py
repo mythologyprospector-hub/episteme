@@ -204,6 +204,7 @@ class DiscoveryContext:
     grounded_observations: tuple[Mapping[str, Any], ...] = ()
     consequences: tuple[Mapping[str, Any], ...] = ()
     feedback: tuple[str, ...] = ()
+    rejected_actions: tuple[Mapping[str, Any], ...] = ()
     exploration_observations: tuple[Mapping[str, Any], ...] = ()
     exploration_assessments: tuple[Mapping[str, Any], ...] = ()
 
@@ -348,6 +349,7 @@ def build_context(
     grounded_input_ids: tuple[str, ...],
     actions_taken: tuple[DiscoveryAction, ...],
     feedback: tuple[str, ...] = (),
+    rejected_actions: tuple[Mapping[str, Any], ...] = (),
 ) -> DiscoveryContext:
     grounded_records = tuple(
         record
@@ -367,6 +369,7 @@ def build_context(
         consequences=tuple(_consequence_view(item) for item in store.iter_knowledge_state_consequences()),
         actions_taken=actions_taken,
         feedback=feedback,
+        rejected_actions=rejected_actions,
     )
 
 
@@ -900,6 +903,7 @@ def run_autonomous_discovery(
     actions: list[DiscoveryAction] = []
     steps: list[DiscoveryStep] = []
     feedback: list[str] = []
+    rejected_actions: list[Mapping[str, Any]] = []
     evidence_request_completed = False
 
     for _ in range(max_steps):
@@ -909,6 +913,7 @@ def run_autonomous_discovery(
                 grounded_input_ids,
                 tuple(actions),
                 tuple(feedback),
+                tuple(rejected_actions),
             )
 
             # A rejected proposal is not persisted, so preserve its details in
@@ -1076,6 +1081,7 @@ def run_autonomous_discovery(
                             else None
                         ),
                     }
+                    rejected_actions.append(rejected_action)
                     feedback_item += (
                         " Rejected action details (JSON): "
                         f"{canonical_json(rejected_action)}. "
@@ -1085,6 +1091,7 @@ def run_autonomous_discovery(
                 continue
 
             feedback.clear()
+            rejected_actions.clear()
             if action.kind == "experiment":
                 proposal = store.get_experiment_proposal(output_ids[0])
                 if proposal is None:
