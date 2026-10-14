@@ -951,6 +951,18 @@ def test_ollama_receives_structured_host_rejection_feedback_for_retry():
         experiments=(),
         actions_taken=(),
         feedback=(rejection,),
+        rejected_actions=(
+            {
+                "kind": "hypothesis",
+                "target_ids": ["opaque-finding-id"],
+                "quantitative_rule": {
+                    "operation": "geometric_mean",
+                    "property": "property_P",
+                    "input_positions": [3, 5],
+                },
+                "predicted_numeric_values": None,
+            },
+        ),
     )
 
     OllamaPlanner("qwen3:8b", transport=transport).choose(context)
@@ -961,3 +973,16 @@ def test_ollama_receives_structured_host_rejection_feedback_for_retry():
     assert "competing hypotheses must use distinct quantitative rules" in user_payload
     assert '"operation":"geometric_mean"' in decoded["feedback"][0]
     assert '"input_positions":[3,5]' in decoded["feedback"][0]
+    assert decoded["rejected_actions"] == [
+        {
+            "kind": "hypothesis",
+            "target_ids": ["F1"],
+            "quantitative_rule": {
+                "operation": "geometric_mean",
+                "property": "property_P",
+                "input_positions": [3, 5],
+            },
+            "predicted_numeric_values": None,
+        }
+    ]
+    assert "opaque-finding-id" not in json.dumps(decoded["rejected_actions"])
