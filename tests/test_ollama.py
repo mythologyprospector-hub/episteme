@@ -959,5 +959,5 @@ def test_ollama_receives_structured_host_rejection_feedback_for_retry():
 
     assert decoded["feedback"] == [rejection]
     assert "competing hypotheses must use distinct quantitative rules" in user_payload
-    assert '"operation":"geometric_mean"' in user_payload
-    assert '"input_positions":[3,5]' in user_payload
+    assert '"operation":"geometric_mean"' in decoded["feedback"][0]
+    assert '"input_positions":[3,5]' in decoded["feedback"][0]
