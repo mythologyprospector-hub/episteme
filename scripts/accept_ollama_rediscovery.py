@@ -16,7 +16,13 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from episteme.autonomy import ExperimentRuntime, PositionalGapDiscoveryRuntime, run_autonomous_discovery
+from episteme.autonomy import (
+    DiscoveryAction,
+    ExperimentRuntime,
+    PlannerActionError,
+    PositionalGapDiscoveryRuntime,
+    run_autonomous_discovery,
+)
 from episteme.model import PredictionEvaluationOutcome
 from episteme.ollama import OllamaPlanner
 from episteme.rediscovery import (
@@ -85,11 +91,149 @@ class TracingOllamaPlanner(OllamaPlanner):
         return super().choose(context)
 
 
-def _at_least_one_forecast_consistent(predictions, evaluations) -> bool:
-    """Require sound evaluation linkage and at least one qualifying competing forecast."""
+def _validate_quantitative_hypothesis_action(
+    store: Store,
+    action: DiscoveryAction,
+    grounded_input_ids: tuple[str, ...],
+    *,
+    property_key: str,
+    expected_rule_property: str,
+) -> None:
+    """Require each rediscovery hypothesis to carry a distinct executable rule."""
+    if action.kind != "hypothesis":
+        return
+    rule = action.quantitative_rule
+    if not isinstance(rule, dict) or rule.get("property") != expected_rule_property:
+        raise PlannerActionError(
+            "historical rediscovery hypothesis requires a quantitative rule for "
+            f"the host-mapped property {expected_rule_property!r}"
+        )
+    records = tuple(
+        record
+        for record_id in grounded_input_ids
+        if (record := store.get_record(record_id)) is not None
+    )
+    computed, detail = _rule_derived_value(rule, records, property_key)
+    if computed is None or not math.isfinite(computed):
+        raise PlannerActionError(
+            "quantitative hypothesis rule cannot be verified from permitted "
+            f"pre-discovery observations: {detail}; choose an executable rule"
+        )
+
+    target_findings = set(action.target_ids)
+    existing = tuple(
+        hypothesis
+        for hypothesis in store.iter_hypotheses()
+        if target_findings.intersection(hypothesis.finding_ids)
+    )
+    proposed_rule = json.dumps(rule, sort_keys=True, separators=(",", ":"))
+    for hypothesis in existing:
+        existing_rule = hypothesis.quantitative_rule
+        if isinstance(existing_rule, dict) and json.dumps(
+            existing_rule, sort_keys=True, separators=(",", ":")
+        ) == proposed_rule:
+            raise PlannerActionError(
+                "competing hypotheses must use distinct quantitative rules; "
+                "the proposed rule duplicates an existing hypothesis. "
+                "Choose a different executable operation or input relationship."
+            )
+
+
+def _validate_numeric_prediction_action(
+    store: Store,
+    action: DiscoveryAction,
+    grounded_input_ids: tuple[str, ...],
+    *,
+    property_key: str,
+    expected_rule_property: str,
+) -> None:
+    """Reject forecasts inconsistent with source rules before persistence.
+
+    The property mapping and permitted input IDs are supplied by the benchmark
+    host. The model cannot choose either, and the held-out record is never read.
+    """
+    if action.kind != "prediction" or action.predicted_numeric_values is None:
+        return
+    hypotheses = {item.id: item for item in store.iter_hypotheses()}
+    records = tuple(
+        record
+        for record_id in grounded_input_ids
+        if (record := store.get_record(record_id)) is not None
+    )
+    for hypothesis_id in action.target_ids:
+        hypothesis = hypotheses.get(hypothesis_id)
+        if hypothesis is None:
+            raise PlannerActionError(
+                f"numeric forecast source hypothesis {hypothesis_id} does not exist"
+            )
+        rule = hypothesis.quantitative_rule
+        if not isinstance(rule, dict) or rule.get("property") != expected_rule_property:
+            raise PlannerActionError(
+                f"numeric forecast for hypothesis {hypothesis_id[:8]} has no verified "
+                f"rule for host-mapped property {expected_rule_property!r}; "
+                "revise the hypothesis rule before forecasting"
+            )
+        computed, detail = _rule_derived_value(rule, records, property_key)
+        if computed is None or not math.isfinite(computed):
+            raise PlannerActionError(
+                f"numeric forecast rule for hypothesis {hypothesis_id[:8]} cannot be "
+                f"verified from permitted pre-discovery observations: {detail}; "
+                "choose an executable rule using only supplied observations"
+            )
+        proposed = float(action.predicted_numeric_values[hypothesis_id])
+        if not math.isclose(proposed, computed, rel_tol=1e-12, abs_tol=1e-9):
+            raise PlannerActionError(
+                f"numeric forecast for hypothesis {hypothesis_id[:8]} was rejected: "
+                f"proposed {proposed:.12g}, but its declared {detail} rule computes "
+                f"{computed:.12g} from permitted pre-discovery observations; "
+                "submit the computed value or revise the rule and explain the arithmetic"
+            )
+
+
+def _forecast_matches_source_rule(
+    prediction, hypotheses_by_id, pre_discovery_records,
+    property_key: str, expected_rule_property: str,
+) -> bool:
+    """Independently verify that a numeric forecast is the result of its source rule."""
+    source = hypotheses_by_id.get(prediction.source_id)
+    if source is None or prediction.predicted_numeric_value is None:
+        return False
+    rule = source.get("quantitative_rule")
+    if not isinstance(rule, dict) or rule.get("property") != expected_rule_property:
+        return False
+    computed, _ = _rule_derived_value(rule, pre_discovery_records, property_key)
+    return computed is not None and math.isclose(
+        float(prediction.predicted_numeric_value), computed,
+        rel_tol=1e-12, abs_tol=1e-9,
+    )
+
+
+def _all_forecasts_match_source_rules(
+    predictions, hypotheses_by_id, pre_discovery_records,
+    property_key: str, expected_rule_property: str,
+) -> bool:
+    """Require every stored forecast to be independently reproducible from its source rule."""
+    return bool(predictions) and all(
+        _forecast_matches_source_rule(
+            prediction, hypotheses_by_id, pre_discovery_records,
+            property_key, expected_rule_property,
+        )
+        for prediction in predictions
+    )
+
+
+def _at_least_one_forecast_consistent(
+    predictions, evaluations, hypotheses_by_id, pre_discovery_records,
+    property_key: str, expected_rule_property: str,
+) -> bool:
+    """Require a consistent evaluation for a forecast independently reproduced from its rule."""
     indexed, integrity_ok = _index_evaluations(predictions, evaluations)
     return bool(predictions) and integrity_ok and any(
         indexed[prediction.id].outcome is PredictionEvaluationOutcome.CONSISTENT
+        and _forecast_matches_source_rule(
+            prediction, hypotheses_by_id, pre_discovery_records,
+            property_key, expected_rule_property,
+        )
         for prediction in predictions
     )
 
@@ -115,6 +259,22 @@ def _rule_derived_value(rule, pre_discovery_records, property_key: str) -> tuple
         return None, f"input position {exc.args[0]:g} is not available in pre-discovery data"
 
     if operation == "midpoint" and len(values) == 2:
+        numeric_positions = [float(position) for position in positions]
+        if any(not math.isfinite(position) for position in numeric_positions):
+            return None, "midpoint input positions must be finite"
+        # A midpoint forecast for the missing period must use observations
+        # equally spaced around that target, not merely any two values.
+        target_position = 4.0
+        if not math.isclose(
+            (numeric_positions[0] + numeric_positions[1]) / 2.0,
+            target_position,
+            rel_tol=0.0,
+            abs_tol=1e-12,
+        ):
+            return None, (
+                "midpoint requires two input positions symmetric around "
+                "the missing target period 4 (for example, positions [3, 5])"
+            )
         return (values[0] + values[1]) / 2.0, "midpoint"
     if operation == "average":
         return sum(values) / len(values), "average"
@@ -276,6 +436,24 @@ def run_case(model: str, timeout: float, property_key: str, blinded: bool) -> tu
                 position_key="period",
                 step=1.0,
             ),
+            numeric_prediction_validator=lambda active_store, action, input_ids: (
+                _validate_numeric_prediction_action(
+                    active_store,
+                    action,
+                    input_ids,
+                    property_key=property_key,
+                    expected_rule_property="property_P" if blinded else property_key,
+                )
+            ),
+            hypothesis_validator=lambda active_store, action, input_ids: (
+                _validate_quantitative_hypothesis_action(
+                    active_store,
+                    action,
+                    input_ids,
+                    property_key=property_key,
+                    expected_rule_property="property_P" if blinded else property_key,
+                )
+            ),
             max_retries_per_step=2,
         )
 
@@ -300,10 +478,24 @@ def run_case(model: str, timeout: float, property_key: str, blinded: bool) -> tu
         experiment_evidence_ok = _validate_experiment_evidence(
             store, predictions, evaluations, fixture.held_out_record.id, property_key
         )
+        hypotheses_by_id = {
+            hypothesis["id"]: hypothesis
+            for context in planner.contexts
+            for hypothesis in context["hypotheses"]
+        }
+        expected_rule_property = "property_P" if blinded else property_key
+        forecast_rules_ok = _all_forecasts_match_source_rules(
+            predictions, hypotheses_by_id, fixture.pre_discovery_records,
+            property_key, expected_rule_property,
+        )
         successful_forecast = (
             evaluation_integrity_ok
             and experiment_evidence_ok
-            and _at_least_one_forecast_consistent(predictions, evaluations)
+            and forecast_rules_ok
+            and _at_least_one_forecast_consistent(
+                predictions, evaluations, hypotheses_by_id,
+                fixture.pre_discovery_records, property_key, expected_rule_property,
+            )
         )
         hidden_ok = all(
             item.get("id") != fixture.held_out_record.id
@@ -334,6 +526,18 @@ def run_case(model: str, timeout: float, property_key: str, blinded: bool) -> tu
                 rule = hypothesis.get("quantitative_rule")
                 if not isinstance(rule, dict) or not rule:
                     quantitative_rules_ok = False
+                else:
+                    expected_rule_property = "property_P" if blinded else property_key
+                    computed, rule_detail = _rule_derived_value(
+                        rule, fixture.pre_discovery_records, property_key
+                    )
+                    if rule.get("property") != expected_rule_property or computed is None:
+                        quantitative_rules_ok = False
+                    print(
+                        f"    host rule validation: "
+                        f"{'verified' if rule.get('property') == expected_rule_property and computed is not None else 'UNVERIFIED'}"
+                        f" — {rule_detail}"
+                    )
                 print(f"    quantitative rule: {rule!r}")
                 print(f"  {hypothesis_id[:8]}: {hypothesis.get('statement', '')}")
                 rationale = hypothesis.get("rationale")
@@ -357,11 +561,6 @@ def run_case(model: str, timeout: float, property_key: str, blinded: bool) -> tu
                 f"fixture_held_out_value={held_out_value!r}; "
                 f"matches={observed == held_out_value}"
             )
-        hypotheses_by_id = {
-            hypothesis["id"]: hypothesis
-            for context in planner.contexts
-            for hypothesis in context["hypotheses"]
-        }
         print("forecast diagnostics:")
         for line in _prediction_diagnostic_lines(
             predictions, evaluations_by_prediction, hypotheses_by_id,
@@ -371,9 +570,10 @@ def run_case(model: str, timeout: float, property_key: str, blinded: bool) -> tu
         print(f"action sequence: {kinds}")
         print(f"evaluation records correctly matched by prediction ID: {evaluation_integrity_ok}")
         print(f"persisted experiment evidence valid: {experiment_evidence_ok}")
-        print(f"quantitative rules persisted: {quantitative_rules_ok}")
+        print(f"quantitative rules persisted and host-verifiable: {quantitative_rules_ok}")
+        print(f"all numeric forecasts match their independently computed source rules: {forecast_rules_ok}")
         print(
-            "at least one forecast met tolerance and matched or beat baseline: "
+            "at least one rule-verified forecast met tolerance and matched or beat baseline: "
             f"{successful_forecast}"
         )
         print(f"held-out hidden: {hidden_ok}; blinded names hidden: {blind_names_ok}")

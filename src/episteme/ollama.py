@@ -56,6 +56,61 @@ def _alias_value(value: Any, aliases: dict[str, str]) -> Any:
     return value
 
 
+_HISTORICAL_RULE_OPERATIONS = (
+    "midpoint", "average", "geometric_mean", "addition_with_previous_interval",
+    "subtract_difference", "difference_subtraction", "linear_regression",
+    "linear_extrapolation", "exponential_regression",
+)
+
+
+def _historical_rule_candidates(
+    grounded_observations: tuple[dict[str, Any], ...],
+    hypotheses: tuple[dict[str, Any], ...],
+    *,
+    property_name: str,
+    position_key: str,
+) -> list[dict[str, Any]]:
+    """Return schema-level rule choices supported by inputs and not already used."""
+    positions = sorted({
+        float(item["payload"][position_key])
+        for item in grounded_observations
+        if isinstance(item.get("payload"), Mapping)
+        and isinstance(item["payload"].get(position_key), (int, float))
+        and not isinstance(item["payload"].get(position_key), bool)
+    })
+    existing: set[tuple[str, str, tuple[float, ...]]] = set()
+    for hypothesis in hypotheses:
+        rule = hypothesis.get("quantitative_rule")
+        if not isinstance(rule, Mapping):
+            continue
+        operation, rule_property, inputs = (
+            rule.get("operation"), rule.get("property"), rule.get("input_positions")
+        )
+        if (
+            isinstance(operation, str)
+            and isinstance(rule_property, str)
+            and isinstance(inputs, (list, tuple))
+            and all(isinstance(value, (int, float)) and not isinstance(value, bool) for value in inputs)
+        ):
+            existing.add((operation, rule_property, tuple(sorted(float(value) for value in inputs))))
+
+    candidates: list[dict[str, Any]] = []
+    for index, left in enumerate(positions):
+        for right in positions[index + 1:]:
+            pair = [left, right]
+            for operation in _HISTORICAL_RULE_OPERATIONS:
+                if operation == "midpoint" and left + right != 8.0:
+                    continue
+                if (operation, property_name, tuple(pair)) in existing:
+                    continue
+                candidates.append({
+                    "operation": operation,
+                    "property": property_name,
+                    "input_positions": pair,
+                })
+    return candidates
+
+
 class OllamaPlanner:
     """Ask a local Ollama model for the next bounded discovery action."""
 
@@ -107,11 +162,11 @@ class OllamaPlanner:
                 raise PlannerActionError(
                     "historical rediscovery hypothesis requires a quantitative_rule object"
                 )
+            allowed_operations = set(_HISTORICAL_RULE_OPERATIONS)
             if (
                 not isinstance(rule.get("operation"), str)
-                or not rule["operation"].strip()
+                or rule["operation"] not in allowed_operations
                 or not isinstance(rule.get("property"), str)
-                or not rule["property"].strip()
                 or not isinstance(rule.get("input_positions"), list)
                 or len(rule["input_positions"]) < 2
                 or any(
@@ -120,8 +175,30 @@ class OllamaPlanner:
                 )
             ):
                 raise PlannerActionError(
-                    "historical rediscovery quantitative_rule must include a non-empty "
-                    "operation, property, and at least two numeric input_positions"
+                    "historical rediscovery quantitative_rule must use a supported operation, "
+                    "the requested property, and at least two numeric input_positions"
+                )
+            expected_property = "property_P" if self.blinded_rediscovery else self.rediscovery_property
+            if rule["property"] != expected_property:
+                raise PlannerActionError(
+                    "historical rediscovery quantitative_rule property must match "
+                    "historical_rediscovery_property"
+                )
+            available_positions = {
+                float(item.get("payload", {}).get("period"))
+                for item in context.grounded_observations
+                if isinstance(item.get("payload", {}).get("period"), (int, float))
+                and not isinstance(item.get("payload", {}).get("period"), bool)
+            }
+            if any(float(position) not in available_positions for position in rule["input_positions"]):
+                raise PlannerActionError(
+                    "historical rediscovery quantitative_rule input_positions must come "
+                    "from supplied pre-discovery observations"
+                )
+            operation = rule["operation"]
+            if operation != "average" and len(rule["input_positions"]) != 2:
+                raise PlannerActionError(
+                    f"historical rediscovery operation {operation!r} requires exactly two input positions"
                 )
         _, handle_to_id = _planner_id_aliases(context)
         if "target_ids" in action_data:
@@ -225,7 +302,10 @@ class OllamaPlanner:
         context_data = {
             "grounded_input_ids": _alias_value(list(context.grounded_input_ids), aliases),
             "grounded_observations": _alias_value(grounded_observations, aliases),
-            "historical_rediscovery_property": self.rediscovery_property if "historical_rediscovery" in self.host_capabilities else None,
+            "historical_rediscovery_property": (
+                ("property_P" if self.blinded_rediscovery else self.rediscovery_property)
+                if "historical_rediscovery" in self.host_capabilities else None
+            ),
             "blinded_rediscovery": self.blinded_rediscovery,
             "findings": _alias_value(list(context.findings), aliases),
             "exploration_observations": _alias_value(list(context.exploration_observations), aliases),
@@ -267,6 +347,25 @@ class OllamaPlanner:
                 and item.get("outcome") in {"consistent", "inconsistent", "inconclusive"}
             ],
             "feedback": list(context.feedback),
+            # Keep rejected proposals machine-readable instead of burying the
+            # structured correction target only inside an escaped feedback string.
+            "rejected_actions": [
+                {
+                    "kind": item.get("kind"),
+                    "target_ids": _alias_value(list(item.get("target_ids", ())), aliases),
+                    "quantitative_rule": (
+                        dict(item["quantitative_rule"])
+                        if isinstance(item.get("quantitative_rule"), Mapping)
+                        else None
+                    ),
+                    "predicted_numeric_values": (
+                        _alias_value(dict(item["predicted_numeric_values"]), aliases)
+                        if isinstance(item.get("predicted_numeric_values"), Mapping)
+                        else None
+                    ),
+                }
+                for item in context.rejected_actions
+            ],
             "actions_taken": [
                 {
                     "kind": action.kind,
@@ -364,6 +463,28 @@ class OllamaPlanner:
                 "stop",
             ]
 
+        historical_rule_candidates: list[dict[str, Any]] | None = None
+        if (
+            "historical_rediscovery" in self.host_capabilities
+            and pending_findings
+            and context.grounded_observations
+        ):
+            property_name = "property_P" if self.blinded_rediscovery else self.rediscovery_property
+            # Candidate generation reads host-side observations, which retain their
+            # original payloads even when the model-facing payload is blinded.
+            position_key = "period"
+            historical_rule_candidates = _historical_rule_candidates(
+                context.grounded_observations,
+                context.hypotheses,
+                property_name=property_name,
+                position_key=position_key,
+            )
+            if not historical_rule_candidates:
+                raise PlannerActionError(
+                    "no distinct executable quantitative rule is available from the supplied observations; "
+                    "the host will not invent a competing hypothesis"
+                )
+
         target_ids_schema: dict[str, Any] = {"type": "array", "items": {"type": "string"}}
         if target_id_candidates:
             target_ids_schema["items"] = {
@@ -372,6 +493,23 @@ class OllamaPlanner:
             }
         if len(context.hypotheses) >= 2 and not context.predictions:
             target_ids_schema.update({"minItems": 2, "maxItems": 2, "uniqueItems": True})
+
+        if "historical_rediscovery" in self.host_capabilities:
+            allowed_json_fields = (
+                "kind", "target_ids", "statement", "quantitative_rule", "consequence",
+                "consequences", "conditions", "objective", "proposed_observation",
+                "discrimination_basis", "predicted_numeric_values", "execution_spec",
+                "evidence_capability", "evidence_parameters", "requested_representation",
+                "rationale",
+            )
+        else:
+            allowed_json_fields = (
+                "kind", "target_ids", "statement", "quantitative_rule", "consequence",
+                "consequences", "conditions", "objective", "proposed_observation",
+                "discrimination_basis", "expected_presences", "predicted_numeric_value",
+                "predicted_numeric_values", "execution_spec", "evidence_capability",
+                "evidence_parameters", "requested_representation", "rationale",
+            )
 
         system = (
             "You are the bounded planning component of a scientific inquiry instrument. "
@@ -393,7 +531,7 @@ class OllamaPlanner:
             "In particular, prediction target_ids MUST use the short planner handles shown in the supplied context; never emit the underlying opaque ids. "
             "Prefer a discriminating experiment when competing hypotheses exist. "
             "The field allowed_next_action_kinds is the host's authoritative next-action boundary for this turn. Choose exactly one kind from that list; never choose a different kind even if another action seems scientifically preferable. "
-            "After a GAP or TENSION finding exists with no hypothesis, the ONLY valid candidate-generation action is hypothesis (or question). A hypothesis must explain the observed pattern behind the gap, not merely restate the gap or its position. When historical_rediscovery is available, every hypothesis action MUST include a quantitative_rule object describing the computable rule and its supplied inputs; the rule is structured data, not prose. Use only supplied observation values and name the property and input positions explicitly. For historical rediscovery, each competing hypothesis must propose a different quantitative relationship supported by the supplied observations. A hypothesis is incomplete unless its statement explicitly names the quantitative rule it proposes and identifies the supplied observation values it relates. The period number identifies the missing position; it is not the requested property value. Do not use a period number as a property prediction. Do not propose existence, instability, lifespan, or another qualitative explanation unless it also defines a quantitative relationship for the requested property. Each competing hypothesis must define a different computable rule that can produce a numeric forecast from the supplied observations. "
+            "After a GAP or TENSION finding exists with no hypothesis, the ONLY valid candidate-generation action is hypothesis (or question). A hypothesis must explain the observed pattern behind the gap, not merely restate the gap or its position. When historical_rediscovery is available, every hypothesis action MUST include a quantitative_rule object describing the computable rule and its supplied inputs; the rule is structured data, not prose. Use only supplied observation values and name the property and input positions explicitly. Rule arity is strict: `average` may use two or more input positions; every other supported operation (`midpoint`, `geometric_mean`, `addition_with_previous_interval`, `subtract_difference`, `difference_subtraction`, `linear_regression`, `linear_extrapolation`, `exponential_regression`) must use exactly two input positions. For midpoint, those two positions must be symmetric around the missing target period 4 (for example, [3, 5]). Never submit extra positions to a two-input operation; if a rule is rejected for invalid arity, correct the input_positions before retrying. For historical rediscovery, inspect every existing hypothesis and its quantitative_rule before proposing another hypothesis. Never reuse an existing rule with the same operation, property, and input_positions; a rejected duplicate must be corrected, not repeated. Treat the structured `rejected_actions` field as an authoritative record of proposals the host has already rejected. Do not repeat their quantitative_rule or numeric forecast; select a different executable alternative supported by the supplied observations. Each competing hypothesis must propose a different quantitative relationship supported by the supplied observations, and its numeric result must be distinct from the existing rule's result. If no distinct, executable alternative is justified by the supplied observations, do not fabricate one: state the limitation through a question or stop only when the host permits it. A hypothesis is incomplete unless its statement explicitly names the quantitative rule it proposes and identifies the supplied observation values it relates. The period number identifies the missing position; it is not the requested property value. Do not use a period number as a property prediction. Do not propose existence, instability, lifespan, or another qualitative explanation unless it also defines a quantitative relationship for the requested property. Each competing hypothesis must define a different computable rule that can produce a numeric forecast from the supplied observations. "
             "A GAP or TENSION is a finding, NOT a hypothesis. Never propose prediction, experiment, request_evidence, or stop while a candidate finding has zero hypotheses. "
             "After exactly one hypothesis exists for the finding, propose a distinct competing hypothesis for the same finding. "
             "After two or more "
@@ -410,10 +548,7 @@ class OllamaPlanner:
             "including prediction, and must be a non-empty string explaining why that action "
             "is the correct next bounded step. Never omit rationale. For example, a prediction "
             "must include kind, target_ids, conditions, consequence or consequences, and "
-            "rationale. The only allowed JSON fields are: kind, target_ids, "
-            "statement, consequence, consequences, conditions, objective, "
-            "proposed_observation, discrimination_basis, expected_presences, execution_spec, evidence_capability, "
-            "evidence_parameters, requested_representation, rationale. Do not invent other field names. A hypothesis action creates a NEW hypothesis about a finding. "
+            "rationale. The only allowed JSON fields for this request are: " + ", ".join(allowed_json_fields) + ". Do not invent other field names. A hypothesis action creates a NEW hypothesis about a finding. "
             "For kind='question' or kind='hypothesis', target_ids MUST contain exactly "
             "one existing GAP or TENSION finding id. NEVER put an existing hypothesis id "
             "in target_ids for a hypothesis action. For kind='hypothesis', statement is "
@@ -439,6 +574,16 @@ class OllamaPlanner:
         )
         if "historical_rediscovery" in self.host_capabilities:
             system += (
+                " Allowed quantitative_rule.operation values are midpoint, average, geometric_mean, "
+                "addition_with_previous_interval, subtract_difference, difference_subtraction, "
+                "linear_regression, linear_extrapolation, and exponential_regression. "
+                "The rule property must exactly match historical_rediscovery_property in the supplied context. "
+                "Every input position must be present in the supplied pre-discovery observations. " +
+                "For the missing period-4 target, midpoint means the arithmetic mean of exactly two observations " +
+                "whose positions are symmetric around 4 (normally [3,5]); do not use arbitrary positions such as [2,5]. "
+                "Only average accepts more than two input positions; all other listed operations require exactly two. "
+                "In blinded mode, the selected property is named property_P; use that exact string as the rule property. "
+                "Never invent an operation, property name, or input position. "
                 " For this historical rediscovery contract, the schema forbids "
                 "expected_presences and the legacy scalar predicted_numeric_value; "
                 "emit only predicted_numeric_values with one distinct value per hypothesis."
@@ -518,10 +663,53 @@ class OllamaPlanner:
                 "statement": {"type": "string"},
                 "quantitative_rule": {
                     "type": "object",
+                    **(
+                        {"enum": historical_rule_candidates}
+                        if historical_rule_candidates is not None
+                        else {}
+                    ),
                     "properties": {
-                        "operation": {"type": "string", "minLength": 1},
-                        "property": {"type": "string", "minLength": 1},
-                        "input_positions": {"type": "array", "items": {"type": "number"}, "minItems": 2},
+                        "operation": (
+                            {
+                                "type": "string",
+                                "enum": list(_HISTORICAL_RULE_OPERATIONS),
+                            }
+                            if "historical_rediscovery" in self.host_capabilities
+                            else {"type": "string", "minLength": 1}
+                        ),
+                        "property": (
+                            {
+                                "type": "string",
+                                "enum": [
+                                    "property_P" if self.blinded_rediscovery else self.rediscovery_property
+                                ],
+                            }
+                            if "historical_rediscovery" in self.host_capabilities
+                            else {"type": "string", "minLength": 1}
+                        ),
+                        "input_positions": {
+                            "type": "array",
+                            "items": (
+                                {
+                                    "type": "number",
+                                    "enum": sorted({
+                                        float(item.get("payload", {}).get(
+                                            "position" if self.blinded_rediscovery else "period"
+                                        ))
+                                        for item in grounded_observations
+                                        if isinstance(item.get("payload", {}).get(
+                                            "position" if self.blinded_rediscovery else "period"
+                                        ), (int, float))
+                                        and not isinstance(item.get("payload", {}).get(
+                                            "position" if self.blinded_rediscovery else "period"
+                                        ), bool)
+                                    }),
+                                }
+                                if "historical_rediscovery" in self.host_capabilities
+                                else {"type": "number"}
+                            ),
+                            "minItems": 2,
+                        },
                     },
                     "required": ["operation", "property", "input_positions"],
                     "additionalProperties": False,

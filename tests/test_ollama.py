@@ -92,7 +92,7 @@ def test_historical_rediscovery_preserves_required_quantitative_rule():
             "statement": "The missing value is the midpoint of positions 3 and 5.",
             "quantitative_rule": {
                 "operation": "midpoint",
-                "property": "density",
+                "property": "relative_atomic_mass",
                 "input_positions": [3, 5],
             },
             "rationale": "This rule can be computed from supplied observations.",
@@ -105,6 +105,10 @@ def test_historical_rediscovery_preserves_required_quantitative_rule():
         predictions=(),
         experiments=(),
         actions_taken=(),
+        grounded_observations=(
+            {"id": "observation-3", "kind": "observation", "payload": {"period": 3, "relative_atomic_mass": 28.085}},
+            {"id": "observation-5", "kind": "observation", "payload": {"period": 5, "relative_atomic_mass": 118.710}},
+        ),
     )
 
     def transport(request):
@@ -119,10 +123,51 @@ def test_historical_rediscovery_preserves_required_quantitative_rule():
 
     assert action.quantitative_rule == {
         "operation": "midpoint",
-        "property": "density",
+        "property": "relative_atomic_mass",
         "input_positions": [3, 5],
     }
     assert "quantitative_rule" in payload["format"]["required"]
+    rule_schema = payload["format"]["properties"]["quantitative_rule"]["properties"]
+    assert rule_schema["operation"]["enum"] == [
+        "midpoint", "average", "geometric_mean",
+        "addition_with_previous_interval", "subtract_difference",
+        "difference_subtraction", "linear_regression",
+        "linear_extrapolation", "exponential_regression",
+    ]
+    assert rule_schema["property"]["enum"] == ["relative_atomic_mass"]
+    assert rule_schema["input_positions"]["items"]["enum"] == [3.0, 5.0]
+
+
+
+def test_historical_rediscovery_prompt_forbids_repeating_competing_rules():
+    payload = {}
+
+    def transport(request):
+        payload.update(request)
+        return {
+            "message": {
+                "content": json.dumps({
+                    "kind": "stop",
+                    "rationale": "The bounded test cannot continue.",
+                })
+            }
+        }
+
+    OllamaPlanner(
+        "qwen:14b",
+        transport=transport,
+        host_capabilities=("historical_rediscovery",),
+    ).choose(_context())
+
+    system_prompt = payload["messages"][0]["content"]
+    assert "inspect every existing hypothesis and its quantitative_rule" in system_prompt
+    assert "Never reuse an existing rule with the same operation, property, and input_positions" in system_prompt
+    assert "a rejected duplicate must be corrected, not repeated" in system_prompt
+    assert "Rule arity is strict" in system_prompt
+    assert "`average` may use two or more input positions" in system_prompt
+    assert "every other supported operation" in system_prompt
+    assert "Never submit extra positions to a two-input operation" in system_prompt
+    assert "statement, quantitative_rule, consequence" in system_prompt
 
 
 def test_ollama_schema_exposes_request_evidence_action():
@@ -313,6 +358,148 @@ def test_ollama_experiment_schema_exposes_required_typed_fields():
     assert schema["properties"]["execution_spec"]["properties"]["position"]["type"] == "number"
     assert schema["properties"]["execution_spec"]["required"] == ["operation", "position"]
 
+
+
+def test_ollama_blinded_rule_candidates_use_host_side_periods():
+    payload = {}
+
+    def transport(request):
+        payload.update(request)
+        return {"message": {"content": json.dumps({
+            "kind": "hypothesis",
+            "target_ids": ["F1"],
+            "statement": "A distinct rule relates supplied observations.",
+            "quantitative_rule": {
+                "operation": "geometric_mean",
+                "property": "property_P",
+                "input_positions": [2.0, 5.0],
+            },
+            "rationale": "Use an executable relationship from the supplied observations.",
+        })}}
+
+    # The host context intentionally keeps the original payload; only the
+    # model-facing context is transformed to blinded position/property aliases.
+    context = DiscoveryContext(
+        grounded_input_ids=("observation-2", "observation-3", "observation-5"),
+        grounded_observations=(
+            {"id": "observation-2", "payload": {"period": 2.0, "relative_atomic_mass": 10.0}},
+            {"id": "observation-3", "payload": {"period": 3.0, "relative_atomic_mass": 20.0}},
+            {"id": "observation-5", "payload": {"period": 5.0, "relative_atomic_mass": 40.0}},
+        ),
+        findings=({"id": "gap-1", "kind": "gap"},),
+        hypotheses=(),
+        predictions=(),
+        experiments=(),
+        actions_taken=(),
+    )
+    action = OllamaPlanner(
+        "qwen:14b",
+        transport=transport,
+        host_capabilities=("historical_rediscovery",),
+        blinded_rediscovery=True,
+    ).choose(context)
+
+    assert action.kind == "hypothesis"
+    assert {
+        "operation": "geometric_mean",
+        "property": "property_P",
+        "input_positions": [2.0, 5.0],
+    } in payload["format"]["properties"]["quantitative_rule"]["enum"]
+    user_payload = payload["messages"][1]["content"]
+    assert '"position": 2.0' in user_payload
+    assert '"period"' not in user_payload
+    assert "relative_atomic_mass" not in user_payload
+
+
+def test_ollama_historical_hypothesis_schema_excludes_existing_quantitative_rule():
+    payload = {}
+
+    def transport(request):
+        payload.update(request)
+        return {"message": {"content": json.dumps({
+            "kind": "hypothesis",
+            "target_ids": ["F1"],
+            "statement": "A distinct rule relates the supplied observations.",
+            "quantitative_rule": {
+                "operation": "geometric_mean",
+                "property": "property_P",
+                "input_positions": [2.0, 5.0],
+            },
+            "rationale": "Offer a distinct executable candidate.",
+        })}}
+
+    context = DiscoveryContext(
+        grounded_input_ids=("observation-2", "observation-3", "observation-5"),
+        grounded_observations=(
+            {"id": "observation-2", "payload": {"position": 2.0, "period": 2.0, "value": 10.0}},
+            {"id": "observation-3", "payload": {"position": 3.0, "period": 3.0, "value": 20.0}},
+            {"id": "observation-5", "payload": {"position": 5.0, "period": 5.0, "value": 40.0}},
+        ),
+        findings=({"id": "gap-1", "kind": "gap"},),
+        hypotheses=({
+            "id": "hypothesis-1",
+            "finding_ids": ("gap-1",),
+            "quantitative_rule": {
+                "operation": "midpoint",
+                "property": "property_P",
+                "input_positions": [3.0, 5.0],
+            },
+        },),
+        predictions=(),
+        experiments=(),
+        actions_taken=(),
+    )
+    action = OllamaPlanner(
+        "qwen:14b",
+        transport=transport,
+        host_capabilities=("historical_rediscovery",),
+        blinded_rediscovery=True,
+    ).choose(context)
+
+    assert action.kind == "hypothesis"
+    allowed_rules = payload["format"]["properties"]["quantitative_rule"]["enum"]
+    assert {
+        "operation": "midpoint", "property": "property_P", "input_positions": [3.0, 5.0]
+    } not in allowed_rules
+    assert {
+        "operation": "geometric_mean", "property": "property_P", "input_positions": [2.0, 5.0]
+    } in allowed_rules
+
+
+def test_ollama_historical_hypothesis_fails_closed_when_no_distinct_rule_exists():
+    operations = (
+        "midpoint", "average", "geometric_mean",
+        "addition_with_previous_interval", "subtract_difference",
+        "difference_subtraction", "linear_regression",
+        "linear_extrapolation", "exponential_regression",
+    )
+    hypotheses = tuple({
+        "id": f"hypothesis-{index}",
+        "finding_ids": ("gap-1",) if index == 0 else (),
+        "quantitative_rule": {
+            "operation": operation, "property": "property_P", "input_positions": [3.0, 5.0]
+        },
+    } for index, operation in enumerate(operations))
+    context = DiscoveryContext(
+        grounded_input_ids=("observation-3", "observation-5"),
+        grounded_observations=(
+            {"id": "observation-3", "payload": {"position": 3.0, "period": 3.0, "value": 20.0}},
+            {"id": "observation-5", "payload": {"position": 5.0, "period": 5.0, "value": 40.0}},
+        ),
+        findings=({"id": "gap-1", "kind": "gap"},),
+        hypotheses=hypotheses,
+        predictions=(),
+        experiments=(),
+        actions_taken=(),
+    )
+    planner = OllamaPlanner(
+        "qwen:14b",
+        transport=lambda _request: pytest.fail("model must not be asked to invent a rule"),
+        host_capabilities=("historical_rediscovery",),
+        blinded_rediscovery=True,
+    )
+    with pytest.raises(PlannerActionError, match="no distinct executable quantitative rule"):
+        planner.choose(context)
 
 
 def test_ollama_historical_rediscovery_schema_restricts_execution_operation():
@@ -554,6 +741,15 @@ def test_ollama_historical_rediscovery_uses_distinct_numeric_forecasts_without_p
     assert "expected_presences" not in schema["properties"]
     assert "predicted_numeric_values" in schema["required"]
     assert "expected_presences" not in schema["required"]
+    system_prompt = payload["messages"][0]["content"]
+    allowed_fields = system_prompt.split(
+        "The only allowed JSON fields for this request are: ", 1
+    )[1].split(". Do not invent other field names.", 1)[0]
+    allowed_field_names = {field.strip() for field in allowed_fields.split(",")}
+    assert "predicted_numeric_values" in allowed_field_names
+    assert "expected_presences" not in allowed_field_names
+    assert "predicted_numeric_value" not in allowed_field_names
+    assert "schema forbids expected_presences and the legacy scalar predicted_numeric_value" in system_prompt
 
 
 def test_ollama_blinded_rediscovery_context_uses_opaque_entities_and_one_property():
@@ -607,6 +803,9 @@ def test_ollama_blinded_rediscovery_context_uses_opaque_entities_and_one_propert
     assert '"entity": "E1"' in user_payload
     assert '"property_P": 28.085' in user_payload
     assert '"density_g_cm3"' not in user_payload
+    assert '"historical_rediscovery_property": "property_P"' in user_payload
+    rule_schema = payload["format"]["properties"]["quantitative_rule"]["properties"]
+    assert rule_schema["property"]["enum"] == ["property_P"]
 
 
 def test_ollama_receives_safe_host_evaluation_feedback_without_held_out_details():
@@ -826,3 +1025,170 @@ def test_ollama_evaluation_feedback_links_each_verdict_to_its_forecast_and_hypot
             ),
         },
     ]
+
+
+
+@pytest.mark.parametrize(
+    ("operation", "property_name", "positions", "message"),
+    [
+        ("gap_fill", "relative_atomic_mass", [3, 5], "supported operation"),
+        ("midpoint", "density_g_cm3", [3, 5], "property must match"),
+        ("midpoint", "relative_atomic_mass", [3, 9], "input_positions must come"),
+    ],
+)
+def test_historical_rediscovery_rejects_unverifiable_quantitative_rules(
+    operation, property_name, positions, message
+):
+    content = json.dumps({
+        "kind": "hypothesis",
+        "target_ids": ["F1"],
+        "statement": "A numeric rule predicts the missing property.",
+        "quantitative_rule": {
+            "operation": operation,
+            "property": property_name,
+            "input_positions": positions,
+        },
+        "rationale": "The proposed relationship should be independently computable.",
+    })
+    context = DiscoveryContext(
+        grounded_input_ids=("observation-3", "observation-5"),
+        findings=({"id": "gap-1", "kind": "gap"},),
+        hypotheses=(),
+        predictions=(),
+        experiments=(),
+        actions_taken=(),
+        grounded_observations=(
+            {"id": "observation-3", "kind": "observation", "payload": {"period": 3, "relative_atomic_mass": 28.085}},
+            {"id": "observation-5", "kind": "observation", "payload": {"period": 5, "relative_atomic_mass": 118.710}},
+        ),
+    )
+    planner = OllamaPlanner(
+        "qwen3:14b",
+        transport=lambda _payload: {"message": {"content": content}},
+        host_capabilities=("historical_rediscovery",),
+    )
+    with pytest.raises(PlannerActionError, match=message):
+        planner.choose(context)
+
+
+
+def test_ollama_receives_structured_host_rejection_feedback_for_retry():
+    payload = {}
+    rejection = (
+        "The previous proposed action was rejected: competing hypotheses must use distinct "
+        "quantitative rules. Choose a corrected action. Rejected action details (JSON): "
+        '{"kind":"hypothesis","target_ids":["opaque-finding-id"],'
+        '"quantitative_rule":{"operation":"geometric_mean","property":"property_P",'
+        '"input_positions":[3,5]},"predicted_numeric_values":null}. '
+        "Correct the specific rejected fields; do not repeat the same proposal."
+    )
+
+    def transport(request):
+        payload.update(request)
+        return {
+            "message": {
+                "content": json.dumps({
+                    "kind": "stop",
+                    "rationale": "This fixture only verifies retry-feedback transport.",
+                })
+            }
+        }
+
+    context = DiscoveryContext(
+        grounded_input_ids=(),
+        findings=({"id": "opaque-finding-id", "kind": "gap"},),
+        hypotheses=({"id": "hypothesis-1", "finding_ids": ("opaque-finding-id",)},),
+        predictions=(),
+        experiments=(),
+        actions_taken=(),
+        feedback=(rejection,),
+        rejected_actions=(
+            {
+                "kind": "hypothesis",
+                "target_ids": ["opaque-finding-id"],
+                "quantitative_rule": {
+                    "operation": "geometric_mean",
+                    "property": "property_P",
+                    "input_positions": [3, 5],
+                },
+                "predicted_numeric_values": None,
+            },
+        ),
+    )
+
+    OllamaPlanner("qwen3:8b", transport=transport).choose(context)
+    user_payload = payload["messages"][1]["content"]
+    decoded = json.loads(user_payload)
+
+    assert decoded["feedback"] == [rejection]
+    assert "competing hypotheses must use distinct quantitative rules" in user_payload
+    assert '"operation":"geometric_mean"' in decoded["feedback"][0]
+    assert '"input_positions":[3,5]' in decoded["feedback"][0]
+    assert decoded["rejected_actions"] == [
+        {
+            "kind": "hypothesis",
+            "target_ids": ["F1"],
+            "quantitative_rule": {
+                "operation": "geometric_mean",
+                "property": "property_P",
+                "input_positions": [3, 5],
+            },
+            "predicted_numeric_values": None,
+        }
+    ]
+    assert "opaque-finding-id" not in json.dumps(decoded["rejected_actions"])
+
+def test_ollama_rejected_numeric_forecasts_use_model_handles():
+    payload = {}
+
+    def transport(request):
+        payload.update(request)
+        return {"message": {"content": json.dumps({
+            "kind": "prediction",
+            "target_ids": ["H1", "H2"],
+            "conditions": "bounded historical fixture",
+            "consequence": "the competing rules produce distinct forecasts",
+            "predicted_numeric_values": {"H1": 37.7, "H2": 4.8},
+            "rationale": "Revise the rejected forecasts using the supplied rule evidence.",
+        })}}
+
+    context = DiscoveryContext(
+        grounded_input_ids=(),
+        findings=(),
+        hypotheses=(
+            {"id": "hypothesis-1"},
+            {"id": "hypothesis-2"},
+        ),
+        predictions=(),
+        experiments=(),
+        actions_taken=(),
+        rejected_actions=(
+            {
+                "kind": "prediction",
+                "target_ids": ("hypothesis-1", "hypothesis-2"),
+                "predicted_numeric_values": {
+                    "hypothesis-1": 0.6,
+                    "hypothesis-2": 0.9,
+                },
+            },
+        ),
+    )
+
+    OllamaPlanner(
+        "qwen:14b",
+        transport=transport,
+        host_capabilities=("historical_rediscovery",),
+    ).choose(context)
+
+    decoded = json.loads(payload["messages"][1]["content"])
+    assert decoded["rejected_actions"] == [
+        {
+            "kind": "prediction",
+            "target_ids": ["H1", "H2"],
+            "quantitative_rule": None,
+            "predicted_numeric_values": {"H1": 0.6, "H2": 0.9},
+        }
+    ]
+    assert "hypothesis-1" not in payload["messages"][1]["content"]
+    assert "hypothesis-2" not in payload["messages"][1]["content"]
+

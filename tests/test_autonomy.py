@@ -325,10 +325,12 @@ class RecoveringPlanner:
     def __init__(self):
         self.calls = 0
         self.feedback_seen = ()
+        self.rejected_actions_seen = ()
 
     def choose(self, context: DiscoveryContext) -> DiscoveryAction:
         self.calls += 1
         self.feedback_seen = context.feedback
+        self.rejected_actions_seen = context.rejected_actions
         if self.calls == 1:
             return DiscoveryAction(
                 kind="experiment",
@@ -385,6 +387,17 @@ def test_invalid_action_is_fed_back_to_planner_for_bounded_retry():
         assert planner.calls == 2
         assert planner.feedback_seen
         assert "initial hypothesis before predictions" in planner.feedback_seen[0]
+        assert "Rejected action details (JSON)" in planner.feedback_seen[0]
+        assert '"kind":"experiment"' in planner.feedback_seen[0]
+        assert '"target_ids":["not-a-prediction"]' in planner.feedback_seen[0]
+        assert planner.rejected_actions_seen == (
+            {
+                "kind": "experiment",
+                "target_ids": ["not-a-prediction"],
+                "quantitative_rule": None,
+                "predicted_numeric_values": None,
+            },
+        )
 
 
 def test_execution_spec_rejects_invalid_parameter_shapes():

@@ -204,6 +204,7 @@ class DiscoveryContext:
     grounded_observations: tuple[Mapping[str, Any], ...] = ()
     consequences: tuple[Mapping[str, Any], ...] = ()
     feedback: tuple[str, ...] = ()
+    rejected_actions: tuple[Mapping[str, Any], ...] = ()
     exploration_observations: tuple[Mapping[str, Any], ...] = ()
     exploration_assessments: tuple[Mapping[str, Any], ...] = ()
 
@@ -348,6 +349,7 @@ def build_context(
     grounded_input_ids: tuple[str, ...],
     actions_taken: tuple[DiscoveryAction, ...],
     feedback: tuple[str, ...] = (),
+    rejected_actions: tuple[Mapping[str, Any], ...] = (),
 ) -> DiscoveryContext:
     grounded_records = tuple(
         record
@@ -367,6 +369,7 @@ def build_context(
         consequences=tuple(_consequence_view(item) for item in store.iter_knowledge_state_consequences()),
         actions_taken=actions_taken,
         feedback=feedback,
+        rejected_actions=rejected_actions,
     )
 
 
@@ -883,6 +886,8 @@ def run_autonomous_discovery(
     exploration_assessment_runtime: ExplorationAssessmentRuntimeProtocol | None = None,
     exploration_admission_runtime: ExplorationAdmissionRuntimeProtocol | None = None,
     evidence_request_runtime: EvidenceRequestRuntime | None = None,
+    numeric_prediction_validator: Callable[[Any, DiscoveryAction, tuple[str, ...]], None] | None = None,
+    hypothesis_validator: Callable[[Any, DiscoveryAction, tuple[str, ...]], None] | None = None,
     max_retries_per_step: int = 2,
 ) -> DiscoveryRun:
     """Run a finite planner-steered investigation until stop or a hard budget.
@@ -898,6 +903,7 @@ def run_autonomous_discovery(
     actions: list[DiscoveryAction] = []
     steps: list[DiscoveryStep] = []
     feedback: list[str] = []
+    rejected_actions: list[Mapping[str, Any]] = []
     evidence_request_completed = False
 
     for _ in range(max_steps):
@@ -907,8 +913,14 @@ def run_autonomous_discovery(
                 grounded_input_ids,
                 tuple(actions),
                 tuple(feedback),
+                tuple(rejected_actions),
             )
 
+            # A rejected proposal is not persisted, so preserve its details in
+            # the retry feedback rather than expecting the next context snapshot
+            # to contain it. Reset on every attempt so planner errors cannot
+            # accidentally describe an earlier action.
+            action = None
             try:
                 action = planner.choose(context)
                 if not isinstance(action, DiscoveryAction):
@@ -1038,6 +1050,10 @@ def run_autonomous_discovery(
                         "host evidence runtime returned an unsupported capture outcome"
                     )
                 else:
+                    if action.kind == "hypothesis" and hypothesis_validator is not None:
+                        hypothesis_validator(store, action, grounded_input_ids)
+                    if action.kind == "prediction" and numeric_prediction_validator is not None:
+                        numeric_prediction_validator(store, action, grounded_input_ids)
                     output_ids = execute_action(store, action, created_at=started_at)
             except PlannerActionError as exc:
                 if attempt >= max_retries_per_step:
@@ -1046,13 +1062,36 @@ def run_autonomous_discovery(
                         steps=tuple(steps),
                         stop_reason=f"planner action failed after {attempt + 1} attempts: {exc}",
                     )
-                feedback.append(
+                feedback_item = (
                     f"The previous proposed action was rejected: {exc}. "
                     "Choose a corrected action that satisfies the supplied action contract."
                 )
+                if isinstance(action, DiscoveryAction):
+                    rejected_action = {
+                        "kind": action.kind,
+                        "target_ids": list(action.target_ids),
+                        "quantitative_rule": (
+                            dict(action.quantitative_rule)
+                            if action.quantitative_rule is not None
+                            else None
+                        ),
+                        "predicted_numeric_values": (
+                            dict(action.predicted_numeric_values)
+                            if action.predicted_numeric_values is not None
+                            else None
+                        ),
+                    }
+                    rejected_actions.append(rejected_action)
+                    feedback_item += (
+                        " Rejected action details (JSON): "
+                        f"{canonical_json(rejected_action)}. "
+                        "Correct the specific rejected fields; do not repeat the same proposal."
+                    )
+                feedback.append(feedback_item)
                 continue
 
             feedback.clear()
+            rejected_actions.clear()
             if action.kind == "experiment":
                 proposal = store.get_experiment_proposal(output_ids[0])
                 if proposal is None:
