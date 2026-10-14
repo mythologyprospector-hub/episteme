@@ -7,8 +7,8 @@
 - PR: https://github.com/mythologyprospector-hub/episteme/pull/59
 - Branch: `fix/phase29-rule-verification`
 - State: open, draft, unmerged. Keep it that way until the blinded live acceptance criteria pass.
-- Current branch head: `400e1418599458c4de15a1d52eea6a3cb9057d73` (schema-level candidate rule restrictions and regression tests; not yet live-tested).
-- CI status for this head is pending verification. A green CI run is necessary but not sufficient.
+- Schema-constraint implementation and regression-test commit: `0a5bbd667ccf50ce1f7af61c76f00f45bdfc6fc0`; not yet live-tested.
+- GitHub Actions run #1101 passed on this commit: **356 tests passed**. A green CI run is necessary but not sufficient.
 - Latest Bucky live acceptance tested code at `9e706e9f6cdfaea401b218e112c0399c47dfbcb2` and failed (2026-10-14; `qwen:14b`, blind mode, one run per property, 300-second timeout; exit status 1). The latest implementation has not yet been live-tested.
 
 ## Bucky checkout
@@ -60,7 +60,7 @@ The full local log is at `/tmp/episteme-pr59-acceptance.log` on Bucky; it is not
 - The Ollama prompt's allowed field list includes `quantitative_rule`.
 - New implementation: during historical rediscovery, the planner schema enumerates executable two-position quantitative rule candidates from supplied grounded observations and excludes operation/property/input-position combinations already used by existing hypotheses. Midpoint candidates are limited to positions symmetric around period 4. If no candidate remains, the adapter fails closed instead of asking the model to invent a rule.
 - Host-side quantitative-rule and forecast validation remain authoritative; schema constraints are a prevention layer, not a replacement for validation.
-- Regression tests cover exclusion of a previously used rule and fail-closed behavior when no distinct candidate exists. These changes are not yet CI-verified or live-tested.
+- Regression tests cover exclusion of a previously used rule and fail-closed behavior when no distinct candidate exists. These changes passed GitHub Actions run #1101 (356 tests). They are not yet live-tested; actual Ollama acceptance of the object-enum schema and model behavior must be verified on Bucky.
 
 The previous retry-feedback change did not fix live behavior: the model repeated a duplicate rule after rejection. Code inspection confirmed that feedback text was passed to Ollama, and the adapter-level test established that the text reached the request. A structural improvement is now committed: `DiscoveryContext` carries rejected action fields separately in `rejected_actions`; the next Ollama request includes this as a machine-readable JSON array, and target IDs are converted to planner handles. The prompt explicitly tells the planner that these rejected proposals are authoritative and must not be repeated. Regression tests cover persistence across retries and serialized structure/handle mapping. CI #1097 passed on commit `013f02a2aba1c8b52c85d54ad1e3c10e2dd09c9b`. This has not yet been live-tested; do not assume it fixes the model behavior. Do not claim that improved feedback alone fixes model behavior.
 
