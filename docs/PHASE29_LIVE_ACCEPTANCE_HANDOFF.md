@@ -7,9 +7,9 @@
 - PR: https://github.com/mythologyprospector-hub/episteme/pull/59
 - Branch: `fix/phase29-rule-verification`
 - State: open, draft, unmerged. Keep it that way until the blinded live acceptance criteria pass.
-- Latest live-tested code before this handoff note: `287ae9203162ab7bf51b3ac464fa7a33401d1527`.
-- GitHub Actions run #1087 passed on that code. This proves the automated suite passed, not that live acceptance passed.
-- Latest Bucky live acceptance on that code failed (2026-10-14; `qwen:14b`, blind mode, one run per property, 300-second timeout; exit status 1).
+- Current branch head: `9f033b7f3ea239b4659a3f94dfa0872e9a7f0b27` (handoff documentation only after the live-tested code).
+- GitHub Actions run #1088 passed on this head. This proves the automated suite passed, not that live acceptance passed.
+- Latest Bucky live acceptance tested code at `287ae9203162ab7bf51b3ac464fa7a33401d1527` and failed (2026-10-14; `qwen:14b`, blind mode, one run per property, 300-second timeout; exit status 1). No behavior change has been live-tested after that run.
 
 ## Bucky checkout
 
@@ -60,7 +60,7 @@ The full local log is at `/tmp/episteme-pr59-acceptance.log` on Bucky; it is not
 - The Ollama prompt's allowed field list includes `quantitative_rule`.
 - Regression tests cover relevant validation and prompt contracts.
 
-The retry-feedback change did not fix live behavior: the model still repeats a duplicate rule after rejection. The rejection is passed into the next planner context, so do not assume the feedback is being dropped. Inspect how the model receives and uses the feedback before changing prompts or code again.
+The retry-feedback change did not fix live behavior: the model still repeats a duplicate rule after rejection. Code inspection confirms the rejected-action details are appended to `DiscoveryContext.feedback`, and `src/episteme/ollama.py` serializes that list into the model-visible JSON payload. Existing tests verify the autonomy layer constructs rejection feedback, but the inspected `tests/test_ollama.py` feedback tests primarily cover post-experiment evaluation feedback, not an end-to-end assertion that a duplicate-rule rejection is present in the next Ollama request. Next add a focused adapter-level regression test for this exact feedback payload, then decide on a structural (not merely wording-based) correction path based on the evidence. Do not claim that improved feedback alone fixes model behavior.
 
 ## Next work
 
@@ -81,6 +81,8 @@ The retry-feedback change did not fix live behavior: the model still repeats a d
 - Preserve Episteme's canonical invariant: no information gains epistemic authority merely by passing through Episteme.
 
 ## Durable record
+
+Current handoff document update commit: `9f033b7f3ea239b4659a3f94dfa0872e9a7f0b27`; CI #1088 passed.
 
 The PR discussion contains prior live failures and implementation notes:
 https://github.com/mythologyprospector-hub/episteme/pull/59
