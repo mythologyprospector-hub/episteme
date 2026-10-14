@@ -107,11 +107,16 @@ class OllamaPlanner:
                 raise PlannerActionError(
                     "historical rediscovery hypothesis requires a quantitative_rule object"
                 )
+            allowed_operations = {
+                "midpoint", "average", "geometric_mean",
+                "addition_with_previous_interval", "subtract_difference",
+                "difference_subtraction", "linear_regression",
+                "linear_extrapolation", "exponential_regression",
+            }
             if (
                 not isinstance(rule.get("operation"), str)
-                or not rule["operation"].strip()
+                or rule["operation"] not in allowed_operations
                 or not isinstance(rule.get("property"), str)
-                or not rule["property"].strip()
                 or not isinstance(rule.get("input_positions"), list)
                 or len(rule["input_positions"]) < 2
                 or any(
@@ -120,8 +125,30 @@ class OllamaPlanner:
                 )
             ):
                 raise PlannerActionError(
-                    "historical rediscovery quantitative_rule must include a non-empty "
-                    "operation, property, and at least two numeric input_positions"
+                    "historical rediscovery quantitative_rule must use a supported operation, "
+                    "the requested property, and at least two numeric input_positions"
+                )
+            expected_property = "property_P" if self.blinded_rediscovery else self.rediscovery_property
+            if rule["property"] != expected_property:
+                raise PlannerActionError(
+                    "historical rediscovery quantitative_rule property must match "
+                    "historical_rediscovery_property"
+                )
+            available_positions = {
+                float(item.get("payload", {}).get("period"))
+                for item in context.grounded_observations
+                if isinstance(item.get("payload", {}).get("period"), (int, float))
+                and not isinstance(item.get("payload", {}).get("period"), bool)
+            }
+            if any(float(position) not in available_positions for position in rule["input_positions"]):
+                raise PlannerActionError(
+                    "historical rediscovery quantitative_rule input_positions must come "
+                    "from supplied pre-discovery observations"
+                )
+            operation = rule["operation"]
+            if operation != "average" and len(rule["input_positions"]) != 2:
+                raise PlannerActionError(
+                    f"historical rediscovery operation {operation!r} requires exactly two input positions"
                 )
         _, handle_to_id = _planner_id_aliases(context)
         if "target_ids" in action_data:
@@ -225,7 +252,10 @@ class OllamaPlanner:
         context_data = {
             "grounded_input_ids": _alias_value(list(context.grounded_input_ids), aliases),
             "grounded_observations": _alias_value(grounded_observations, aliases),
-            "historical_rediscovery_property": self.rediscovery_property if "historical_rediscovery" in self.host_capabilities else None,
+            "historical_rediscovery_property": (
+                ("property_P" if self.blinded_rediscovery else self.rediscovery_property)
+                if "historical_rediscovery" in self.host_capabilities else None
+            ),
             "blinded_rediscovery": self.blinded_rediscovery,
             "findings": _alias_value(list(context.findings), aliases),
             "exploration_observations": _alias_value(list(context.exploration_observations), aliases),
@@ -439,6 +469,14 @@ class OllamaPlanner:
         )
         if "historical_rediscovery" in self.host_capabilities:
             system += (
+                " Allowed quantitative_rule.operation values are midpoint, average, geometric_mean, "
+                "addition_with_previous_interval, subtract_difference, difference_subtraction, "
+                "linear_regression, linear_extrapolation, and exponential_regression. "
+                "The rule property must exactly match historical_rediscovery_property in the supplied context. "
+                "Every input position must be present in the supplied pre-discovery observations. "
+                "Only average accepts more than two input positions; all other listed operations require exactly two. "
+                "In blinded mode, the selected property is named property_P; use that exact string as the rule property. "
+                "Never invent an operation, property name, or input position. "
                 " For this historical rediscovery contract, the schema forbids "
                 "expected_presences and the legacy scalar predicted_numeric_value; "
                 "emit only predicted_numeric_values with one distinct value per hypothesis."
@@ -519,9 +557,40 @@ class OllamaPlanner:
                 "quantitative_rule": {
                     "type": "object",
                     "properties": {
-                        "operation": {"type": "string", "minLength": 1},
-                        "property": {"type": "string", "minLength": 1},
-                        "input_positions": {"type": "array", "items": {"type": "number"}, "minItems": 2},
+                        "operation": {
+                            "type": "string",
+                            "enum": [
+                                "midpoint", "average", "geometric_mean",
+                                "addition_with_previous_interval", "subtract_difference",
+                                "difference_subtraction", "linear_regression",
+                                "linear_extrapolation", "exponential_regression",
+                            ],
+                        },
+                        "property": {
+                            "type": "string",
+                            "enum": [
+                                "property_P" if self.blinded_rediscovery else self.rediscovery_property
+                            ],
+                        },
+                        "input_positions": {
+                            "type": "array",
+                            "items": {
+                                "type": "number",
+                                "enum": sorted({
+                                    float(item.get("payload", {}).get(
+                                        "position" if self.blinded_rediscovery else "period"
+                                    ))
+                                    for item in grounded_observations
+                                    if isinstance(item.get("payload", {}).get(
+                                        "position" if self.blinded_rediscovery else "period"
+                                    ), (int, float))
+                                    and not isinstance(item.get("payload", {}).get(
+                                        "position" if self.blinded_rediscovery else "period"
+                                    ), bool)
+                                }),
+                            },
+                            "minItems": 2,
+                        },
                     },
                     "required": ["operation", "property", "input_positions"],
                     "additionalProperties": False,
