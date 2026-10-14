@@ -85,13 +85,33 @@ class TracingOllamaPlanner(OllamaPlanner):
         return super().choose(context)
 
 
-def _at_least_one_forecast_consistent(predictions, evaluations) -> bool:
-    """Require sound evaluation linkage and at least one qualifying competing forecast."""
+def _at_least_one_forecast_consistent(
+    predictions, evaluations, hypotheses_by_id, pre_discovery_records,
+    property_key: str, expected_rule_property: str,
+) -> bool:
+    """Require a consistent evaluation for a forecast independently reproduced from its rule."""
     indexed, integrity_ok = _index_evaluations(predictions, evaluations)
-    return bool(predictions) and integrity_ok and any(
-        indexed[prediction.id].outcome is PredictionEvaluationOutcome.CONSISTENT
-        for prediction in predictions
-    )
+    if not predictions or not integrity_ok:
+        return False
+    for prediction in predictions:
+        evaluation = indexed[prediction.id]
+        source = hypotheses_by_id.get(prediction.source_id)
+        if source is None or evaluation.outcome is not PredictionEvaluationOutcome.CONSISTENT:
+            continue
+        rule = source.get("quantitative_rule")
+        if not isinstance(rule, dict) or rule.get("property") != expected_rule_property:
+            continue
+        computed, _ = _rule_derived_value(rule, pre_discovery_records, property_key)
+        if (
+            computed is not None
+            and prediction.predicted_numeric_value is not None
+            and math.isclose(
+                float(prediction.predicted_numeric_value), computed,
+                rel_tol=1e-12, abs_tol=1e-9,
+            )
+        ):
+            return True
+    return False
 
 def _rule_derived_value(rule, pre_discovery_records, property_key: str) -> tuple[float | None, str]:
     """Independently compute supported rule operations from pre-discovery observations."""
@@ -300,10 +320,37 @@ def run_case(model: str, timeout: float, property_key: str, blinded: bool) -> tu
         experiment_evidence_ok = _validate_experiment_evidence(
             store, predictions, evaluations, fixture.held_out_record.id, property_key
         )
+        hypotheses_by_id = {
+            hypothesis["id"]: hypothesis
+            for context in planner.contexts
+            for hypothesis in context["hypotheses"]
+        }
+        expected_rule_property = "property_P" if blinded else property_key
+        forecast_rules_ok = bool(predictions) and all(
+            prediction.source_id in hypotheses_by_id
+            and isinstance(hypotheses_by_id[prediction.source_id].get("quantitative_rule"), dict)
+            and hypotheses_by_id[prediction.source_id]["quantitative_rule"].get("property") == expected_rule_property
+            and (
+                (computed := _rule_derived_value(
+                    hypotheses_by_id[prediction.source_id]["quantitative_rule"],
+                    fixture.pre_discovery_records,
+                    property_key,
+                )[0]) is not None
+            )
+            and math.isclose(
+                float(prediction.predicted_numeric_value), computed,
+                rel_tol=1e-12, abs_tol=1e-9,
+            )
+            for prediction in predictions
+        )
         successful_forecast = (
             evaluation_integrity_ok
             and experiment_evidence_ok
-            and _at_least_one_forecast_consistent(predictions, evaluations)
+            and forecast_rules_ok
+            and _at_least_one_forecast_consistent(
+                predictions, evaluations, hypotheses_by_id,
+                fixture.pre_discovery_records, property_key, expected_rule_property,
+            )
         )
         hidden_ok = all(
             item.get("id") != fixture.held_out_record.id
@@ -334,6 +381,18 @@ def run_case(model: str, timeout: float, property_key: str, blinded: bool) -> tu
                 rule = hypothesis.get("quantitative_rule")
                 if not isinstance(rule, dict) or not rule:
                     quantitative_rules_ok = False
+                else:
+                    expected_rule_property = "property_P" if blinded else property_key
+                    computed, rule_detail = _rule_derived_value(
+                        rule, fixture.pre_discovery_records, property_key
+                    )
+                    if rule.get("property") != expected_rule_property or computed is None:
+                        quantitative_rules_ok = False
+                    print(
+                        f"    host rule validation: "
+                        f"{'verified' if rule.get('property') == expected_rule_property and computed is not None else 'UNVERIFIED'}"
+                        f" — {rule_detail}"
+                    )
                 print(f"    quantitative rule: {rule!r}")
                 print(f"  {hypothesis_id[:8]}: {hypothesis.get('statement', '')}")
                 rationale = hypothesis.get("rationale")
@@ -357,11 +416,7 @@ def run_case(model: str, timeout: float, property_key: str, blinded: bool) -> tu
                 f"fixture_held_out_value={held_out_value!r}; "
                 f"matches={observed == held_out_value}"
             )
-        hypotheses_by_id = {
-            hypothesis["id"]: hypothesis
-            for context in planner.contexts
-            for hypothesis in context["hypotheses"]
-        }
+        print(f"all numeric forecasts match their independently computed source rules: {forecast_rules_ok}")
         print("forecast diagnostics:")
         for line in _prediction_diagnostic_lines(
             predictions, evaluations_by_prediction, hypotheses_by_id,
@@ -372,8 +427,9 @@ def run_case(model: str, timeout: float, property_key: str, blinded: bool) -> tu
         print(f"evaluation records correctly matched by prediction ID: {evaluation_integrity_ok}")
         print(f"persisted experiment evidence valid: {experiment_evidence_ok}")
         print(f"quantitative rules persisted: {quantitative_rules_ok}")
+        print(f"all numeric forecasts match their independently computed source rules: {forecast_rules_ok}")
         print(
-            "at least one forecast met tolerance and matched or beat baseline: "
+            "at least one rule-verified forecast met tolerance and matched or beat baseline: "
             f"{successful_forecast}"
         )
         print(f"held-out hidden: {hidden_ok}; blinded names hidden: {blind_names_ok}")
