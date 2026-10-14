@@ -884,6 +884,7 @@ def run_autonomous_discovery(
     exploration_admission_runtime: ExplorationAdmissionRuntimeProtocol | None = None,
     evidence_request_runtime: EvidenceRequestRuntime | None = None,
     numeric_prediction_validator: Callable[[Any, DiscoveryAction, tuple[str, ...]], None] | None = None,
+    hypothesis_validator: Callable[[Any, DiscoveryAction, tuple[str, ...]], None] | None = None,
     max_retries_per_step: int = 2,
 ) -> DiscoveryRun:
     """Run a finite planner-steered investigation until stop or a hard budget.
@@ -1039,6 +1040,8 @@ def run_autonomous_discovery(
                         "host evidence runtime returned an unsupported capture outcome"
                     )
                 else:
+                    if action.kind == "hypothesis" and hypothesis_validator is not None:
+                        hypothesis_validator(store, action, grounded_input_ids)
                     if action.kind == "prediction" and numeric_prediction_validator is not None:
                         numeric_prediction_validator(store, action, grounded_input_ids)
                     output_ids = execute_action(store, action, created_at=started_at)
