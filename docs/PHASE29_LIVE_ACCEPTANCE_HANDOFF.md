@@ -7,9 +7,9 @@
 - PR: https://github.com/mythologyprospector-hub/episteme/pull/59
 - Branch: `fix/phase29-rule-verification`
 - State: open, draft, unmerged. Keep it that way until the blinded live acceptance criteria pass.
-- Current branch head at the time of this handoff update: `013f02a2aba1c8b52c85d54ad1e3c10e2dd09c9b` (structured rejected-action feedback changes; not yet live-tested).
-- GitHub Actions run #1088 passed on this head. This proves the automated suite passed, not that live acceptance passed.
-- Latest Bucky live acceptance tested code at `287ae9203162ab7bf51b3ac464fa7a33401d1527` and failed (2026-10-14; `qwen:14b`, blind mode, one run per property, 300-second timeout; exit status 1). No behavior change has been live-tested after that run.
+- Current branch head: `400e1418599458c4de15a1d52eea6a3cb9057d73` (schema-level candidate rule restrictions and regression tests; not yet live-tested).
+- CI status for this head is pending verification. A green CI run is necessary but not sufficient.
+- Latest Bucky live acceptance tested code at `9e706e9f6cdfaea401b218e112c0399c47dfbcb2` and failed (2026-10-14; `qwen:14b`, blind mode, one run per property, 300-second timeout; exit status 1). The latest implementation has not yet been live-tested.
 
 ## Bucky checkout
 
@@ -58,18 +58,18 @@ The full local log is at `/tmp/episteme-pr59-acceptance.log` on Bucky; it is not
 - Bounded retries for rejected planner actions.
 - Rejection feedback includes structured rejected-action fields (`kind`, `target_ids`, `quantitative_rule`, `predicted_numeric_values`) while deliberately excluding free-form model-authored text.
 - The Ollama prompt's allowed field list includes `quantitative_rule`.
-- Regression tests cover relevant validation and prompt contracts.
+- New implementation: during historical rediscovery, the planner schema enumerates executable two-position quantitative rule candidates from supplied grounded observations and excludes operation/property/input-position combinations already used by existing hypotheses. Midpoint candidates are limited to positions symmetric around period 4. If no candidate remains, the adapter fails closed instead of asking the model to invent a rule.
+- Host-side quantitative-rule and forecast validation remain authoritative; schema constraints are a prevention layer, not a replacement for validation.
+- Regression tests cover exclusion of a previously used rule and fail-closed behavior when no distinct candidate exists. These changes are not yet CI-verified or live-tested.
 
 The previous retry-feedback change did not fix live behavior: the model repeated a duplicate rule after rejection. Code inspection confirmed that feedback text was passed to Ollama, and the adapter-level test established that the text reached the request. A structural improvement is now committed: `DiscoveryContext` carries rejected action fields separately in `rejected_actions`; the next Ollama request includes this as a machine-readable JSON array, and target IDs are converted to planner handles. The prompt explicitly tells the planner that these rejected proposals are authoritative and must not be repeated. Regression tests cover persistence across retries and serialized structure/handle mapping. CI #1097 passed on commit `013f02a2aba1c8b52c85d54ad1e3c10e2dd09c9b`. This has not yet been live-tested; do not assume it fixes the model behavior. Do not claim that improved feedback alone fixes model behavior.
 
 ## Next work
 
-1. Inspect the full retry loop and the exact serialized Ollama request for rejected-action feedback, using tests or a safe captured payload. Keep the held-out answer and blinded identities out of planner input and diagnostic feedback.
-2. Determine why the planner repeats the duplicate quantitative rule despite the rejection and structured action details.
-3. Add a focused regression test for the identified failure/contract before changing behavior.
-4. Run GitHub Actions on the new commit.
-5. Only then rerun the blinded Bucky live acceptance with the command above.
-6. Record the outcome in the PR discussion and update this handoff when the state changes.
+1. Verify GitHub Actions for head `400e1418599458c4de15a1d52eea6a3cb9057d73`; investigate any failures before proceeding.
+2. If CI passes, inspect the actual generated schema for the supported Ollama structured-output implementation and confirm it accepts the candidate enum shape.
+3. Only after CI and schema compatibility are confirmed, rerun the blinded Bucky live acceptance with the command above.
+4. Record the outcome in the PR discussion and update this handoff when the state changes.
 
 ## Non-negotiable constraints
 
