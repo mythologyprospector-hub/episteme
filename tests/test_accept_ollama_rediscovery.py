@@ -355,3 +355,34 @@ def test_geometric_mean_rule_rejects_non_positive_or_non_finite_inputs():
         )
         assert value is None
         assert "positive finite" in detail
+
+
+
+def test_phase29_each_property_has_a_supported_rule_that_beats_or_ties_baseline():
+    """Host-only positive control proves each registered acceptance case is attainable."""
+    from episteme.rediscovery import REDISCOVERY_CASES, build_mendeleev_fixture, derive_adjacent_midpoint
+    from scripts.accept_ollama_rediscovery import _rule_derived_value
+
+    fixture = build_mendeleev_fixture()
+    control_rules = {
+        "relative_atomic_mass": {"operation": "midpoint", "property": "relative_atomic_mass", "input_positions": [3, 5]},
+        "density_g_cm3": {"operation": "linear_extrapolation", "property": "density_g_cm3", "input_positions": [3, 6]},
+        "melting_point_c": {"operation": "geometric_mean", "property": "melting_point_c", "input_positions": [2, 5]},
+    }
+
+    for case in REDISCOVERY_CASES:
+        forecast, detail = _rule_derived_value(
+            control_rules[case.property_key],
+            fixture.pre_discovery_records,
+            case.property_key,
+        )
+        observed = float(fixture.held_out_record.payload[case.property_key])
+        baseline = derive_adjacent_midpoint(
+            fixture.pre_discovery_records, property_key=case.property_key
+        )
+        forecast_error = abs(forecast - observed) / abs(observed)
+        baseline_error = abs(baseline - observed) / abs(observed)
+
+        assert detail
+        assert forecast_error <= case.tolerance
+        assert forecast_error <= baseline_error
