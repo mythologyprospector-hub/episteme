@@ -470,7 +470,9 @@ class OllamaPlanner:
             and context.grounded_observations
         ):
             property_name = "property_P" if self.blinded_rediscovery else self.rediscovery_property
-            position_key = "position" if self.blinded_rediscovery else "period"
+            # Candidate generation reads host-side observations, which retain their
+            # original payloads even when the model-facing payload is blinded.
+            position_key = "period"
             historical_rule_candidates = _historical_rule_candidates(
                 context.grounded_observations,
                 context.hypotheses,
