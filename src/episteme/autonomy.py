@@ -1065,7 +1065,6 @@ def run_autonomous_discovery(
                     rejected_action = {
                         "kind": action.kind,
                         "target_ids": list(action.target_ids),
-                        "statement": action.statement,
                         "quantitative_rule": (
                             dict(action.quantitative_rule)
                             if action.quantitative_rule is not None
@@ -1076,7 +1075,6 @@ def run_autonomous_discovery(
                             if action.predicted_numeric_values is not None
                             else None
                         ),
-                        "rationale": action.rationale,
                     }
                     feedback_item += (
                         " Rejected action details (JSON): "
