@@ -16,7 +16,13 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from episteme.autonomy import ExperimentRuntime, PositionalGapDiscoveryRuntime, run_autonomous_discovery
+from episteme.autonomy import (
+    DiscoveryAction,
+    ExperimentRuntime,
+    PlannerActionError,
+    PositionalGapDiscoveryRuntime,
+    run_autonomous_discovery,
+)
 from episteme.model import PredictionEvaluationOutcome
 from episteme.ollama import OllamaPlanner
 from episteme.rediscovery import (
@@ -83,6 +89,57 @@ class TracingOllamaPlanner(OllamaPlanner):
         if any(item.get("id") == self.held_out_id for item in context.grounded_observations):
             raise RuntimeError("held-out record leaked into Ollama grounded context")
         return super().choose(context)
+
+
+def _validate_numeric_prediction_action(
+    store: Store,
+    action: DiscoveryAction,
+    grounded_input_ids: tuple[str, ...],
+    *,
+    property_key: str,
+    expected_rule_property: str,
+) -> None:
+    """Reject forecasts inconsistent with source rules before persistence.
+
+    The property mapping and permitted input IDs are supplied by the benchmark
+    host. The model cannot choose either, and the held-out record is never read.
+    """
+    if action.kind != "prediction" or action.predicted_numeric_values is None:
+        return
+    hypotheses = {item.id: item for item in store.iter_hypotheses()}
+    records = tuple(
+        record
+        for record_id in grounded_input_ids
+        if (record := store.get_record(record_id)) is not None
+    )
+    for hypothesis_id in action.target_ids:
+        hypothesis = hypotheses.get(hypothesis_id)
+        if hypothesis is None:
+            raise PlannerActionError(
+                f"numeric forecast source hypothesis {hypothesis_id} does not exist"
+            )
+        rule = hypothesis.quantitative_rule
+        if not isinstance(rule, dict) or rule.get("property") != expected_rule_property:
+            raise PlannerActionError(
+                f"numeric forecast for hypothesis {hypothesis_id[:8]} has no verified "
+                f"rule for host-mapped property {expected_rule_property!r}; "
+                "revise the hypothesis rule before forecasting"
+            )
+        computed, detail = _rule_derived_value(rule, records, property_key)
+        if computed is None or not math.isfinite(computed):
+            raise PlannerActionError(
+                f"numeric forecast rule for hypothesis {hypothesis_id[:8]} cannot be "
+                f"verified from permitted pre-discovery observations: {detail}; "
+                "choose an executable rule using only supplied observations"
+            )
+        proposed = float(action.predicted_numeric_values[hypothesis_id])
+        if not math.isclose(proposed, computed, rel_tol=1e-12, abs_tol=1e-9):
+            raise PlannerActionError(
+                f"numeric forecast for hypothesis {hypothesis_id[:8]} was rejected: "
+                f"proposed {proposed:.12g}, but its declared {detail} rule computes "
+                f"{computed:.12g} from permitted pre-discovery observations; "
+                "submit the computed value or revise the rule and explain the arithmetic"
+            )
 
 
 def _forecast_matches_source_rule(
@@ -314,6 +371,15 @@ def run_case(model: str, timeout: float, property_key: str, blinded: bool) -> tu
                 input_ids=tuple(record.id for record in fixture.pre_discovery_records),
                 position_key="period",
                 step=1.0,
+            ),
+            numeric_prediction_validator=lambda active_store, action, input_ids: (
+                _validate_numeric_prediction_action(
+                    active_store,
+                    action,
+                    input_ids,
+                    property_key=property_key,
+                    expected_rule_property="property_P" if blinded else property_key,
+                )
             ),
             max_retries_per_step=2,
         )
