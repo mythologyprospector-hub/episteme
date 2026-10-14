@@ -138,6 +138,33 @@ def test_historical_rediscovery_preserves_required_quantitative_rule():
     assert rule_schema["input_positions"]["items"]["enum"] == [3.0, 5.0]
 
 
+
+def test_historical_rediscovery_prompt_forbids_repeating_competing_rules():
+    payload = {}
+
+    def transport(request):
+        payload.update(request)
+        return {
+            "message": {
+                "content": json.dumps({
+                    "kind": "stop",
+                    "rationale": "The bounded test cannot continue.",
+                })
+            }
+        }
+
+    OllamaPlanner(
+        "qwen:14b",
+        transport=transport,
+        host_capabilities=("historical_rediscovery",),
+    ).choose(_context())
+
+    system_prompt = payload["messages"][0]["content"]
+    assert "inspect every existing hypothesis and its quantitative_rule" in system_prompt
+    assert "Never reuse an existing rule with the same operation, property, and input_positions" in system_prompt
+    assert "a rejected duplicate must be corrected, not repeated" in system_prompt
+
+
 def test_ollama_schema_exposes_request_evidence_action():
     payload = {}
 
