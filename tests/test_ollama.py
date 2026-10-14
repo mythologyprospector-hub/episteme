@@ -360,6 +360,57 @@ def test_ollama_experiment_schema_exposes_required_typed_fields():
 
 
 
+def test_ollama_blinded_rule_candidates_use_host_side_periods():
+    payload = {}
+
+    def transport(request):
+        payload.update(request)
+        return {"message": {"content": json.dumps({
+            "kind": "hypothesis",
+            "target_ids": ["F1"],
+            "statement": "A distinct rule relates supplied observations.",
+            "quantitative_rule": {
+                "operation": "geometric_mean",
+                "property": "property_P",
+                "input_positions": [2.0, 5.0],
+            },
+            "rationale": "Use an executable relationship from the supplied observations.",
+        })}}
+
+    # The host context intentionally keeps the original payload; only the
+    # model-facing context is transformed to blinded position/property aliases.
+    context = DiscoveryContext(
+        grounded_input_ids=("observation-2", "observation-3", "observation-5"),
+        grounded_observations=(
+            {"id": "observation-2", "payload": {"period": 2.0, "relative_atomic_mass": 10.0}},
+            {"id": "observation-3", "payload": {"period": 3.0, "relative_atomic_mass": 20.0}},
+            {"id": "observation-5", "payload": {"period": 5.0, "relative_atomic_mass": 40.0}},
+        ),
+        findings=({"id": "gap-1", "kind": "gap"},),
+        hypotheses=(),
+        predictions=(),
+        experiments=(),
+        actions_taken=(),
+    )
+    action = OllamaPlanner(
+        "qwen:14b",
+        transport=transport,
+        host_capabilities=("historical_rediscovery",),
+        blinded_rediscovery=True,
+    ).choose(context)
+
+    assert action.kind == "hypothesis"
+    assert {
+        "operation": "geometric_mean",
+        "property": "property_P",
+        "input_positions": [2.0, 5.0],
+    } in payload["format"]["properties"]["quantitative_rule"]["enum"]
+    user_payload = payload["messages"][1]["content"]
+    assert '"position": 2.0' in user_payload
+    assert '"period"' not in user_payload
+    assert "relative_atomic_mass" not in user_payload
+
+
 def test_ollama_historical_hypothesis_schema_excludes_existing_quantitative_rule():
     payload = {}
 
