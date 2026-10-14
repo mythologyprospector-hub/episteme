@@ -64,3 +64,48 @@ def test_ollama_planner_rejects_malformed_model_action():
         assert "invalid DiscoveryAction" in str(exc)
     else:
         raise AssertionError("malformed model action was accepted")
+
+
+def test_ollama_planner_can_explicitly_select_thinking_mode():
+    for think in (True, False):
+        captured = {}
+
+        def transport(payload):
+            captured.update(payload)
+            return {
+                "message": {
+                    "content": json.dumps(
+                        {
+                            "kind": "stop",
+                            "rationale": "The bounded investigation requires new grounded evidence.",
+                        }
+                    )
+                }
+            }
+
+        planner = OllamaPlanner("qwen3:14b", transport=transport, think=think)
+        context = DiscoveryContext((), (), (), (), (), ())
+        planner.choose(context)
+
+        assert captured["think"] is think
+
+
+def test_ollama_planner_leaves_thinking_mode_at_model_default_unless_configured():
+    captured = {}
+
+    def transport(payload):
+        captured.update(payload)
+        return {
+            "message": {
+                "content": json.dumps(
+                    {
+                        "kind": "stop",
+                        "rationale": "The bounded investigation requires new grounded evidence.",
+                    }
+                )
+            }
+        }
+
+    OllamaPlanner("qwen:14b", transport=transport).choose(DiscoveryContext((), (), (), (), (), ()))
+
+    assert "think" not in captured
