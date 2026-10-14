@@ -360,6 +360,97 @@ def test_ollama_experiment_schema_exposes_required_typed_fields():
 
 
 
+def test_ollama_historical_hypothesis_schema_excludes_existing_quantitative_rule():
+    payload = {}
+
+    def transport(request):
+        payload.update(request)
+        return {"message": {"content": json.dumps({
+            "kind": "hypothesis",
+            "target_ids": ["F1"],
+            "statement": "A distinct rule relates the supplied observations.",
+            "quantitative_rule": {
+                "operation": "geometric_mean",
+                "property": "property_P",
+                "input_positions": [2.0, 5.0],
+            },
+            "rationale": "Offer a distinct executable candidate.",
+        })}}
+
+    context = DiscoveryContext(
+        grounded_input_ids=("observation-2", "observation-3", "observation-5"),
+        grounded_observations=(
+            {"id": "observation-2", "payload": {"position": 2.0, "value": 10.0}},
+            {"id": "observation-3", "payload": {"position": 3.0, "value": 20.0}},
+            {"id": "observation-5", "payload": {"position": 5.0, "value": 40.0}},
+        ),
+        findings=({"id": "gap-1", "kind": "gap"},),
+        hypotheses=({
+            "id": "hypothesis-1",
+            "finding_ids": ("gap-1",),
+            "quantitative_rule": {
+                "operation": "midpoint",
+                "property": "property_P",
+                "input_positions": [3.0, 5.0],
+            },
+        },),
+        predictions=(),
+        experiments=(),
+        actions_taken=(),
+    )
+    action = OllamaPlanner(
+        "qwen:14b",
+        transport=transport,
+        host_capabilities=("historical_rediscovery",),
+        blinded_rediscovery=True,
+    ).choose(context)
+
+    assert action.kind == "hypothesis"
+    allowed_rules = payload["format"]["properties"]["quantitative_rule"]["enum"]
+    assert {
+        "operation": "midpoint", "property": "property_P", "input_positions": [3.0, 5.0]
+    } not in allowed_rules
+    assert {
+        "operation": "geometric_mean", "property": "property_P", "input_positions": [2.0, 5.0]
+    } in allowed_rules
+
+
+def test_ollama_historical_hypothesis_fails_closed_when_no_distinct_rule_exists():
+    operations = (
+        "midpoint", "average", "geometric_mean",
+        "addition_with_previous_interval", "subtract_difference",
+        "difference_subtraction", "linear_regression",
+        "linear_extrapolation", "exponential_regression",
+    )
+    hypotheses = tuple({
+        "id": f"hypothesis-{index}",
+        "finding_ids": ("gap-1",) if index == 0 else (),
+        "quantitative_rule": {
+            "operation": operation, "property": "property_P", "input_positions": [3.0, 5.0]
+        },
+    } for index, operation in enumerate(operations))
+    context = DiscoveryContext(
+        grounded_input_ids=("observation-3", "observation-5"),
+        grounded_observations=(
+            {"id": "observation-3", "payload": {"position": 3.0, "value": 20.0}},
+            {"id": "observation-5", "payload": {"position": 5.0, "value": 40.0}},
+        ),
+        findings=({"id": "gap-1", "kind": "gap"},),
+        hypotheses=hypotheses,
+        predictions=(),
+        experiments=(),
+        actions_taken=(),
+    )
+    planner = OllamaPlanner(
+        "qwen:14b",
+        transport=lambda _request: pytest.fail("model must not be asked to invent a rule"),
+        host_capabilities=("historical_rediscovery",),
+        blinded_rediscovery=True,
+    )
+    with pytest.raises(PlannerActionError, match="no distinct executable quantitative rule"):
+        planner.choose(context)
+
+
 def test_ollama_historical_rediscovery_schema_restricts_execution_operation():
     payload = {}
 
