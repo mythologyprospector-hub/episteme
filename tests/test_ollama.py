@@ -745,9 +745,10 @@ def test_ollama_historical_rediscovery_uses_distinct_numeric_forecasts_without_p
     allowed_fields = system_prompt.split(
         "The only allowed JSON fields for this request are: ", 1
     )[1].split(". Do not invent other field names.", 1)[0]
-    assert "predicted_numeric_values" in allowed_fields
-    assert "expected_presences" not in allowed_fields
-    assert "predicted_numeric_value" not in allowed_fields
+    allowed_field_names = {field.strip() for field in allowed_fields.split(",")}
+    assert "predicted_numeric_values" in allowed_field_names
+    assert "expected_presences" not in allowed_field_names
+    assert "predicted_numeric_value" not in allowed_field_names
     assert "schema forbids expected_presences and the legacy scalar predicted_numeric_value" in system_prompt
 
 
