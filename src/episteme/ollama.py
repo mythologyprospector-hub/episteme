@@ -557,38 +557,50 @@ class OllamaPlanner:
                 "quantitative_rule": {
                     "type": "object",
                     "properties": {
-                        "operation": {
-                            "type": "string",
-                            "enum": [
-                                "midpoint", "average", "geometric_mean",
-                                "addition_with_previous_interval", "subtract_difference",
-                                "difference_subtraction", "linear_regression",
-                                "linear_extrapolation", "exponential_regression",
-                            ],
-                        },
-                        "property": {
-                            "type": "string",
-                            "enum": [
-                                "property_P" if self.blinded_rediscovery else self.rediscovery_property
-                            ],
-                        },
+                        "operation": (
+                            {
+                                "type": "string",
+                                "enum": [
+                                    "midpoint", "average", "geometric_mean",
+                                    "addition_with_previous_interval", "subtract_difference",
+                                    "difference_subtraction", "linear_regression",
+                                    "linear_extrapolation", "exponential_regression",
+                                ],
+                            }
+                            if "historical_rediscovery" in self.host_capabilities
+                            else {"type": "string", "minLength": 1}
+                        ),
+                        "property": (
+                            {
+                                "type": "string",
+                                "enum": [
+                                    "property_P" if self.blinded_rediscovery else self.rediscovery_property
+                                ],
+                            }
+                            if "historical_rediscovery" in self.host_capabilities
+                            else {"type": "string", "minLength": 1}
+                        ),
                         "input_positions": {
                             "type": "array",
-                            "items": {
-                                "type": "number",
-                                "enum": sorted({
-                                    float(item.get("payload", {}).get(
-                                        "position" if self.blinded_rediscovery else "period"
-                                    ))
-                                    for item in grounded_observations
-                                    if isinstance(item.get("payload", {}).get(
-                                        "position" if self.blinded_rediscovery else "period"
-                                    ), (int, float))
-                                    and not isinstance(item.get("payload", {}).get(
-                                        "position" if self.blinded_rediscovery else "period"
-                                    ), bool)
-                                }),
-                            },
+                            "items": (
+                                {
+                                    "type": "number",
+                                    "enum": sorted({
+                                        float(item.get("payload", {}).get(
+                                            "position" if self.blinded_rediscovery else "period"
+                                        ))
+                                        for item in grounded_observations
+                                        if isinstance(item.get("payload", {}).get(
+                                            "position" if self.blinded_rediscovery else "period"
+                                        ), (int, float))
+                                        and not isinstance(item.get("payload", {}).get(
+                                            "position" if self.blinded_rediscovery else "period"
+                                        ), bool)
+                                    }),
+                                }
+                                if "historical_rediscovery" in self.host_capabilities
+                                else {"type": "number"}
+                            ),
                             "minItems": 2,
                         },
                     },
