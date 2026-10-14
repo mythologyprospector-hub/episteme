@@ -85,33 +85,52 @@ class TracingOllamaPlanner(OllamaPlanner):
         return super().choose(context)
 
 
+def _forecast_matches_source_rule(
+    prediction, hypotheses_by_id, pre_discovery_records,
+    property_key: str, expected_rule_property: str,
+) -> bool:
+    """Independently verify that a numeric forecast is the result of its source rule."""
+    source = hypotheses_by_id.get(prediction.source_id)
+    if source is None or prediction.predicted_numeric_value is None:
+        return False
+    rule = source.get("quantitative_rule")
+    if not isinstance(rule, dict) or rule.get("property") != expected_rule_property:
+        return False
+    computed, _ = _rule_derived_value(rule, pre_discovery_records, property_key)
+    return computed is not None and math.isclose(
+        float(prediction.predicted_numeric_value), computed,
+        rel_tol=1e-12, abs_tol=1e-9,
+    )
+
+
+def _all_forecasts_match_source_rules(
+    predictions, hypotheses_by_id, pre_discovery_records,
+    property_key: str, expected_rule_property: str,
+) -> bool:
+    """Require every stored forecast to be independently reproducible from its source rule."""
+    return bool(predictions) and all(
+        _forecast_matches_source_rule(
+            prediction, hypotheses_by_id, pre_discovery_records,
+            property_key, expected_rule_property,
+        )
+        for prediction in predictions
+    )
+
+
 def _at_least_one_forecast_consistent(
     predictions, evaluations, hypotheses_by_id, pre_discovery_records,
     property_key: str, expected_rule_property: str,
 ) -> bool:
     """Require a consistent evaluation for a forecast independently reproduced from its rule."""
     indexed, integrity_ok = _index_evaluations(predictions, evaluations)
-    if not predictions or not integrity_ok:
-        return False
-    for prediction in predictions:
-        evaluation = indexed[prediction.id]
-        source = hypotheses_by_id.get(prediction.source_id)
-        if source is None or evaluation.outcome is not PredictionEvaluationOutcome.CONSISTENT:
-            continue
-        rule = source.get("quantitative_rule")
-        if not isinstance(rule, dict) or rule.get("property") != expected_rule_property:
-            continue
-        computed, _ = _rule_derived_value(rule, pre_discovery_records, property_key)
-        if (
-            computed is not None
-            and prediction.predicted_numeric_value is not None
-            and math.isclose(
-                float(prediction.predicted_numeric_value), computed,
-                rel_tol=1e-12, abs_tol=1e-9,
-            )
-        ):
-            return True
-    return False
+    return bool(predictions) and integrity_ok and any(
+        indexed[prediction.id].outcome is PredictionEvaluationOutcome.CONSISTENT
+        and _forecast_matches_source_rule(
+            prediction, hypotheses_by_id, pre_discovery_records,
+            property_key, expected_rule_property,
+        )
+        for prediction in predictions
+    )
 
 def _rule_derived_value(rule, pre_discovery_records, property_key: str) -> tuple[float | None, str]:
     """Independently compute supported rule operations from pre-discovery observations."""
@@ -326,22 +345,9 @@ def run_case(model: str, timeout: float, property_key: str, blinded: bool) -> tu
             for hypothesis in context["hypotheses"]
         }
         expected_rule_property = "property_P" if blinded else property_key
-        forecast_rules_ok = bool(predictions) and all(
-            prediction.source_id in hypotheses_by_id
-            and isinstance(hypotheses_by_id[prediction.source_id].get("quantitative_rule"), dict)
-            and hypotheses_by_id[prediction.source_id]["quantitative_rule"].get("property") == expected_rule_property
-            and (
-                (computed := _rule_derived_value(
-                    hypotheses_by_id[prediction.source_id]["quantitative_rule"],
-                    fixture.pre_discovery_records,
-                    property_key,
-                )[0]) is not None
-            )
-            and math.isclose(
-                float(prediction.predicted_numeric_value), computed,
-                rel_tol=1e-12, abs_tol=1e-9,
-            )
-            for prediction in predictions
+        forecast_rules_ok = _all_forecasts_match_source_rules(
+            predictions, hypotheses_by_id, fixture.pre_discovery_records,
+            property_key, expected_rule_property,
         )
         successful_forecast = (
             evaluation_integrity_ok
