@@ -66,6 +66,7 @@ class OllamaPlanner:
         base_url: str = "http://127.0.0.1:11434",
         timeout: float = 120.0,
         transport: Transport | None = None,
+        think: bool | None = None,
         evidence_capabilities: tuple[str, ...] = (),
         host_capabilities: tuple[str, ...] = (),
         rediscovery_property: str = "relative_atomic_mass",
@@ -79,6 +80,7 @@ class OllamaPlanner:
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
         self._transport = transport
+        self.think = think
         self.evidence_capabilities = tuple(evidence_capabilities)
         self.host_capabilities = tuple(host_capabilities)
         self.rediscovery_property = rediscovery_property
@@ -547,7 +549,7 @@ class OllamaPlanner:
             schema["properties"].pop("expected_presences", None)
             schema["properties"].pop("predicted_numeric_value", None)
 
-        return {
+        payload = {
             "model": self.model,
             "stream": False,
             "format": schema,
@@ -559,6 +561,10 @@ class OllamaPlanner:
                 },
             ],
         }
+        # None preserves Ollama's model default; True/False explicitly select thinking mode.
+        if self.think is not None:
+            payload["think"] = self.think
+        return payload
 
     def _request(self, payload: dict[str, Any]) -> dict[str, Any]:
         request = Request(
