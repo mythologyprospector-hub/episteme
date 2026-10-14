@@ -147,6 +147,8 @@ A competing-hypothesis case passes its forecast criterion when at least one fore
 
 The evaluator distinguishes four diagnostic verdicts: `beats_baseline`, `ties_baseline`, `worse_than_baseline`, and `outside_tolerance`. A tie may satisfy the no-worse-than-baseline condition, but it is explicitly **not** evidence of improvement over the baseline.
 
+The automated test suite also contains a host-only positive control: for each registered property, a supported rule computed solely from pre-discovery inputs can meet the registered tolerance and match or beat the midpoint baseline. These control rules are used only to test the evaluator and are never inserted into the planner's prompt or discovery context.
+
 The initial tolerance is 5% relative error, registered before the held-out value is exposed. This makes a forecast such as 73.4 against a held-out value near 72.6 consistent, while still requiring the same fixed rule for every run.
 
 Before a forecast can qualify for acceptance, the host independently recomputes its value from the source hypothesis's quantitative rule and the pre-discovery records. Every forecast must match that computation; unsupported operations, unavailable input positions, a mismatched property label, or a forecast that differs from its declared rule invalidate the case. Model-authored rationale is diagnostic text, not proof of the arithmetic.
