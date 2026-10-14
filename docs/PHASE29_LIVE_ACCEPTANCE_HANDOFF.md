@@ -7,9 +7,9 @@
 - PR: https://github.com/mythologyprospector-hub/episteme/pull/59
 - Branch: `fix/phase29-rule-verification`
 - State: open, draft, unmerged. Keep it that way until the blinded live acceptance criteria pass.
-- Schema-constraint implementation and regression-test commit: `0a5bbd667ccf50ce1f7af61c76f00f45bdfc6fc0`; not yet live-tested.
-- GitHub Actions run #1101 passed on this commit: **356 tests passed**. A green CI run is necessary but not sufficient.
-- Latest Bucky live acceptance tested code at `9e706e9f6cdfaea401b218e112c0399c47dfbcb2` and failed (2026-10-14; `qwen:14b`, blind mode, one run per property, 300-second timeout; exit status 1). The latest implementation has not yet been live-tested.
+- Schema-constraint implementation commit: `0a5bbd667ccf50ce1f7af61c76f00f45bdfc6fc0`; CI #1101 and #1102 passed with **356 tests** before the latest blinded-candidate correction.
+- Latest Bucky live acceptance tested head `5c26b79a4af1223779d8b09ebd15de186811aaa8` (2026-10-14; `qwen:14b`, blind mode, one run per property, 300-second timeout; exit status 1).
+- Root cause identified by code inspection: in blinded mode, candidate generation was asked to read `payload.position` even though it receives host-side observations with the original `payload.period`. That produced an empty candidate list before Ollama could propose a hypothesis. Correction is now committed to the branch, with a regression test; its CI result is pending. Do not live-test this new head until CI passes.
 
 ## Bucky checkout
 
@@ -41,13 +41,12 @@ printf '\n=== Acceptance exit status: %s ===\n' "$test_status"
 
 Result: **OVERALL: FAIL**.
 
-- Relative atomic mass: one host-verified geometric-mean rule using positions `[2, 3]`; competing hypothesis retries repeated the existing rule.
-- Density: one host-verified addition-with-previous-interval rule using positions `[3, 5]`; competing hypothesis retries repeated the existing rule.
-- Melting point: one host-verified geometric-mean rule using positions `[3, 5]`; competing hypothesis retries repeated the existing rule.
-- Each property ended after three attempts with a duplicate-rule rejection. The planner did not recover by choosing a genuinely distinct executable rule.
-- No valid persisted experiment evidence was produced.
-- The acceptance diagnostics reported that not all numeric forecasts matched their independently computed source rules, and no rule-verified forecast met tolerance and matched or beat the baseline.
+- All three properties (`relative atomic mass`, `density`, and `melting point`) ended before any hypothesis was created.
+- Each stopped after three attempts with `no distinct executable quantitative rule is available from the supplied observations`.
+- Action sequence for each property was only `['discover_gap']`; no valid persisted experiment evidence was produced.
+- Quantitative rules and forecasts did not satisfy acceptance; no rule-verified forecast met tolerance and matched or beat the baseline.
 - Held-out values remained hidden and blinded-name checks passed for all three properties.
+- The stop reason came from the host adapter's empty candidate list, not from a model-authored duplicate-rule response. Inspection showed the blinded-mode position-key mismatch described above.
 
 The full local log is at `/tmp/episteme-pr59-acceptance.log` on Bucky; it is not itself a durable GitHub artifact.
 
@@ -58,17 +57,17 @@ The full local log is at `/tmp/episteme-pr59-acceptance.log` on Bucky; it is not
 - Bounded retries for rejected planner actions.
 - Rejection feedback includes structured rejected-action fields (`kind`, `target_ids`, `quantitative_rule`, `predicted_numeric_values`) while deliberately excluding free-form model-authored text.
 - The Ollama prompt's allowed field list includes `quantitative_rule`.
-- New implementation: during historical rediscovery, the planner schema enumerates executable two-position quantitative rule candidates from supplied grounded observations and excludes operation/property/input-position combinations already used by existing hypotheses. Midpoint candidates are limited to positions symmetric around period 4. If no candidate remains, the adapter fails closed instead of asking the model to invent a rule.
+- During historical rediscovery, the planner schema enumerates executable two-position quantitative rule candidates from host-side grounded observations and excludes operation/property/input-position combinations already used by existing hypotheses. Midpoint candidates are limited to positions symmetric around period 4. If no candidate remains, the adapter fails closed instead of asking the model to invent a rule.
+- A blinded-mode mismatch in the host-side position key was found by the latest live acceptance and corrected: candidate generation must read original `period` fields; the model-facing payload alone is renamed to `position`. A regression test covers blinded candidate generation when host observations contain only original payload fields. This correction is committed but its CI run is pending.
 - Host-side quantitative-rule and forecast validation remain authoritative; schema constraints are a prevention layer, not a replacement for validation.
-- Regression tests cover exclusion of a previously used rule and fail-closed behavior when no distinct candidate exists. These changes passed GitHub Actions run #1101 (356 tests). They are not yet live-tested; actual Ollama acceptance of the object-enum schema and model behavior must be verified on Bucky.
 
 The previous retry-feedback change did not fix live behavior: the model repeated a duplicate rule after rejection. Code inspection confirmed that feedback text was passed to Ollama, and the adapter-level test established that the text reached the request. A structural improvement is now committed: `DiscoveryContext` carries rejected action fields separately in `rejected_actions`; the next Ollama request includes this as a machine-readable JSON array, and target IDs are converted to planner handles. The prompt explicitly tells the planner that these rejected proposals are authoritative and must not be repeated. Regression tests cover persistence across retries and serialized structure/handle mapping. CI #1097 passed on commit `013f02a2aba1c8b52c85d54ad1e3c10e2dd09c9b`. This has not yet been live-tested; do not assume it fixes the model behavior. Do not claim that improved feedback alone fixes model behavior.
 
 ## Next work
 
-1. Verify GitHub Actions for head `400e1418599458c4de15a1d52eea6a3cb9057d73`; investigate any failures before proceeding.
-2. If CI passes, inspect the actual generated schema for the supported Ollama structured-output implementation and confirm it accepts the candidate enum shape.
-3. Only after CI and schema compatibility are confirmed, rerun the blinded Bucky live acceptance with the command above.
+1. Verify GitHub Actions for the latest branch head, including the new blinded-mode regression test; investigate any failures before proceeding.
+2. If CI passes, rerun the blinded Bucky live acceptance with the command above.
+3. Confirm the model receives a non-empty candidate enum and proceeds through two distinct hypotheses, predictions, and the bounded experiment. Do not treat progress alone as acceptance; all existing success criteria must pass.
 4. Record the outcome in the PR discussion and update this handoff when the state changes.
 
 ## Non-negotiable constraints
