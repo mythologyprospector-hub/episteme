@@ -353,3 +353,62 @@ def test_rediscovery_diagnostic_does_not_guess_unsupported_or_unavailable_rules(
     )
     assert value is None
     assert "unsupported operation" in detail
+
+
+
+def test_phase29_acceptance_requires_forecast_to_match_a_host_computed_source_rule():
+    from types import SimpleNamespace
+    from scripts.accept_ollama_rediscovery import _forecast_matches_source_rule
+
+    fixture = build_mendeleev_fixture()
+    prediction = SimpleNamespace(
+        id="prediction-1",
+        source_id="hypothesis-1",
+        predicted_numeric_value=73.3975,
+    )
+    hypotheses = {
+        "hypothesis-1": {
+            "quantitative_rule": {
+                "operation": "midpoint",
+                "property": "property_P",
+                "input_positions": [3, 5],
+            }
+        }
+    }
+
+    assert _forecast_matches_source_rule(
+        prediction, hypotheses, fixture.pre_discovery_records,
+        "relative_atomic_mass", "property_P",
+    )
+
+    hypotheses["hypothesis-1"]["quantitative_rule"]["operation"] = "gap_fill"
+    assert not _forecast_matches_source_rule(
+        prediction, hypotheses, fixture.pre_discovery_records,
+        "relative_atomic_mass", "property_P",
+    )
+
+
+def test_phase29_acceptance_rejects_forecast_that_disagrees_with_its_source_rule():
+    from types import SimpleNamespace
+    from scripts.accept_ollama_rediscovery import _forecast_matches_source_rule
+
+    fixture = build_mendeleev_fixture()
+    prediction = SimpleNamespace(
+        id="prediction-1",
+        source_id="hypothesis-1",
+        predicted_numeric_value=999.0,
+    )
+    hypotheses = {
+        "hypothesis-1": {
+            "quantitative_rule": {
+                "operation": "midpoint",
+                "property": "property_P",
+                "input_positions": [3, 5],
+            }
+        }
+    }
+
+    assert not _forecast_matches_source_rule(
+        prediction, hypotheses, fixture.pre_discovery_records,
+        "relative_atomic_mass", "property_P",
+    )
