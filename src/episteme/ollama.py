@@ -531,7 +531,7 @@ class OllamaPlanner:
             "including prediction, and must be a non-empty string explaining why that action "
             "is the correct next bounded step. Never omit rationale. For example, a prediction "
             "must include kind, target_ids, conditions, consequence or consequences, and "
-            "rationale. The only allowed JSON fields are: kind, target_ids, "
+            "rationale. For ordinary positional discovery, the only allowed JSON fields are: kind, target_ids, "
             "statement, quantitative_rule, consequence, consequences, conditions, objective, "
             "proposed_observation, discrimination_basis, expected_presences, execution_spec, evidence_capability, "
             "evidence_parameters, requested_representation, rationale. Do not invent other field names. A hypothesis action creates a NEW hypothesis about a finding. "
@@ -570,7 +570,7 @@ class OllamaPlanner:
                 "Only average accepts more than two input positions; all other listed operations require exactly two. "
                 "In blinded mode, the selected property is named property_P; use that exact string as the rule property. "
                 "Never invent an operation, property name, or input position. "
-                " For this historical rediscovery contract, the schema forbids "
+                " For this historical rediscovery contract, the only allowed JSON fields are kind, target_ids, statement, quantitative_rule, consequence, consequences, conditions, objective, proposed_observation, discrimination_basis, predicted_numeric_values, execution_spec, evidence_capability, evidence_parameters, requested_representation, and rationale. The schema forbids "
                 "expected_presences and the legacy scalar predicted_numeric_value; "
                 "emit only predicted_numeric_values with one distinct value per hypothesis."
             )
