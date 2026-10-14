@@ -473,7 +473,9 @@ class OllamaPlanner:
                 "addition_with_previous_interval, subtract_difference, difference_subtraction, "
                 "linear_regression, linear_extrapolation, and exponential_regression. "
                 "The rule property must exactly match historical_rediscovery_property in the supplied context. "
-                "Every input position must be present in the supplied pre-discovery observations. "
+                "Every input position must be present in the supplied pre-discovery observations. " +
+                "For the missing period-4 target, midpoint means the arithmetic mean of exactly two observations " +
+                "whose positions are symmetric around 4 (normally [3,5]); do not use arbitrary positions such as [2,5]. "
                 "Only average accepts more than two input positions; all other listed operations require exactly two. "
                 "In blinded mode, the selected property is named property_P; use that exact string as the rule property. "
                 "Never invent an operation, property name, or input position. "
