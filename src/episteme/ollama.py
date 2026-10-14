@@ -56,6 +56,61 @@ def _alias_value(value: Any, aliases: dict[str, str]) -> Any:
     return value
 
 
+_HISTORICAL_RULE_OPERATIONS = (
+    "midpoint", "average", "geometric_mean", "addition_with_previous_interval",
+    "subtract_difference", "difference_subtraction", "linear_regression",
+    "linear_extrapolation", "exponential_regression",
+)
+
+
+def _historical_rule_candidates(
+    grounded_observations: tuple[dict[str, Any], ...],
+    hypotheses: tuple[dict[str, Any], ...],
+    *,
+    property_name: str,
+    position_key: str,
+) -> list[dict[str, Any]]:
+    """Return schema-level rule choices supported by inputs and not already used."""
+    positions = sorted({
+        float(item["payload"][position_key])
+        for item in grounded_observations
+        if isinstance(item.get("payload"), Mapping)
+        and isinstance(item["payload"].get(position_key), (int, float))
+        and not isinstance(item["payload"].get(position_key), bool)
+    })
+    existing: set[tuple[str, str, tuple[float, ...]]] = set()
+    for hypothesis in hypotheses:
+        rule = hypothesis.get("quantitative_rule")
+        if not isinstance(rule, Mapping):
+            continue
+        operation, rule_property, inputs = (
+            rule.get("operation"), rule.get("property"), rule.get("input_positions")
+        )
+        if (
+            isinstance(operation, str)
+            and isinstance(rule_property, str)
+            and isinstance(inputs, (list, tuple))
+            and all(isinstance(value, (int, float)) and not isinstance(value, bool) for value in inputs)
+        ):
+            existing.add((operation, rule_property, tuple(sorted(float(value) for value in inputs))))
+
+    candidates: list[dict[str, Any]] = []
+    for index, left in enumerate(positions):
+        for right in positions[index + 1:]:
+            pair = [left, right]
+            for operation in _HISTORICAL_RULE_OPERATIONS:
+                if operation == "midpoint" and left + right != 8.0:
+                    continue
+                if (operation, property_name, tuple(pair)) in existing:
+                    continue
+                candidates.append({
+                    "operation": operation,
+                    "property": property_name,
+                    "input_positions": pair,
+                })
+    return candidates
+
+
 class OllamaPlanner:
     """Ask a local Ollama model for the next bounded discovery action."""
 
@@ -107,12 +162,7 @@ class OllamaPlanner:
                 raise PlannerActionError(
                     "historical rediscovery hypothesis requires a quantitative_rule object"
                 )
-            allowed_operations = {
-                "midpoint", "average", "geometric_mean",
-                "addition_with_previous_interval", "subtract_difference",
-                "difference_subtraction", "linear_regression",
-                "linear_extrapolation", "exponential_regression",
-            }
+            allowed_operations = set(_HISTORICAL_RULE_OPERATIONS)
             if (
                 not isinstance(rule.get("operation"), str)
                 or rule["operation"] not in allowed_operations
@@ -413,6 +463,26 @@ class OllamaPlanner:
                 "stop",
             ]
 
+        historical_rule_candidates: list[dict[str, Any]] | None = None
+        if (
+            "historical_rediscovery" in self.host_capabilities
+            and pending_findings
+            and context.grounded_observations
+        ):
+            property_name = "property_P" if self.blinded_rediscovery else self.rediscovery_property
+            position_key = "position" if self.blinded_rediscovery else "period"
+            historical_rule_candidates = _historical_rule_candidates(
+                context.grounded_observations,
+                context.hypotheses,
+                property_name=property_name,
+                position_key=position_key,
+            )
+            if not historical_rule_candidates:
+                raise PlannerActionError(
+                    "no distinct executable quantitative rule is available from the supplied observations; "
+                    "the host will not invent a competing hypothesis"
+                )
+
         target_ids_schema: dict[str, Any] = {"type": "array", "items": {"type": "string"}}
         if target_id_candidates:
             target_ids_schema["items"] = {
@@ -577,16 +647,16 @@ class OllamaPlanner:
                 "statement": {"type": "string"},
                 "quantitative_rule": {
                     "type": "object",
+                    **(
+                        {"enum": historical_rule_candidates}
+                        if historical_rule_candidates is not None
+                        else {}
+                    ),
                     "properties": {
                         "operation": (
                             {
                                 "type": "string",
-                                "enum": [
-                                    "midpoint", "average", "geometric_mean",
-                                    "addition_with_previous_interval", "subtract_difference",
-                                    "difference_subtraction", "linear_regression",
-                                    "linear_extrapolation", "exponential_regression",
-                                ],
+                                "enum": list(_HISTORICAL_RULE_OPERATIONS),
                             }
                             if "historical_rediscovery" in self.host_capabilities
                             else {"type": "string", "minLength": 1}
