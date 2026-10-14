@@ -1128,3 +1128,58 @@ def test_ollama_receives_structured_host_rejection_feedback_for_retry():
         }
     ]
     assert "opaque-finding-id" not in json.dumps(decoded["rejected_actions"])
+
+def test_ollama_rejected_numeric_forecasts_use_model_handles():
+    payload = {}
+
+    def transport(request):
+        payload.update(request)
+        return {"message": {"content": json.dumps({
+            "kind": "prediction",
+            "target_ids": ["H1", "H2"],
+            "conditions": "bounded historical fixture",
+            "consequence": "the competing rules produce distinct forecasts",
+            "predicted_numeric_values": {"H1": 37.7, "H2": 4.8},
+            "rationale": "Revise the rejected forecasts using the supplied rule evidence.",
+        })}}
+
+    context = DiscoveryContext(
+        grounded_input_ids=(),
+        findings=(),
+        hypotheses=(
+            {"id": "hypothesis-1"},
+            {"id": "hypothesis-2"},
+        ),
+        predictions=(),
+        experiments=(),
+        actions_taken=(),
+        rejected_actions=(
+            {
+                "kind": "prediction",
+                "target_ids": ("hypothesis-1", "hypothesis-2"),
+                "predicted_numeric_values": {
+                    "hypothesis-1": 0.6,
+                    "hypothesis-2": 0.9,
+                },
+            },
+        ),
+    )
+
+    OllamaPlanner(
+        "qwen:14b",
+        transport=transport,
+        host_capabilities=("historical_rediscovery",),
+    ).choose(context)
+
+    decoded = json.loads(payload["messages"][1]["content"])
+    assert decoded["rejected_actions"] == [
+        {
+            "kind": "prediction",
+            "target_ids": ["H1", "H2"],
+            "quantitative_rule": None,
+            "predicted_numeric_values": {"H1": 0.6, "H2": 0.9},
+        }
+    ]
+    assert "hypothesis-1" not in payload["messages"][1]["content"]
+    assert "hypothesis-2" not in payload["messages"][1]["content"]
+
