@@ -911,6 +911,11 @@ def run_autonomous_discovery(
                 tuple(feedback),
             )
 
+            # A rejected proposal is not persisted, so preserve its details in
+            # the retry feedback rather than expecting the next context snapshot
+            # to contain it. Reset on every attempt so planner errors cannot
+            # accidentally describe an earlier action.
+            action = None
             try:
                 action = planner.choose(context)
                 if not isinstance(action, DiscoveryAction):
@@ -1052,10 +1057,33 @@ def run_autonomous_discovery(
                         steps=tuple(steps),
                         stop_reason=f"planner action failed after {attempt + 1} attempts: {exc}",
                     )
-                feedback.append(
+                feedback_item = (
                     f"The previous proposed action was rejected: {exc}. "
                     "Choose a corrected action that satisfies the supplied action contract."
                 )
+                if isinstance(action, DiscoveryAction):
+                    rejected_action = {
+                        "kind": action.kind,
+                        "target_ids": list(action.target_ids),
+                        "statement": action.statement,
+                        "quantitative_rule": (
+                            dict(action.quantitative_rule)
+                            if action.quantitative_rule is not None
+                            else None
+                        ),
+                        "predicted_numeric_values": (
+                            dict(action.predicted_numeric_values)
+                            if action.predicted_numeric_values is not None
+                            else None
+                        ),
+                        "rationale": action.rationale,
+                    }
+                    feedback_item += (
+                        " Rejected action details (JSON): "
+                        f"{canonical_json(rejected_action)}. "
+                        "Correct the specific rejected fields; do not repeat the same proposal."
+                    )
+                feedback.append(feedback_item)
                 continue
 
             feedback.clear()
