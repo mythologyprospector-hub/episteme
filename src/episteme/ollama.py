@@ -359,7 +359,7 @@ class OllamaPlanner:
                         else None
                     ),
                     "predicted_numeric_values": (
-                        dict(item["predicted_numeric_values"])
+                        _alias_value(dict(item["predicted_numeric_values"]), aliases)
                         if isinstance(item.get("predicted_numeric_values"), Mapping)
                         else None
                     ),
