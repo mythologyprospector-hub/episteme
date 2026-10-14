@@ -163,6 +163,10 @@ def test_historical_rediscovery_prompt_forbids_repeating_competing_rules():
     assert "inspect every existing hypothesis and its quantitative_rule" in system_prompt
     assert "Never reuse an existing rule with the same operation, property, and input_positions" in system_prompt
     assert "a rejected duplicate must be corrected, not repeated" in system_prompt
+    assert "Rule arity is strict" in system_prompt
+    assert "`average` may use two or more input positions" in system_prompt
+    assert "every other supported operation" in system_prompt
+    assert "Never submit extra positions to a two-input operation" in system_prompt
 
 
 def test_ollama_schema_exposes_request_evidence_action():
