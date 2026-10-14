@@ -52,6 +52,15 @@ Result: **OVERALL: FAIL**.
 
 The full local log is at `/tmp/episteme-pr59-acceptance.log` on Bucky; it is not itself a durable GitHub artifact.
 
+## Prompt/schema correction (2026-10-14; current head `7cf01cbd137d9c672db25b51457d35018bcbbf4d`)
+
+The latest live run on `7a6782c` still failed because forecasts contradicted their declared source rules. Inspection then found that the prompt's generic allowed-field list conflicted with the historical-rediscovery schema: it omitted required `predicted_numeric_values` while mentioning fields that this capability forbids.
+
+- Commit `b02dddb5a0c41b003e4d74e4fabd7a1c92ebaa85` began clarifying the field contract; follow-up commit `49a08a4633bd27ea93bbcc75460e8e2fd85ca1b7` makes the allowed-field list capability-specific.
+- Regression coverage was added in `a5cb062017fca701b551c0e715bf1dd3ac2781b3`; CI #1113 exposed a test assertion that confused the singular and plural field names by substring. The test now compares exact comma-separated field names in commit `7cf01cbd137d9c672db25b51457d35018bcbbf4d`.
+- GitHub Actions run #1114 passed the full test suite (358 tests): https://github.com/mythologyprospector-hub/episteme/actions/runs/38567710664.
+- This is a prompt-contract correction, not proof that the model's arithmetic failure is solved. The unchanged blinded live acceptance has **not** yet been rerun on this head. Next step: rerun it on Bucky with the same model, blind setting, run count, timeout, and acceptance script. Keep PR draft/unmerged until all live criteria pass.
+
 ## What the branch already enforces
 
 - Host-side quantitative-rule validation before hypothesis persistence.
@@ -68,8 +77,8 @@ The previous retry-feedback change did not fix live behavior: the model repeated
 
 ## Next work
 
-1. GitHub Actions run #1109 passed for branch head `06ebe54d25c393abf621c0cb48e937326c6eef91`, including the new rejected-forecast handle-mapping regression test.
-2. Rerun the exact blinded Bucky live acceptance unchanged. Confirm whether correctly keyed structured rejection feedback lets the model revise each forecast and complete the bounded experiment.
+1. GitHub Actions run #1114 passed on current head `7cf01cbd137d9c672db25b51457d35018bcbbf4d`, including the capability-specific allowed-field regression test.
+2. Rerun the exact blinded Bucky live acceptance unchanged on this head. Use `qwen:14b`, blind mode, one run per property, a 300-second timeout, and the existing acceptance script.
 3. Preserve the boundary that the model authors/selects the forecast; do not silently replace its forecast with a host-computed answer. Do not relax validation or acceptance criteria, and preserve held-out isolation.
 4. If the live run still fails, inspect the new log and diagnose the next evidenced cause before another change. Require all existing acceptance criteria, including valid persisted experiment evidence and a rule-verified forecast meeting tolerance and matching or beating baseline.
 5. Record the outcome in the PR discussion and update this handoff.
@@ -85,7 +94,7 @@ The previous retry-feedback change did not fix live behavior: the model repeated
 
 ## Durable record
 
-CI #1088 passed on handoff commit `9f033b7f3ea239b4659a3f94dfa0872e9a7f0b27`; CI #1091 passed on the adapter-feedback regression test commit `c934abb461a314bd372c649c10edf49ac462fd1a`; CI #1092 passed on handoff update `e17681eb6fb93eb6c5d8dbbfa04135820fccb844`; CI #1097 passed on structured rejected-action feedback commit `013f02a2aba1c8b52c85d54ad1e3c10e2dd09c9b`; CI #1105 passed on blinded-candidate correction commit `c4e73ff325b05a0e9500794dc5c47990bb9ee561`.
+CI #1088 passed on handoff commit `9f033b7f3ea239b4659a3f94dfa0872e9a7f0b27`; CI #1091 passed on the adapter-feedback regression test commit `c934abb461a314bd372c649c10edf49ac462fd1a`; CI #1092 passed on handoff update `e17681eb6fb93eb6c5d8dbbfa04135820fccb844`; CI #1097 passed on structured rejected-action feedback commit `013f02a2aba1c8b52c85d54ad1e3c10e2dd09c9b`; CI #1105 passed on blinded-candidate correction commit `c4e73ff325b05a0e9500794dc5c47990bb9ee561`. CI #1114 passed on current prompt-contract commit `7cf01cbd137d9c672db25b51457d35018bcbbf4d` (358 tests).
 
 The PR discussion contains prior live failures and implementation notes:
 https://github.com/mythologyprospector-hub/episteme/pull/59
