@@ -570,3 +570,74 @@ def test_phase29_acceptance_rejects_forecast_that_disagrees_with_its_source_rule
         prediction, hypotheses, fixture.pre_discovery_records,
         "relative_atomic_mass", "property_P",
     )
+
+
+def test_phase29_hypothesis_validator_rejects_unexecutable_quantitative_rule():
+    import pytest
+    from scripts.accept_ollama_rediscovery import _validate_quantitative_hypothesis_action
+    from episteme.autonomy import DiscoveryAction, PlannerActionError
+    from episteme.store import Store
+
+    fixture = build_mendeleev_fixture()
+    action = DiscoveryAction(
+        kind="hypothesis",
+        target_ids=("finding-one",),
+        statement="A candidate quantitative relationship",
+        quantitative_rule={
+            "operation": "midpoint",
+            "property": "property_P",
+            "input_positions": [2, 2],
+        },
+        rationale="test unexecutable rule",
+    )
+    with Store() as store:
+        for record in fixture.pre_discovery_records:
+            store.put_record(record)
+        store.iter_hypotheses = lambda: iter(())
+        with pytest.raises(PlannerActionError, match="cannot be verified"):
+            _validate_quantitative_hypothesis_action(
+                store,
+                action,
+                tuple(record.id for record in fixture.pre_discovery_records),
+                property_key="relative_atomic_mass",
+                expected_rule_property="property_P",
+            )
+
+
+def test_phase29_hypothesis_validator_rejects_duplicate_competing_quantitative_rule():
+    import pytest
+    from types import SimpleNamespace
+    from scripts.accept_ollama_rediscovery import _validate_quantitative_hypothesis_action
+    from episteme.autonomy import DiscoveryAction, PlannerActionError
+    from episteme.store import Store
+
+    fixture = build_mendeleev_fixture()
+    rule = {
+        "operation": "midpoint",
+        "property": "property_P",
+        "input_positions": [3, 5],
+    }
+    existing = SimpleNamespace(
+        id="hypothesis-existing",
+        finding_ids=("finding-one",),
+        quantitative_rule=rule,
+    )
+    action = DiscoveryAction(
+        kind="hypothesis",
+        target_ids=("finding-one",),
+        statement="A distinct-sounding statement using the same rule",
+        quantitative_rule=dict(rule),
+        rationale="test duplicate rule",
+    )
+    with Store() as store:
+        for record in fixture.pre_discovery_records:
+            store.put_record(record)
+        store.iter_hypotheses = lambda: iter((existing,))
+        with pytest.raises(PlannerActionError, match="distinct quantitative rules"):
+            _validate_quantitative_hypothesis_action(
+                store,
+                action,
+                tuple(record.id for record in fixture.pre_discovery_records),
+                property_key="relative_atomic_mass",
+                expected_rule_property="property_P",
+            )
