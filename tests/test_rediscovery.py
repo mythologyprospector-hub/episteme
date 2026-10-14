@@ -315,6 +315,14 @@ def test_rediscovery_diagnostic_independently_computes_supported_quantitative_ru
     assert math.isclose(midpoint, 73.3975)
     assert detail == "midpoint"
 
+    invalid_midpoint, detail = _rule_derived_value(
+        {"operation": "midpoint", "input_positions": [2, 5]},
+        records,
+        "relative_atomic_mass",
+    )
+    assert invalid_midpoint is None
+    assert "symmetric around the missing target period 4" in detail
+
     average, detail = _rule_derived_value(
         {"operation": "average", "input_positions": [2, 3, 5, 6]},
         records,
