@@ -385,6 +385,9 @@ def test_invalid_action_is_fed_back_to_planner_for_bounded_retry():
         assert planner.calls == 2
         assert planner.feedback_seen
         assert "initial hypothesis before predictions" in planner.feedback_seen[0]
+        assert "Rejected action details (JSON)" in planner.feedback_seen[0]
+        assert '"kind":"experiment"' in planner.feedback_seen[0]
+        assert '"target_ids":["not-a-prediction"]' in planner.feedback_seen[0]
 
 
 def test_execution_spec_rejects_invalid_parameter_shapes():
