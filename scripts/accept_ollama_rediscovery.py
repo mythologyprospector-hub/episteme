@@ -422,7 +422,6 @@ def run_case(model: str, timeout: float, property_key: str, blinded: bool) -> tu
                 f"fixture_held_out_value={held_out_value!r}; "
                 f"matches={observed == held_out_value}"
             )
-        print(f"all numeric forecasts match their independently computed source rules: {forecast_rules_ok}")
         print("forecast diagnostics:")
         for line in _prediction_diagnostic_lines(
             predictions, evaluations_by_prediction, hypotheses_by_id,
@@ -432,7 +431,7 @@ def run_case(model: str, timeout: float, property_key: str, blinded: bool) -> tu
         print(f"action sequence: {kinds}")
         print(f"evaluation records correctly matched by prediction ID: {evaluation_integrity_ok}")
         print(f"persisted experiment evidence valid: {experiment_evidence_ok}")
-        print(f"quantitative rules persisted: {quantitative_rules_ok}")
+        print(f"quantitative rules persisted and host-verifiable: {quantitative_rules_ok}")
         print(f"all numeric forecasts match their independently computed source rules: {forecast_rules_ok}")
         print(
             "at least one rule-verified forecast met tolerance and matched or beat baseline: "
