@@ -388,6 +388,156 @@ def test_phase29_acceptance_requires_forecast_to_match_a_host_computed_source_ru
     )
 
 
+def test_phase29_runtime_validator_accepts_correct_rule_forecast_without_reading_held_out_record():
+    from types import SimpleNamespace
+    from scripts.accept_ollama_rediscovery import _validate_numeric_prediction_action
+    from episteme.autonomy import DiscoveryAction
+    from episteme.store import Store
+
+    fixture = build_mendeleev_fixture()
+    hypothesis = SimpleNamespace(
+        id="hypothesis-one",
+        quantitative_rule={
+            "operation": "midpoint",
+            "property": "property_P",
+            "input_positions": [3, 5],
+        },
+    )
+    with Store() as store:
+        for record in fixture.pre_discovery_records + (fixture.held_out_record,):
+            store.put_record(record)
+        store.iter_hypotheses = lambda: iter((hypothesis,))
+        action = DiscoveryAction(
+            kind="prediction",
+            target_ids=(hypothesis.id,),
+            conditions="bounded historical fixture",
+            consequence="numeric forecast",
+            predicted_numeric_values={hypothesis.id: 73.3975},
+            rationale="arithmetic follows the declared midpoint rule",
+        )
+        _validate_numeric_prediction_action(
+            store,
+            action,
+            tuple(record.id for record in fixture.pre_discovery_records),
+            property_key="relative_atomic_mass",
+            expected_rule_property="property_P",
+        )
+
+
+def test_phase29_runtime_validator_rejects_wrong_forecast_with_corrective_feedback():
+    import pytest
+    from types import SimpleNamespace
+    from scripts.accept_ollama_rediscovery import _validate_numeric_prediction_action
+    from episteme.autonomy import DiscoveryAction, PlannerActionError
+    from episteme.store import Store
+
+    fixture = build_mendeleev_fixture()
+    hypothesis = SimpleNamespace(
+        id="hypothesis-one",
+        quantitative_rule={
+            "operation": "midpoint",
+            "property": "property_P",
+            "input_positions": [3, 5],
+        },
+    )
+    with Store() as store:
+        for record in fixture.pre_discovery_records:
+            store.put_record(record)
+        store.iter_hypotheses = lambda: iter((hypothesis,))
+        action = DiscoveryAction(
+            kind="prediction",
+            target_ids=(hypothesis.id,),
+            conditions="bounded historical fixture",
+            consequence="numeric forecast",
+            predicted_numeric_values={hypothesis.id: 42.0},
+            rationale="deliberately incorrect forecast",
+        )
+        with pytest.raises(PlannerActionError, match=r"proposed 42.*computes 73.3975"):
+            _validate_numeric_prediction_action(
+                store,
+                action,
+                tuple(record.id for record in fixture.pre_discovery_records),
+                property_key="relative_atomic_mass",
+                expected_rule_property="property_P",
+            )
+
+
+def test_phase29_runtime_validator_fails_closed_for_unavailable_rule_inputs():
+    import pytest
+    from types import SimpleNamespace
+    from scripts.accept_ollama_rediscovery import _validate_numeric_prediction_action
+    from episteme.autonomy import DiscoveryAction, PlannerActionError
+    from episteme.store import Store
+
+    fixture = build_mendeleev_fixture()
+    hypothesis = SimpleNamespace(
+        id="hypothesis-one",
+        quantitative_rule={
+            "operation": "midpoint",
+            "property": "property_P",
+            "input_positions": [3, 4],
+        },
+    )
+    with Store() as store:
+        for record in fixture.pre_discovery_records:
+            store.put_record(record)
+        store.iter_hypotheses = lambda: iter((hypothesis,))
+        action = DiscoveryAction(
+            kind="prediction",
+            target_ids=(hypothesis.id,),
+            conditions="bounded historical fixture",
+            consequence="numeric forecast",
+            predicted_numeric_values={hypothesis.id: 42.0},
+            rationale="unavailable rule input test",
+        )
+        with pytest.raises(PlannerActionError, match="cannot be verified from permitted pre-discovery"):
+            _validate_numeric_prediction_action(
+                store,
+                action,
+                tuple(record.id for record in fixture.pre_discovery_records),
+                property_key="relative_atomic_mass",
+                expected_rule_property="property_P",
+            )
+
+
+def test_phase29_runtime_validator_rejects_untrusted_property_mapping():
+    import pytest
+    from types import SimpleNamespace
+    from scripts.accept_ollama_rediscovery import _validate_numeric_prediction_action
+    from episteme.autonomy import DiscoveryAction, PlannerActionError
+    from episteme.store import Store
+
+    fixture = build_mendeleev_fixture()
+    hypothesis = SimpleNamespace(
+        id="hypothesis-one",
+        quantitative_rule={
+            "operation": "midpoint",
+            "property": "relative_atomic_mass",
+            "input_positions": [3, 5],
+        },
+    )
+    with Store() as store:
+        for record in fixture.pre_discovery_records:
+            store.put_record(record)
+        store.iter_hypotheses = lambda: iter((hypothesis,))
+        action = DiscoveryAction(
+            kind="prediction",
+            target_ids=(hypothesis.id,),
+            conditions="blinded historical fixture",
+            consequence="numeric forecast",
+            predicted_numeric_values={hypothesis.id: 73.3975},
+            rationale="mapping must be host-controlled",
+        )
+        with pytest.raises(PlannerActionError, match="no verified rule for host-mapped property"):
+            _validate_numeric_prediction_action(
+                store,
+                action,
+                tuple(record.id for record in fixture.pre_discovery_records),
+                property_key="relative_atomic_mass",
+                expected_rule_property="property_P",
+            )
+
+
 def test_phase29_acceptance_rejects_forecast_that_disagrees_with_its_source_rule():
     from types import SimpleNamespace
     from scripts.accept_ollama_rediscovery import _forecast_matches_source_rule
