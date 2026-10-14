@@ -918,3 +918,46 @@ def test_historical_rediscovery_rejects_unverifiable_quantitative_rules(
     )
     with pytest.raises(PlannerActionError, match=message):
         planner.choose(context)
+
+
+
+def test_ollama_receives_structured_host_rejection_feedback_for_retry():
+    payload = {}
+    rejection = (
+        "The previous proposed action was rejected: competing hypotheses must use distinct "
+        "quantitative rules. Choose a corrected action. Rejected action details (JSON): "
+        '{"kind":"hypothesis","target_ids":["opaque-finding-id"],'
+        '"quantitative_rule":{"operation":"geometric_mean","property":"property_P",'
+        '"input_positions":[3,5]},"predicted_numeric_values":null}. '
+        "Correct the specific rejected fields; do not repeat the same proposal."
+    )
+
+    def transport(request):
+        payload.update(request)
+        return {
+            "message": {
+                "content": json.dumps({
+                    "kind": "stop",
+                    "rationale": "This fixture only verifies retry-feedback transport.",
+                })
+            }
+        }
+
+    context = DiscoveryContext(
+        grounded_input_ids=(),
+        findings=({"id": "opaque-finding-id", "kind": "gap"},),
+        hypotheses=({"id": "hypothesis-1", "finding_ids": ("opaque-finding-id",)},),
+        predictions=(),
+        experiments=(),
+        actions_taken=(),
+        feedback=(rejection,),
+    )
+
+    OllamaPlanner("qwen3:8b", transport=transport).choose(context)
+    user_payload = payload["messages"][1]["content"]
+    decoded = json.loads(user_payload)
+
+    assert decoded["feedback"] == [rejection]
+    assert "competing hypotheses must use distinct quantitative rules" in user_payload
+    assert '"operation":"geometric_mean"' in user_payload
+    assert '"input_positions":[3,5]' in user_payload
