@@ -149,6 +149,10 @@ The evaluator distinguishes four diagnostic verdicts: `beats_baseline`, `ties_ba
 
 The initial tolerance is 5% relative error, registered before the held-out value is exposed. This makes a forecast such as 73.4 against a held-out value near 72.6 consistent, while still requiring the same fixed rule for every run.
 
+Before a forecast can qualify for acceptance, the host independently recomputes its value from the source hypothesis's quantitative rule and the pre-discovery records. Every forecast must match that computation; unsupported operations, unavailable input positions, a mismatched property label, or a forecast that differs from its declared rule invalidate the case. Model-authored rationale is diagnostic text, not proof of the arithmetic.
+
+In blinded mode, the model-facing context exposes the selected measurement under the opaque property label `property_P`. It must use that exact label in the hypothesis rule; the internal property key remains host-side.
+
 The benchmark reports, for every prediction:
 
 - held-out value;
