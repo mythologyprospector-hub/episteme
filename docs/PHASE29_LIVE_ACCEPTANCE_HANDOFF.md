@@ -7,9 +7,10 @@
 - PR: https://github.com/mythologyprospector-hub/episteme/pull/59
 - Branch: `fix/phase29-rule-verification`
 - State: open, draft, unmerged. Keep it that way until the blinded live acceptance criteria pass.
-- Schema-constraint implementation commit: `0a5bbd667ccf50ce1f7af61c76f00f45bdfc6fc0`; CI #1101 and #1102 passed with **356 tests** before the latest blinded-candidate correction.
-- Latest Bucky live acceptance tested head `5c26b79a4af1223779d8b09ebd15de186811aaa8` (2026-10-14; `qwen:14b`, blind mode, one run per property, 300-second timeout; exit status 1).
-- Root cause identified by code inspection: in blinded mode, candidate generation was asked to read `payload.position` even though it receives host-side observations with the original `payload.period`. That produced an empty candidate list before Ollama could propose a hypothesis. Correction is now committed to the branch, with a regression test; its CI result is pending. Do not live-test this new head until CI passes.
+- Schema-constraint implementation commit: `0a5bbd667ccf50ce1f7af61c76f00f45bdfc6fc0`; CI #1101 and #1102 passed with **356 tests** before the blinded-candidate correction.
+- Candidate-key correction commit: `c4e73ff325b05a0e9500794dc5c47990bb9ee561`; GitHub Actions run #1105 passed: https://github.com/mythologyprospector-hub/episteme/actions/runs/38548444634.
+- Latest Bucky live acceptance tested head `c4e73ff325b05a0e9500794dc5c47990bb9ee561` on 2026-10-14 (`qwen:14b`, blind mode, one run per property, 300-second timeout; exit status 1).
+- The candidate-key correction worked: candidate rules were generated and host-verified hypotheses were persisted. The next failure is model arithmetic: each run proposed numeric forecasts that contradicted the declared source rule, so host validation rejected them after bounded retries. No valid experiment evidence was persisted. Keep PR draft/unmerged.
 
 ## Bucky checkout
 
@@ -24,7 +25,7 @@ git status --short --branch
 
 Use this worktree for PR #59. Do not work in the main clone `~/projects/episteme` as a substitute. The main clone has previously had an unrelated untracked `uv.lock`; leave it untouched. Also leave the unrelated PR43 worktree `~/projects/.worktrees/episteme/episteme-pr43-test` untouched.
 
-## Latest live result
+## Latest live result (2026-10-14; branch head `c4e73ff`)
 
 Run command:
 
@@ -41,12 +42,12 @@ printf '\n=== Acceptance exit status: %s ===\n' "$test_status"
 
 Result: **OVERALL: FAIL**.
 
-- All three properties (`relative atomic mass`, `density`, and `melting point`) ended before any hypothesis was created.
-- Each stopped after three attempts with `no distinct executable quantitative rule is available from the supplied observations`.
-- Action sequence for each property was only `['discover_gap']`; no valid persisted experiment evidence was produced.
-- Quantitative rules and forecasts did not satisfy acceptance; no rule-verified forecast met tolerance and matched or beat the baseline.
-- Held-out values remained hidden and blinded-name checks passed for all three properties.
-- The stop reason came from the host adapter's empty candidate list, not from a model-authored duplicate-rule response. Inspection showed the blinded-mode position-key mismatch described above.
+- All three properties created two host-verified hypotheses, confirming that blinded candidate generation now works.
+- Each then failed to provide forecasts consistent with the source rules. Examples: relative atomic mass proposed `134.5` where its declared geometric-mean rule computes `37.7585367831`; density proposed `0.6` where its declared midpoint rule computes `4.8083`; melting point proposed `0.9` where its declared midpoint rule computes `822.964`.
+- The host rejected inconsistent forecasts after bounded retries. Action sequence for every property was `['discover_gap', 'hypothesis', 'hypothesis']`; no valid persisted experiment evidence was produced.
+- Rules themselves were persisted and host-verifiable, but numeric forecasts did not all match their independently computed source rules and no forecast met acceptance tolerance while matching or beating baseline.
+- Held-out values remained hidden and blinded names remained hidden for all three properties.
+- This is a new failure mode after the candidate-key fix: the model can select valid rule candidates but does not reliably execute their arithmetic. Do not weaken validation or substitute host-computed values for model-authored forecasts.
 
 The full local log is at `/tmp/episteme-pr59-acceptance.log` on Bucky; it is not itself a durable GitHub artifact.
 
@@ -58,17 +59,18 @@ The full local log is at `/tmp/episteme-pr59-acceptance.log` on Bucky; it is not
 - Rejection feedback includes structured rejected-action fields (`kind`, `target_ids`, `quantitative_rule`, `predicted_numeric_values`) while deliberately excluding free-form model-authored text.
 - The Ollama prompt's allowed field list includes `quantitative_rule`.
 - During historical rediscovery, the planner schema enumerates executable two-position quantitative rule candidates from host-side grounded observations and excludes operation/property/input-position combinations already used by existing hypotheses. Midpoint candidates are limited to positions symmetric around period 4. If no candidate remains, the adapter fails closed instead of asking the model to invent a rule.
-- A blinded-mode mismatch in the host-side position key was found by the latest live acceptance and corrected: candidate generation must read original `period` fields; the model-facing payload alone is renamed to `position`. A regression test covers blinded candidate generation when host observations contain only original payload fields. This correction is committed but its CI run is pending.
+- A blinded-mode mismatch in the host-side position key was corrected: candidate generation reads original `period` fields; only the model-facing payload is renamed to `position`. Regression test is included and CI #1105 passed. The subsequent live run confirmed candidates are generated.
 - Host-side quantitative-rule and forecast validation remain authoritative; schema constraints are a prevention layer, not a replacement for validation.
 
 The previous retry-feedback change did not fix live behavior: the model repeated a duplicate rule after rejection. Code inspection confirmed that feedback text was passed to Ollama, and the adapter-level test established that the text reached the request. A structural improvement is now committed: `DiscoveryContext` carries rejected action fields separately in `rejected_actions`; the next Ollama request includes this as a machine-readable JSON array, and target IDs are converted to planner handles. The prompt explicitly tells the planner that these rejected proposals are authoritative and must not be repeated. Regression tests cover persistence across retries and serialized structure/handle mapping. CI #1097 passed on commit `013f02a2aba1c8b52c85d54ad1e3c10e2dd09c9b`. This has not yet been live-tested; do not assume it fixes the model behavior. Do not claim that improved feedback alone fixes model behavior.
 
 ## Next work
 
-1. Verify GitHub Actions for the latest branch head, including the new blinded-mode regression test; investigate any failures before proceeding.
-2. If CI passes, rerun the blinded Bucky live acceptance with the command above.
-3. Confirm the model receives a non-empty candidate enum and proceeds through two distinct hypotheses, predictions, and the bounded experiment. Do not treat progress alone as acceptance; all existing success criteria must pass.
-4. Record the outcome in the PR discussion and update this handoff when the state changes.
+1. Diagnose why the model-authored `predicted_numeric_values` do not match the independently computed values for their selected source rules. Inspect the prediction schema, host validator, retry context, and focused tests before changing behavior.
+2. Preserve the boundary that the model authors/selects the forecast; do not silently replace its forecast with a host-computed answer. Host-computed rule results may be used for validation and safe explanatory feedback, but any design change must preserve a meaningful model-authored decision and held-out isolation.
+3. Add regression tests for the observed arithmetic-rejection path and retry behavior. Run GitHub Actions before any new Bucky live test.
+4. Rerun the exact blinded live acceptance only after CI passes. Require all current acceptance criteria, including valid persisted experiment evidence and a rule-verified forecast meeting tolerance and matching or beating baseline.
+5. Record the result in the PR discussion and update this handoff.
 
 ## Non-negotiable constraints
 
@@ -81,7 +83,7 @@ The previous retry-feedback change did not fix live behavior: the model repeated
 
 ## Durable record
 
-CI #1088 passed on handoff commit `9f033b7f3ea239b4659a3f94dfa0872e9a7f0b27`; CI #1091 passed on the adapter-feedback regression test commit `c934abb461a314bd372c649c10edf49ac462fd1a`; CI #1092 passed on handoff update `e17681eb6fb93eb6c5d8dbbfa04135820fccb844`; CI #1097 passed on structured rejected-action feedback commit `013f02a2aba1c8b52c85d54ad1e3c10e2dd09c9b`.
+CI #1088 passed on handoff commit `9f033b7f3ea239b4659a3f94dfa0872e9a7f0b27`; CI #1091 passed on the adapter-feedback regression test commit `c934abb461a314bd372c649c10edf49ac462fd1a`; CI #1092 passed on handoff update `e17681eb6fb93eb6c5d8dbbfa04135820fccb844`; CI #1097 passed on structured rejected-action feedback commit `013f02a2aba1c8b52c85d54ad1e3c10e2dd09c9b`; CI #1105 passed on blinded-candidate correction commit `c4e73ff325b05a0e9500794dc5c47990bb9ee561`.
 
 The PR discussion contains prior live failures and implementation notes:
 https://github.com/mythologyprospector-hub/episteme/pull/59
